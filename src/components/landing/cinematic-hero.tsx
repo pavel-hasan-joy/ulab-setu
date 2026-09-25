@@ -90,7 +90,7 @@ export function CinematicHero() {
               width={1034}
               height={1553}
               priority
-              className="h-auto w-full drop-shadow-[0_24px_40px_rgba(22,41,74,0.25)] [mask-image:linear-gradient(to_bottom,black_86%,transparent)]"
+              className="h-auto w-full [mask-image:linear-gradient(to_bottom,black_86%,transparent)]"
             />
           </div>
         </motion.div>

@@ -19,6 +19,7 @@ async function newPage(viewport = { width: 1440, height: 900 }) {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
   page.on("console", (m) => m.type() === "error" && errors.push(`console: ${m.text()}`));
+  page.on("response", (r) => r.status() >= 400 && errors.push(`http ${r.status()}: ${r.url()}`));
   return page;
 }
 async function login(page, email) {
@@ -116,6 +117,52 @@ await step("scroll story shows one step at a time", async () => {
     const ops = await p.evaluate((s) => [...document.querySelectorAll(s + " .absolute.inset-0")].map((e) => +getComputedStyle(e).opacity), sec);
     expect(ops.findIndex((o) => o > 0.9) === want && ops.filter((o) => o > 0.1).length === 1, `at ${f}: ${ops}`);
   }
+});
+
+// Installable app (PWA)
+await step("PWA: manifest and icons are served", async () => {
+  const p = await newPage();
+  const res = await p.goto(`${BASE}/manifest.webmanifest`);
+  const m = await res.json();
+  expect(m.display === "standalone" && m.short_name === "Setu", "manifest fields wrong");
+  expect(m.icons.some((i) => i.purpose === "maskable"), "no maskable icon");
+  for (const i of m.icons) {
+    const r = await p.request.get(BASE + i.src);
+    expect(r.ok(), `icon ${i.src} returned ${r.status()}`);
+  }
+  await p.goto(BASE);
+  expect(await p.locator('link[rel="manifest"]').count() === 1, "manifest not linked");
+  expect(await p.locator('link[rel="apple-touch-icon"]').count() >= 1, "apple-touch-icon missing");
+});
+await step("PWA: service worker shows the offline page without internet", async () => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p = await ctx.newPage();
+  await p.goto(BASE);
+  await p.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await p.reload(); // now controlled by the service worker
+  await p.waitForTimeout(500);
+  await ctx.setOffline(true);
+  await p.goto(`${BASE}/login`).catch(() => {});
+  await p.waitForSelector("text=You're offline", { timeout: 8000 });
+  await shot(p, "01e-offline");
+  await ctx.setOffline(false);
+  await ctx.close();
+});
+await step("PWA: iPhone visitors get Add to Home Screen steps", async () => {
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+  });
+  const p = await ctx.newPage();
+  await p.goto(BASE);
+  await p.waitForSelector('[role="dialog"][aria-label="Install Setu"]', { timeout: 8000 });
+  expect(await p.locator("text=Add to Home Screen").count() === 1, "iOS steps missing");
+  await shot(p, "01f-install-ios");
+  await p.click('button[aria-label="Not now"]');
+  await p.reload();
+  await p.waitForTimeout(5000);
+  expect(await p.locator('[role="dialog"][aria-label="Install Setu"]').count() === 0, "prompt came back after dismissing");
+  await ctx.close();
 });
 
 // Student signup

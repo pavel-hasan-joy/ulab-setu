@@ -81,10 +81,10 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 md:px-10 md:pb-16 md:pt-10">{children}</main>
+      <main className="mx-auto w-full max-w-5xl px-4 pb-[calc(env(safe-area-inset-bottom)+7rem)] pt-6 md:px-10 md:pb-16 md:pt-10">{children}</main>
 
       {/* Bottom nav (mobile) */}
-      <nav data-bottom-nav className="fixed inset-x-3 bottom-3 z-40 flex justify-around rounded-2xl border border-mist bg-surface/95 p-1.5 shadow-lift backdrop-blur md:hidden">
+      <nav data-bottom-nav style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }} className="fixed inset-x-3 z-40 flex justify-around rounded-2xl border border-mist bg-surface/95 p-1.5 shadow-lift backdrop-blur md:hidden">
         {nav.slice(0, 5).map((item) => {
           const Icon = icons[item.icon];
           const active = isActive(item.href);

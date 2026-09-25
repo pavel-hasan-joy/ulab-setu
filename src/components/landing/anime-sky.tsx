@@ -36,8 +36,9 @@ export function AnimeSky({ progress, className }: { progress: MotionValue<number
       <div className="absolute inset-0 bg-[linear-gradient(180deg,#070d24_0%,#132150_45%,#2b3470_78%,#57508a_100%)] opacity-0 transition-opacity duration-700 dark:opacity-100" />
 
       {/* Light rays (day only) */}
-      <div className="absolute inset-0 overflow-hidden opacity-60 mix-blend-soft-light dark:opacity-0">
-        <div className="absolute -right-1/4 -top-1/3 h-[160%] w-[90%] origin-top-right animate-[rays_18s_ease-in-out_infinite] bg-[repeating-conic-gradient(from_200deg_at_100%_0%,rgba(255,255,255,0.5)_0deg_4deg,transparent_4deg_11deg)]" />
+      {/* plain translucent white, no blend mode: blending made a visible box around moving layers in Chrome */}
+      <div className="absolute inset-0 overflow-hidden opacity-100 dark:opacity-0">
+        <div className="absolute -right-1/4 -top-1/3 h-[160%] w-[90%] origin-top-right animate-[rays_18s_ease-in-out_infinite] bg-[repeating-conic-gradient(from_200deg_at_100%_0%,rgba(255,255,255,0.16)_0deg_4deg,transparent_4deg_11deg)]" />
       </div>
 
       <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full">

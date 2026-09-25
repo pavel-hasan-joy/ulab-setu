@@ -50,3 +50,7 @@ The suite drives your installed Chrome via playwright-core; screenshots go to `e
 ## Deploying
 
 SQLite is for local use. For production, switch `provider` in `prisma/schema.prisma` to `postgresql`, point `DATABASE_URL` at a hosted Postgres (Supabase or Neon free tier), run `pnpm db:push`, and deploy to Vercel with `AUTH_SECRET`, `DATABASE_URL` and `CAREERJET_API_KEY` set.
+
+## Installable app (PWA)
+
+`src/app/manifest.ts`, the icons in `public/icons/` and `src/app/icon.png` / `apple-icon.png`, and `public/sw.js` make Setu installable from a phone browser (Android: the in-page "Install app" button; iPhone: Share → Add to Home Screen). The service worker only caches built assets and icons and shows `public/offline.html` when there is no connection; pages and data always come from the network. Installing requires the site to be served over HTTPS, so it works once deployed.
