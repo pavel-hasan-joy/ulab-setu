@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `dark:` utilities follow the theme toggle (data-theme on <html>), not just the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* Calm, light palette derived from ULAB's blue (#0072bc) and gold (#f2c118), softened. */
 @theme {
   --color-paper: #f5f8fc;
@@ -18,6 +21,8 @@
   --color-rose: #b85a55;
   --color-rose-wash: #fbeceb;
   --color-lilac-wash: #efedfb;
+  --color-gold-ink: #7a5a06;
+  --color-lilac-ink: #5b4fa8;
 
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
@@ -43,10 +48,78 @@
   50% { transform: translate(0, -14px); }
 }
 
+/* Values that only change with the theme (not Tailwind utilities). */
+:root {
+  --avatar-bg-mix: 100%;
+  --avatar-ink-mix: 100%;
+  --hero-veil: 245 248 252;
+  --scene-building: #dcebf7;
+  --scene-edge: #bcd6ee;
+  --scene-window-off: #f5f8fc;
+  --scene-window-on: #f8dc85;
+  --scene-skyline: #e6eff9;
+  --scene-tree: #cfe6d9;
+  --scene-tree-dark: #b5d7c4;
+  --scene-trunk: #d9c9b0;
+  --scene-ground: #d5e3f1;
+  --scene-path: #dbe7f3;
+  --scene-cloud: #ffffff;
+  --scene-sun: #fdf0c6;
+  --scene-sun-glow: #fdf5dc;
+  --scene-bubble: #ffffff;
+  --scene-bubble-ink: #16294a;
+  color-scheme: light;
+}
+
+/* Dark theme: deep navy rather than black, same calm blue and gold, lower contrast pastels. */
+[data-theme="dark"] {
+  --color-paper: #0e1828;
+  --color-surface: #142236;
+  --color-sky: #182c47;
+  --color-mist: #243956;
+  --color-ink: #e4ecf7;
+  --color-ink-soft: #9aabc4;
+  --color-ulab: #3d8bd0;
+  --color-ulab-deep: #8cc4ee;
+  --color-ulab-light: #6cb4e6;
+  --color-gold: #e2b54a;
+  --color-gold-wash: #2e2a1c;
+  --color-gold-ink: #f0cf7a;
+  --color-sage: #6cc39b;
+  --color-sage-wash: #15332a;
+  --color-rose: #e59a95;
+  --color-rose-wash: #3a2124;
+  --color-lilac-wash: #24223f;
+  --color-lilac-ink: #b9b0f0;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25), 0 4px 16px -4px rgb(0 0 0 / 0.35);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 32px -12px rgb(61 139 208 / 0.35);
+
+  --avatar-bg-mix: 22%;
+  --avatar-ink-mix: 35%;
+  --hero-veil: 14 24 40;
+  --scene-building: #1b3050;
+  --scene-edge: #2d4a70;
+  --scene-window-off: #14233a;
+  --scene-window-on: #f2cf6b;
+  --scene-skyline: #16263d;
+  --scene-tree: #1f4a3a;
+  --scene-tree-dark: #183b2e;
+  --scene-trunk: #4d4436;
+  --scene-ground: #243956;
+  --scene-path: #1d3150;
+  --scene-cloud: #1c2f4b;
+  --scene-sun: #e9eef7;
+  --scene-sun-glow: #26344c;
+  --scene-bubble: #1b2d48;
+  --scene-bubble-ink: #e4ecf7;
+  color-scheme: dark;
+}
+
 html {
   scroll-behavior: smooth;
 }
 body {
+  transition: background-color 0.4s ease, color 0.4s ease;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
@@ -66,7 +139,7 @@ h1, h2, h3, .font-display {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--color-mist) 0, #f1f5fa 40%, var(--color-mist) 80%);
+  background: linear-gradient(90deg, var(--color-mist) 0, var(--color-sky) 40%, var(--color-mist) 80%);
   background-size: 800px 100%;
   animation: var(--animate-shimmer);
   border-radius: 10px;
@@ -74,7 +147,7 @@ h1, h2, h3, .font-display {
 
 /* Soft dotted texture used behind hero and empty states */
 .dots {
-  background-image: radial-gradient(rgb(29 111 184 / 0.13) 1px, transparent 1px);
+  background-image: radial-gradient(color-mix(in srgb, var(--color-ulab-light) 22%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -85,4 +158,9 @@ h1, h2, h3, .font-display {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+@keyframes scrollcue {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(250%); }
 }

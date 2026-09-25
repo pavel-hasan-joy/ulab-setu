@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { ArrowUpRight, BadgeCheck, MessageCircle, Search, Sparkles, UserPlus } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, MessageCircle, Search, UserPlus } from "lucide-react";
 import { db } from "@/lib/db";
 import { site } from "@/lib/site";
-import { MentorWalk } from "@/components/mentor-walk";
+import { CinematicHero } from "@/components/landing/cinematic-hero";
+import { ScrollProgress } from "@/components/landing/scroll-progress";
+import { ScrollText } from "@/components/landing/scroll-text";
+import { WalkStory } from "@/components/landing/walk-story";
 import { CountUp, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SiteHeader, Logo } from "@/components/site-header";
 import { Avatar, Badge, ButtonLink, Card } from "@/components/ui";
@@ -26,41 +29,10 @@ export default async function Home() {
 
   return (
     <>
+      <ScrollProgress />
       <SiteHeader />
       <main>
-        {/* Hero */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-paper via-[#eef5fc] to-sky">
-          <div className="dots pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_30%_20%,black,transparent_65%)]" />
-          <div className="pointer-events-none absolute -left-32 top-40 size-[380px] rounded-full bg-gold/10 blur-3xl" />
-
-          <div className="relative z-10 mx-auto max-w-6xl px-4 pt-12 md:px-6 md:pt-20">
-            <div className="max-w-xl">
-              <Reveal>
-                <Badge tone="gold" className="mb-5"><Sparkles size={12} /> For {site.universityShort} students and graduates</Badge>
-              </Reveal>
-              <Reveal delay={0.08}>
-                <h1 className="text-[2.6rem] font-semibold leading-[1.05] text-ink sm:text-5xl md:text-[3.6rem]">
-                  Your seniors already know the way in.
-                </h1>
-              </Reveal>
-              <Reveal delay={0.16}>
-                <p className="mt-5 max-w-md text-lg leading-relaxed text-ink-soft">
-                  Ask {site.universityShort} alumni about their work, apply to jobs they post, and browse fresh openings from across Bangladesh in one place.
-                </p>
-              </Reveal>
-              <Reveal delay={0.24} className="mt-8 flex flex-wrap gap-3">
-                <ButtonLink href="/signup?role=student" className="px-5 py-3">I&apos;m a current student</ButtonLink>
-                <ButtonLink href="/signup?role=alumni" variant="outline" className="px-5 py-3">I&apos;m an alumnus</ButtonLink>
-              </Reveal>
-            </div>
-          </div>
-
-          {/* Background scene: an alumnus walks a student to the jobs building */}
-          <div className="relative -mt-2 overflow-hidden md:-mt-40 lg:-mt-56">
-            {/* On phones the scene is enlarged and cropped to the building side so the people stay readable. */}
-            <MentorWalk className="-ml-[70%] block h-auto w-[180%] max-w-none md:mx-auto md:w-full md:max-w-[1400px]" />
-          </div>
-        </section>
+        <CinematicHero />
 
         {/* Stats */}
         <section className="border-y border-mist/70 bg-surface/60">
@@ -72,6 +44,12 @@ export default async function Home() {
               </div>
             ))}
           </div>
+        </section>
+
+        <WalkStory />
+
+        <section className="mx-auto max-w-4xl px-4 py-24 md:px-6 md:py-36">
+          <ScrollText text={`Every ${site.universityShort} graduate once sat where you sit now, wondering how to get that first job. They remember. Most of them are happy to tell you how they did it.`} />
         </section>
 
         {/* How it works */}
@@ -156,7 +134,7 @@ export default async function Home() {
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-4 pb-24 md:px-6">
           <Reveal>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky via-[#f1f6fc] to-gold-wash px-6 py-14 text-center md:py-20">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky via-paper to-gold-wash px-6 py-14 text-center md:py-20">
               <div className="dots absolute inset-0 opacity-60" />
               <div className="relative">
                 <h2 className="mx-auto max-w-lg text-3xl font-semibold md:text-4xl">Graduated from {site.universityShort}? Someone here is where you were.</h2>

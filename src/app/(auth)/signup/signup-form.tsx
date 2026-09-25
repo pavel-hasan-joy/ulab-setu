@@ -47,7 +47,7 @@ export function SignupForm({ initialRole }: { initialRole: Role }) {
               />
             )}
             <span className="relative block">
-              <r.icon size={20} className={r.id === "STUDENT" ? "text-ulab" : "text-[#9a7212]"} />
+              <r.icon size={20} className={r.id === "STUDENT" ? "text-ulab" : "text-gold-ink"} />
               <span className="mt-3 block font-semibold text-ink">{r.title}</span>
               <span className="block text-xs text-ink-soft">{r.body}</span>
             </span>
@@ -107,7 +107,7 @@ export function SignupForm({ initialRole }: { initialRole: Role }) {
                   <Input name="designation" required defaultValue={f.designation} />
                 </Field>
               </div>
-              <p className="mt-3 rounded-xl bg-gold-wash px-3.5 py-2.5 text-xs text-[#7a5a06]">
+              <p className="mt-3 rounded-xl bg-gold-wash px-3.5 py-2.5 text-xs text-gold-ink">
                 The alumni office will check your student ID before you can post jobs. This usually takes a day or two.
               </p>
             </motion.div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { themeScript } from "@/components/theme";
 import { site } from "@/lib/site";
 import "./globals.css";
 
@@ -15,7 +16,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${figtree.variable}`}>
+    <html lang="en" className={`${bricolage.variable} ${figtree.variable}`} data-theme="light" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>

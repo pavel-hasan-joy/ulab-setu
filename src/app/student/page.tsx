@@ -21,7 +21,7 @@ export default async function StudentHome() {
 
   return (
     <PageIn>
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky via-[#f3f8fd] to-gold-wash/80 p-6 md:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky via-paper to-gold-wash/80 p-6 md:p-8">
         <div className="dots absolute inset-0 opacity-50" />
         <div className="relative">
           <p className="text-sm font-medium text-ulab-deep">Hello {firstName}</p>
@@ -52,7 +52,7 @@ export default async function StudentHome() {
 
       {profileDone < 3 && (
         <Card className="mt-6 flex flex-wrap items-center gap-4 border-gold/40 bg-gold-wash/60 p-5">
-          <span className="grid size-10 place-items-center rounded-xl bg-surface text-[#9a7212]"><UserRoundPen size={18} /></span>
+          <span className="grid size-10 place-items-center rounded-xl bg-surface text-gold-ink"><UserRoundPen size={18} /></span>
           <div className="flex-1">
             <p className="font-semibold">Finish your profile so alumni can say yes</p>
             <p className="text-sm text-ink-soft">A short bio and your skills are required to apply. {profileDone} of 3 done.</p>

@@ -19,10 +19,10 @@ export default async function AlumniHome() {
   return (
     <PageIn>
       {user.status === "PENDING" && <PendingBanner />}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-wash via-[#fbf8ee] to-sky p-6 md:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gold-wash via-paper to-sky p-6 md:p-8">
         <div className="dots absolute inset-0 opacity-50" />
         <div className="relative">
-          <p className="text-sm font-medium text-[#8a6610]">Welcome back, {firstName}</p>
+          <p className="text-sm font-medium text-gold-ink">Welcome back, {firstName}</p>
           <h1 className="mt-1 max-w-lg text-3xl font-semibold md:text-4xl">Someone at ULAB is hoping to hear from you.</h1>
           <div className="mt-6 flex flex-wrap gap-3">
             {user.status === "APPROVED" && <ButtonLink href="/alumni/jobs/new"><PlusCircle size={16} /> Post a job</ButtonLink>}
@@ -40,7 +40,7 @@ export default async function AlumniHome() {
           <StaggerItem key={s.label}>
             <Link href={s.href}>
               <Card className="p-4 transition hover:shadow-lift md:p-5">
-                <CountUp to={s.n} className="font-display text-3xl font-semibold text-[#8a6610]" />
+                <CountUp to={s.n} className="font-display text-3xl font-semibold text-gold-ink" />
                 <p className="mt-1 text-xs text-ink-soft md:text-sm">{s.label}</p>
               </Card>
             </Link>

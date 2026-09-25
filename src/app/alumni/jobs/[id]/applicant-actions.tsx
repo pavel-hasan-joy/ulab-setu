@@ -12,7 +12,7 @@ export function ApplicantActions({ applicationId, status }: { applicationId: str
   }
   return (
     <div className="flex gap-2">
-      <Button className="bg-sage py-2 hover:bg-[#357a5b]" disabled={pending} onClick={() => set("SHORTLISTED")}>Shortlist</Button>
+      <Button className="bg-sage py-2 hover:bg-sage/90" disabled={pending} onClick={() => set("SHORTLISTED")}>Shortlist</Button>
       <Button variant="ghost" className="py-2" disabled={pending} onClick={() => set("REJECTED")}>Not a fit</Button>
     </div>
   );

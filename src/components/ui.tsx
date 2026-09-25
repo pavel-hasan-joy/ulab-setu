@@ -13,7 +13,7 @@ const buttonStyles = {
   soft: "bg-sky text-ulab-deep hover:bg-mist",
   ghost: "text-ink-soft hover:bg-sky hover:text-ink",
   outline: "border border-mist bg-surface text-ink hover:border-ulab-light hover:text-ulab-deep",
-  gold: "bg-gold-wash text-[#7a5a06] hover:bg-[#fbecc0]",
+  gold: "bg-gold-wash text-gold-ink hover:bg-gold/25",
 };
 
 type Variant = keyof typeof buttonStyles;
@@ -60,11 +60,11 @@ export function Field({ label, hint, children, className }: { label: string; hin
 
 const badgeTones = {
   blue: "bg-sky text-ulab-deep",
-  gold: "bg-gold-wash text-[#7a5a06]",
+  gold: "bg-gold-wash text-gold-ink",
   sage: "bg-sage-wash text-sage",
   rose: "bg-rose-wash text-rose",
   gray: "bg-mist/70 text-ink-soft",
-  lilac: "bg-lilac-wash text-[#5b4fa8]",
+  lilac: "bg-lilac-wash text-lilac-ink",
 };
 export function Badge({ tone = "blue", children, className }: { tone?: keyof typeof badgeTones; children: ReactNode; className?: string }) {
   return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium", badgeTones[tone], className)}>{children}</span>;
@@ -78,7 +78,14 @@ export function Avatar({ name, size = 40, className }: { name: string; size?: nu
   return (
     <span
       className={cn("inline-grid shrink-0 place-items-center rounded-full font-display font-semibold", className)}
-      style={{ width: size, height: size, fontSize: size * 0.38, background: avatarPalette[i], color: avatarInk[i] }}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.38,
+        // In dark mode the pastel fades into the surface and the ink lightens (see --avatar-* in globals.css).
+        background: `color-mix(in srgb, ${avatarPalette[i]} var(--avatar-bg-mix), var(--color-surface))`,
+        color: `color-mix(in srgb, ${avatarInk[i]} var(--avatar-ink-mix), white)`,
+      }}
       aria-hidden
     >
       {initials}

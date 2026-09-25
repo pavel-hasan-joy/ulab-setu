@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Logo } from "./site-header";
+import { ThemeToggle } from "./theme";
 import { Avatar, cn } from "./ui";
 
 const icons = { Home, Briefcase, Users, MessageCircle, User, FileText, PlusCircle, ShieldCheck };
@@ -32,9 +33,9 @@ export function AppShell({
     <div className="min-h-dvh md:grid md:grid-cols-[250px_1fr]">
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-mist/70 bg-surface/70 px-4 py-6 backdrop-blur md:flex">
-        <div className="px-2"><Logo /></div>
+        <div className="flex items-center justify-between px-2"><Logo /><ThemeToggle /></div>
         <p className={cn("mx-2 mt-6 w-fit rounded-full px-2.5 py-1 text-xs font-medium",
-          tone === "alumni" ? "bg-gold-wash text-[#7a5a06]" : tone === "admin" ? "bg-lilac-wash text-[#5b4fa8]" : "bg-sky text-ulab-deep")}>
+          tone === "alumni" ? "bg-gold-wash text-gold-ink" : tone === "admin" ? "bg-lilac-wash text-lilac-ink" : "bg-sky text-ulab-deep")}>
           {tone === "alumni" ? "Alumni space" : tone === "admin" ? "Alumni office" : "Student space"}
         </p>
         <nav className="mt-4 space-y-1">
@@ -66,9 +67,12 @@ export function AppShell({
       {/* Top bar (mobile) */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-mist/70 bg-paper/85 px-4 backdrop-blur md:hidden">
         <Logo />
-        <form action={logout}>
-          <button className="rounded-lg p-2 text-ink-soft" aria-label="Log out"><LogOut size={18} /></button>
-        </form>
+        <div className="flex items-center">
+          <ThemeToggle />
+          <form action={logout}>
+            <button className="rounded-lg p-2 text-ink-soft" aria-label="Log out"><LogOut size={18} /></button>
+          </form>
+        </div>
       </header>
 
       <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 md:px-10 md:pb-16 md:pt-10">{children}</main>

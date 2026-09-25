@@ -89,7 +89,7 @@ async function BangladeshJobs({ q }: { q: string }) {
   return (
     <>
       {sample && (
-        <p className="mb-4 flex items-start gap-2 rounded-xl bg-lilac-wash px-4 py-3 text-sm text-[#5b4fa8]">
+        <p className="mb-4 flex items-start gap-2 rounded-xl bg-lilac-wash px-4 py-3 text-sm text-lilac-ink">
           <Info size={16} className="mt-0.5 shrink-0" />
           These are sample listings. Live jobs from Bdjobs and other Bangladeshi sites appear once the Careerjet API key is added.
         </p>

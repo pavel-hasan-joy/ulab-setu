@@ -22,8 +22,8 @@ export function ApplyPanel({ jobId, open, applied }: { jobId: string; open: bool
         {done ? (
           <motion.div key="done" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
             <svg viewBox="0 0 52 52" className="mx-auto size-14">
-              <motion.circle cx="26" cy="26" r="24" fill="#e6f4ec" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} style={{ transformOrigin: "center" }} />
-              <motion.path d="M15 27 l7 7 l15 -16" fill="none" stroke="#3f8f6b" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.2, duration: 0.45 }} />
+              <motion.circle cx="26" cy="26" r="24" fill="var(--color-sage-wash)" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 16 }} style={{ transformOrigin: "center" }} />
+              <motion.path d="M15 27 l7 7 l15 -16" fill="none" stroke="var(--color-sage)" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.2, duration: 0.45 }} />
             </svg>
             <p className="mt-3 font-semibold">{applied === "SHORTLISTED" ? "Shortlisted" : applied === "REJECTED" ? "Not selected" : "Applied"}</p>
             <p className="mt-1 text-sm text-ink-soft">{statusText[applied ?? "APPLIED"]}</p>

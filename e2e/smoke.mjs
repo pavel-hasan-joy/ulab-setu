@@ -38,7 +38,11 @@ await step("landing page renders with stats and jobs", async () => {
   await shot(p, "01-landing");
   await p.screenshot({ path: `${SHOTS}/01-landing-full.png`, fullPage: true });
   expect(await p.locator("text=Posted by alumni this week").count() === 1, "jobs section missing");
-  const stat = await p.locator("section").nth(1).locator(".font-display").first().textContent();
+  // Stats sit below the full-screen hero and count up once scrolled into view.
+  const stats = p.locator("section").nth(1);
+  await stats.scrollIntoViewIfNeeded();
+  await p.waitForTimeout(2200);
+  const stat = await stats.locator(".font-display").first().textContent();
   expect(Number(stat) > 0, `alumni stat is ${stat}`);
 });
 await step("landing on mobile", async () => {
@@ -48,6 +52,31 @@ await step("landing on mobile", async () => {
   await shot(p, "02-landing-mobile");
   const overflow = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth);
   expect(!overflow, "horizontal overflow on mobile");
+});
+
+await step("theme toggle switches and persists", async () => {
+  const p = await newPage();
+  await p.goto(BASE);
+  const before = await p.evaluate(() => document.documentElement.dataset.theme);
+  await p.click('header button[aria-label^="Switch to"]');
+  const after = await p.evaluate(() => document.documentElement.dataset.theme);
+  expect(before !== after, "theme did not change");
+  await p.reload();
+  expect((await p.evaluate(() => document.documentElement.dataset.theme)) === after, "theme not remembered");
+  await shot(p, "01b-theme-toggled");
+});
+await step("scroll story shows one step at a time", async () => {
+  const p = await newPage();
+  await p.goto(BASE);
+  await p.evaluate(() => (document.documentElement.style.scrollBehavior = "auto"));
+  const sec = '[aria-label="How a senior can guide you"]';
+  const { top, h } = await p.evaluate((s) => { const el = document.querySelector(s); return { top: el.offsetTop, h: el.offsetHeight - innerHeight }; }, sec);
+  for (const [f, want] of [[0.1, 0], [0.5, 1], [0.92, 2]]) {
+    await p.evaluate((y) => window.scrollTo(0, y), top + h * f);
+    await p.waitForTimeout(1200);
+    const ops = await p.evaluate((s) => [...document.querySelectorAll(s + " .absolute.inset-0")].map((e) => +getComputedStyle(e).opacity), sec);
+    expect(ops.findIndex((o) => o > 0.9) === want && ops.filter((o) => o > 0.1).length === 1, `at ${f}: ${ops}`);
+  }
 });
 
 // Student signup

@@ -34,7 +34,7 @@ export function NewJobForm({ company }: { company: string }) {
             <Field label="About the role"><Textarea name="description" rows={6} required defaultValue={f.description} placeholder="What will they work on? Who will they work with?" /></Field>
             <Field label="Requirements" hint="One per line."><Textarea name="requirements" rows={4} defaultValue={f.requirements} /></Field>
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-mist p-4 transition hover:border-gold has-[:checked]:border-gold has-[:checked]:bg-gold-wash/60">
-              <input type="checkbox" name="referral" defaultChecked={f.referral === "on"} className="mt-0.5 size-4 accent-[#c9971c]" />
+              <input type="checkbox" name="referral" defaultChecked={f.referral === "on"} className="mt-0.5 size-4 accent-gold" />
               <span>
                 <span className="block text-sm font-semibold">I can refer shortlisted students</span>
                 <span className="block text-xs text-ink-soft">Jobs with referrals are shown first and get a gold badge.</span>

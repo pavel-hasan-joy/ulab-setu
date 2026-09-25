@@ -6,6 +6,7 @@ export const site = {
   universityShort: "ULAB",
   universityUrl: "https://ulab.edu.bd",
   logo: "/ulab-logo.svg",
+  logoDark: "/ulab-logo-white.svg",
   studentEmailDomain: "ulab.edu.bd",
 };
 
