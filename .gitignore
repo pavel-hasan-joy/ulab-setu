@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+!.env.example
+
+# local database
+prisma/*.db
+prisma/*.db-journal
+
+# e2e screenshots
+e2e/shots/

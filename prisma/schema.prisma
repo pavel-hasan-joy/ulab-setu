@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  role           String // STUDENT | ALUMNI | ADMIN
+  status         String   @default("APPROVED") // PENDING | APPROVED | REJECTED
+  department     String?
+  studentId      String?
+  batch          String? // admission year for students
+  graduationYear String?
+  company        String?
+  designation    String?
+  location       String?
+  bio            String?
+  skills         String? // comma separated
+  linkedin       String?
+  createdAt      DateTime @default(now())
+
+  jobs          Job[]
+  applications  Application[]
+  sentRequests  Connection[]  @relation("sent")
+  gotRequests   Connection[]  @relation("received")
+  messages      Message[]
+}
+
+model Job {
+  id           String   @id @default(cuid())
+  title        String
+  company      String
+  location     String
+  type         String // Full-time | Part-time | Internship | Contract
+  category     String
+  description  String
+  requirements String?
+  salary       String?
+  deadline     DateTime?
+  referral     Boolean  @default(false)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  postedById   String
+  postedBy     User          @relation(fields: [postedById], references: [id], onDelete: Cascade)
+  applications Application[]
+}
+
+model Application {
+  id        String   @id @default(cuid())
+  note      String?
+  status    String   @default("APPLIED") // APPLIED | SHORTLISTED | REJECTED
+  createdAt DateTime @default(now())
+
+  jobId     String
+  job       Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, studentId])
+}
+
+model Connection {
+  id        String   @id @default(cuid())
+  note      String?
+  status    String   @default("PENDING") // PENDING | ACCEPTED | DECLINED
+  createdAt DateTime @default(now())
+
+  fromId   String
+  from     User      @relation("sent", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     String
+  to       User      @relation("received", fields: [toId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([fromId, toId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
