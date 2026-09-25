@@ -31,7 +31,8 @@ export function CornerBalls() {
     // Keep clear of the dashboard sidebar (its account card and log-out button sit bottom-left).
     const leftWall = () => {
       const side = document.querySelector<HTMLElement>("[data-sidebar]");
-      return side && side.offsetParent ? side.getBoundingClientRect().right : 0;
+      // width, not position: the sidebar slides during the page-pull animation
+      return side && side.offsetParent ? side.offsetWidth : 0;
     };
     // Stay above the mobile bottom navigation bar when it is showing.
     const floor = () => {

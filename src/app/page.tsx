@@ -3,6 +3,7 @@ import { ArrowUpRight, BadgeCheck, MessageCircle, Search, UserPlus } from "lucid
 import { db } from "@/lib/db";
 import { site } from "@/lib/site";
 import { CinematicHero } from "@/components/landing/cinematic-hero";
+import { JobPortals } from "@/components/job-portals";
 import { MorphStory } from "@/components/landing/morph-story";
 import { ScrollProgress } from "@/components/landing/scroll-progress";
 import { ScrollText } from "@/components/landing/scroll-text";
@@ -118,6 +119,10 @@ export default async function Home() {
           </div>
         </section>
 
+        <div className="mx-auto max-w-6xl px-4 pb-8 pt-4 md:px-6">
+          <JobPortals title="More places to find jobs" />
+        </div>
+
         {/* Companies marquee */}
         {companies.length > 0 && (
           <section className="overflow-hidden py-16">
@@ -156,7 +161,7 @@ export default async function Home() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-ink-soft md:px-6">
           <Logo />
           <p className="text-xs">
-            Illustration by <a href="https://commons.wikimedia.org/wiki/File:Moe-3251269_1920.png" className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">Akane-K</a> (CC0)
+            Illustration from <a href="https://commons.wikimedia.org/wiki/File:Girl_in_sailor_fuku_publicdomainq.png" className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">Public Domain Q</a> (CC0)
           </p>
           <p>
             A community project for <a href={site.universityUrl} className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">{site.university}</a>.

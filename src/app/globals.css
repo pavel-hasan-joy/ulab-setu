@@ -194,8 +194,3 @@ h1, h2, h3, .font-display {
   50% { transform: translate3d(-60px, 50vh, 0) rotate(200deg); }
   100% { transform: translate3d(40px, 105vh, 0) rotate(420deg); opacity: 0; }
 }
-
-/* If scripts never run, don't leave the loading curtain over the page. */
-@keyframes curtain-failsafe {
-  to { visibility: hidden; }
-}

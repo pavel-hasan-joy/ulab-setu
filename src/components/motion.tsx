@@ -55,14 +55,7 @@ export function CountUp({ to, className }: { to: number; className?: string }) {
   return <motion.span ref={ref} className={className}>{rounded}</motion.span>;
 }
 
-/** Page-level entrance used by dashboard pages. */
+/** Page wrapper. Pages appear instantly; the only page transition is the pull onto home pages. */
 export function PageIn(props: HTMLMotionProps<"div">) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease }}
-      {...props}
-    />
-  );
+  return <motion.div {...props} />;
 }

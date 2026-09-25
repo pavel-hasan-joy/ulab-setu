@@ -78,26 +78,31 @@ await step("3D particle section renders and morphs on scroll", async () => {
   }
   expect(await p.locator(`${sec} canvas`).count() === 1, "no WebGL canvas");
 });
-await step("page change shows the loading curtain", async () => {
+await step("arriving on a home page plays the page pull, other pages don't", async () => {
   const p = await newPage();
-  await p.goto(BASE);
-  await p.waitForTimeout(1800);
-  await p.click('header a:has-text("Log in")');
-  await p.waitForSelector("text=Loading your page", { timeout: 3000 });
-  await p.waitForSelector("text=Loading your page", { state: "detached", timeout: 10000 });
-  expect(new URL(p.url()).pathname === "/login", "did not reach login");
+  await p.goto(`${BASE}/login`);
+  await p.fill('input[name="email"]', "student@ulab.edu.bd");
+  await p.fill('input[name="password"]', "password123");
+  await p.click('button:has-text("Log in")');
+  await p.waitForSelector("[data-page-pull]", { timeout: 5000 });
+  await shot(p, "01d-page-pull");
+  await p.waitForSelector("[data-page-pull]", { state: "detached", timeout: 3000 });
+  await p.click('aside a:has-text("Jobs")');
+  await p.waitForURL(/\/student\/jobs/);
+  expect(await p.locator("[data-page-pull]").count() === 0, "pull played on a non-home page");
+  expect(await p.locator("text=Loading your page").count() === 0, "old curtain still present");
 });
 await step("clicking a corner ball throws it across", async () => {
   const p = await newPage();
   await p.goto(BASE);
-  await p.waitForTimeout(3200); // let the first-visit splash finish
+  await p.waitForTimeout(1500);
   const ball = p.locator("div.cursor-pointer.rounded-full").first();
   const before = await ball.boundingBox();
   await p.mouse.click(before.x + before.width / 2, before.y + before.height / 2);
   await p.mouse.move(700, 100);
   await p.waitForTimeout(3500);
   const after = await ball.boundingBox();
-  expect(after.x > 1440 * 0.6, `ball only reached x=${Math.round(after.x)}`);
+  expect(after.x > 1440 * 0.5, `ball only reached x=${Math.round(after.x)}`); // it may bounce off the balls on the far side
 });
 await step("scroll story shows one step at a time", async () => {
   const p = await newPage();
@@ -176,6 +181,13 @@ await step("jobs: Remote tab loads live Himalayas jobs", async () => {
   await shot(s, "07-jobs-remote");
 });
 let jobUrl;
+await step("jobs page links to Bdjobs and other job sites", async () => {
+  await s.goto(`${BASE}/student/jobs`);
+  const bd = s.locator('section[aria-label="Other job sites"] a[href="https://bdjobs.com"]');
+  expect(await bd.count() === 1, "Bdjobs link missing");
+  expect((await bd.getAttribute("target")) === "_blank", "Bdjobs link should open a new tab");
+  expect(await s.locator('a[href="https://alljobs.teletalk.com.bd"]').count() === 1, "Teletalk link missing");
+});
 await step("apply blocked until profile complete", async () => {
   await s.goto(`${BASE}/student/jobs`);
   // Tanvir (alumni1) posted this one; the alumni steps below review it.

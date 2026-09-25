@@ -37,3 +37,17 @@ export const jobCategories = [
 export const teacherRanks = ["Lecturer", "Senior Lecturer", "Assistant Professor", "Associate Professor", "Professor", "Adjunct Faculty"] as const;
 
 export const postKinds = ["Notice", "Event", "Scholarship", "Research", "Opportunity"] as const;
+
+/** Other job sites students can browse directly (all links open the site's own home or job search). */
+export const jobPortals = [
+  { name: "Bdjobs", url: "https://bdjobs.com", about: "Bangladesh's largest job site" },
+  { name: "Teletalk All Jobs", url: "https://alljobs.teletalk.com.bd", about: "Government job circulars and online applications" },
+  { name: "LinkedIn Jobs", url: "https://www.linkedin.com/jobs/search/?location=Bangladesh", about: "Professional jobs in Bangladesh" },
+  { name: "Skill.jobs", url: "https://skill.jobs", about: "Skill-based jobs and training" },
+  { name: "Chakri", url: "https://chakri.app", about: "AI job matching for Bangladesh" },
+  { name: "BD Tech Jobs", url: "https://www.bdtechjobs.com", about: "Software and IT jobs" },
+  { name: "Careerjet Bangladesh", url: "https://www.careerjet.com.bd", about: "Jobs from many sites in one search" },
+  { name: "NextJobz", url: "https://nextjobz.com.bd", about: "Local jobs across the country" },
+  { name: "Shomvob", url: "https://shomvob.com", about: "Entry-level and skilled jobs" },
+  { name: "Himalayas", url: "https://himalayas.app/jobs", about: "Remote jobs open worldwide" },
+] as const;

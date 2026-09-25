@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getBangladeshJobs, getRemoteJobs } from "@/lib/external-jobs";
 import { jobCategories, jobTypes } from "@/lib/site";
 import { AlumniJobCard, ExternalJobCard, JobGridSkeleton } from "@/components/job-cards";
+import { JobPortals } from "@/components/job-portals";
 import { PageIn, Stagger, StaggerItem } from "@/components/motion";
 import { Tabs } from "@/components/tabs";
 import { Button, EmptyState, Input, PageHeader, Select } from "@/components/ui";
@@ -53,6 +54,10 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
           {tab === "bd" && <BangladeshJobs q={q} />}
           {tab === "remote" && <RemoteJobs q={q} />}
         </Suspense>
+      </div>
+
+      <div className="mt-14">
+        <JobPortals />
       </div>
     </PageIn>
   );
