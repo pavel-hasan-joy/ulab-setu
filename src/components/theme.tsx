@@ -26,8 +26,13 @@ function setTheme(t: Theme) {
   listeners.forEach((l) => l());
 }
 
+// Also notices theme changes made outside React (e.g. the pre-paint script).
+export function useTheme(): Theme {
+  return useSyncExternalStore(subscribe, current, () => "light" as Theme);
+}
+
 export function ThemeToggle({ className }: { className?: string }) {
-  const theme = useSyncExternalStore(subscribe, current, () => "light" as Theme);
+  const theme = useTheme();
   const dark = theme === "dark";
   return (
     <button

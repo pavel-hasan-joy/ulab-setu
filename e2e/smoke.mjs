@@ -78,6 +78,27 @@ await step("3D particle section renders and morphs on scroll", async () => {
   }
   expect(await p.locator(`${sec} canvas`).count() === 1, "no WebGL canvas");
 });
+await step("page change shows the loading curtain", async () => {
+  const p = await newPage();
+  await p.goto(BASE);
+  await p.waitForTimeout(1800);
+  await p.click('header a:has-text("Log in")');
+  await p.waitForSelector("text=Loading your page", { timeout: 3000 });
+  await p.waitForSelector("text=Loading your page", { state: "detached", timeout: 10000 });
+  expect(new URL(p.url()).pathname === "/login", "did not reach login");
+});
+await step("clicking a corner ball throws it across", async () => {
+  const p = await newPage();
+  await p.goto(BASE);
+  await p.waitForTimeout(3200); // let the first-visit splash finish
+  const ball = p.locator("div.cursor-pointer.rounded-full").first();
+  const before = await ball.boundingBox();
+  await p.mouse.click(before.x + before.width / 2, before.y + before.height / 2);
+  await p.mouse.move(700, 100);
+  await p.waitForTimeout(3500);
+  const after = await ball.boundingBox();
+  expect(after.x > 1440 * 0.6, `ball only reached x=${Math.round(after.x)}`);
+});
 await step("scroll story shows one step at a time", async () => {
   const p = await newPage();
   await p.goto(BASE);
@@ -115,6 +136,13 @@ await step("student signup succeeds and lands on dashboard", async () => {
   await s.waitForURL(`${BASE}/student`);
   await s.waitForTimeout(1500);
   await shot(s, "04-student-home");
+});
+await step("corner balls never cover the log-out button", async () => {
+  await s.waitForTimeout(1500);
+  const btn = s.locator('aside button[aria-label="Log out"]');
+  const box = await btn.boundingBox();
+  const hit = await s.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.getAttribute("aria-label"), [box.x + box.width / 2, box.y + box.height / 2]);
+  expect(hit === "Log out", `something covers the log-out button (${hit})`);
 });
 await step("student cannot open alumni area", async () => {
   await s.goto(`${BASE}/alumni`);
@@ -249,6 +277,74 @@ await step("new job form posts a job", async () => {
   await a.click('button:has-text("Post job")');
   await a.waitForURL(/posted=1/);
   expect(await a.locator(`text=QA Intern ${stamp}`).count() === 1, "job not listed");
+});
+
+// Teachers, notice board, contact details
+await step("teacher posts a notice and a job", async () => {
+  const t = await newPage();
+  await login(t, "teacher@ulab.edu.bd");
+  expect(new URL(t.url()).pathname === "/teacher", `teacher landed on ${t.url()}`);
+  await t.goto(`${BASE}/teacher/board`);
+  await t.click("text=Share a notice");
+  await t.selectOption('select[name="kind"]', "Event");
+  await t.fill('input[name="title"]', `Robotics club meetup ${stamp}`);
+  await t.fill('textarea[name="body"]', "Bring your ideas for the national robotics contest.");
+  await t.click('button:has-text("Post to board")');
+  await t.waitForSelector(`text=Robotics club meetup ${stamp}`);
+  await shot(t, "20-teacher-board");
+  await t.goto(`${BASE}/teacher/jobs/new`);
+  await t.fill('input[name="title"]', `Teaching Assistant ${stamp}`);
+  await t.fill('input[name="company"]', "ULAB CSE Department");
+  await t.fill('input[name="location"]', "ULAB campus");
+  await t.fill('textarea[name="description"]', "Help run lab sessions for the programming fundamentals course twice a week.");
+  await t.click('button:has-text("Post job")');
+  await t.waitForURL(/\/teacher\/jobs\?posted=1/);
+  expect(await t.locator(`text=Teaching Assistant ${stamp}`).count() === 1, "teacher job not listed");
+});
+await step("students see teacher notices and jobs", async () => {
+  await s.goto(`${BASE}/student/board?kind=Event`);
+  await s.waitForSelector(`text=Robotics club meetup ${stamp}`);
+  await s.goto(`${BASE}/student/jobs?q=${stamp}`);
+  await s.waitForSelector(`text=Teaching Assistant ${stamp}`);
+  expect(await s.locator("text=Associate Professor, ULAB").count() >= 1, "teacher attribution missing");
+});
+await step("People page has a Teachers tab", async () => {
+  await s.goto(`${BASE}/student/people?tab=teachers`);
+  await s.waitForSelector("text=Dr. Kamrul Karim");
+  await shot(s, "21-people-teachers");
+});
+await step("public contact shows, private stays hidden", async () => {
+  await s.goto(`${BASE}/student/people?q=Tanvir`);
+  await s.waitForSelector("text=01700000001");
+  const html = await s.content();
+  expect(!html.includes("tanvir.demo"), "private Facebook leaked into the page");
+  expect(await s.locator('a[href^="https://wa.me/8801700000001"]').count() === 1, "WhatsApp link missing");
+});
+await step("student sets own contact visibility", async () => {
+  await s.goto(`${BASE}/student/profile`);
+  await s.fill('input[name="phone"]', "01811111111");
+  await s.locator('[aria-label="Who can see your Phone"] button:has-text("Public")').click();
+  await s.fill('input[name="facebook"]', "test.student.fb");
+  await s.click('button:has-text("Save profile")');
+  await s.waitForSelector("text=Profile saved");
+  await shot(s, "22-contact-settings");
+  const t = await newPage();
+  await login(t, "teacher@ulab.edu.bd");
+  await t.goto(`${BASE}/teacher/people?tab=students&q=Test`);
+  await t.waitForSelector("text=01811111111");
+  expect(!(await t.content()).includes("test.student.fb"), "private facebook visible");
+});
+await step("teacher signup waits for approval", async () => {
+  const n = await newPage();
+  await n.goto(`${BASE}/signup?role=teacher`);
+  await n.fill('input[name="name"]', "New Teacher");
+  await n.fill('input[name="email"]', `teach${stamp}@ulab.edu.bd`);
+  await n.selectOption('select[name="department"]', "English and Humanities");
+  await n.selectOption('select[name="designation"]', "Lecturer");
+  await n.fill('input[name="password"]', "password123");
+  await n.click('button:has-text("Create account")');
+  await n.waitForURL(`${BASE}/teacher`);
+  expect(await n.locator("text=being verified").count() === 1, "no pending banner");
 });
 
 // Alumni signup + admin approval

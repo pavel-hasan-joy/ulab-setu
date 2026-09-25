@@ -1,18 +1,19 @@
 import Link from "next/link";
-import { ArrowUpRight, Briefcase, MessageCircle, Sparkles, UserRoundPen } from "lucide-react";
+import { ArrowUpRight, Briefcase, Megaphone, MessageCircle, Sparkles, UserRoundPen } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AlumniJobCard } from "@/components/job-cards";
 import { CountUp, PageIn, Stagger, StaggerItem } from "@/components/motion";
-import { Avatar, ButtonLink, Card } from "@/components/ui";
+import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 
 export default async function StudentHome() {
   const user = await requireUser("STUDENT");
-  const [applications, connections, jobs, alumni] = await Promise.all([
+  const [applications, connections, jobs, alumni, notices] = await Promise.all([
     db.application.count({ where: { studentId: user.id } }),
     db.connection.count({ where: { status: "ACCEPTED", OR: [{ fromId: user.id }, { toId: user.id }] } }),
     db.job.findMany({ where: { active: true }, include: { postedBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", department: user.department }, take: 4, orderBy: { graduationYear: "desc" } }),
+    db.post.findMany({ include: { author: true }, orderBy: { createdAt: "desc" }, take: 3 }),
   ]);
   // Jobs posted by alumni from the student's own department come first.
   const picks = [...jobs].sort((a, b) => Number(b.postedBy.department === user.department) - Number(a.postedBy.department === user.department)).slice(0, 4);
@@ -59,6 +60,28 @@ export default async function StudentHome() {
           </div>
           <ButtonLink href="/student/profile" variant="outline">Edit profile</ButtonLink>
         </Card>
+      )}
+
+      {notices.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-4 flex items-end justify-between">
+            <h2 className="flex items-center gap-2 text-xl font-semibold"><Megaphone size={18} className="text-ulab" /> Latest notices</h2>
+            <Link href="/student/board" className="inline-flex items-center gap-1 text-sm font-semibold text-ulab hover:underline">Notice board <ArrowUpRight size={14} /></Link>
+          </div>
+          <Stagger className="grid gap-3 md:grid-cols-3">
+            {notices.map((n) => (
+              <StaggerItem key={n.id}>
+                <Link href={`/student/board?kind=${n.kind}`}>
+                  <Card className="h-full p-4 transition hover:shadow-lift">
+                    <Badge tone="lilac">{n.kind}</Badge>
+                    <p className="mt-2 line-clamp-2 font-semibold">{n.title}</p>
+                    <p className="mt-1 text-xs text-ink-soft">{n.author.name}, {posterLabel(n.author)}</p>
+                  </Card>
+                </Link>
+              </StaggerItem>
+            ))}
+          </Stagger>
+        </section>
       )}
 
       <section className="mt-10">

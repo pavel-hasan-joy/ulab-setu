@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, decrypt, homeFor } from "@/lib/session";
 
-const areas = { "/student": "STUDENT", "/alumni": "ALUMNI", "/admin": "ADMIN" } as const;
+const areas = { "/student": "STUDENT", "/alumni": "ALUMNI", "/teacher": "TEACHER", "/admin": "ADMIN" } as const;
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -27,5 +27,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/student/:path*", "/alumni/:path*", "/admin/:path*", "/login", "/signup"],
+  matcher: ["/student/:path*", "/alumni/:path*", "/teacher/:path*", "/admin/:path*", "/login", "/signup"],
 };

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-import { requireUser } from "@/lib/auth";
+import { requirePoster } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageIn, Stagger, StaggerItem } from "@/components/motion";
 import { Avatar, Badge, Card, EmptyState, timeAgo } from "@/components/ui";
@@ -9,7 +9,7 @@ import { ApplicantActions } from "./applicant-actions";
 
 export default async function JobApplicants({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireUser("ALUMNI");
+  const { user, base } = await requirePoster();
   const job = await db.job.findFirst({
     where: { id, postedById: user.id },
     include: { applications: { include: { student: true }, orderBy: { createdAt: "desc" } } },
@@ -18,7 +18,7 @@ export default async function JobApplicants({ params }: { params: Promise<{ id: 
 
   return (
     <PageIn>
-      <Link href="/alumni/jobs" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink"><ArrowLeft size={16} /> My jobs</Link>
+      <Link href={`${base}/jobs`} className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink"><ArrowLeft size={16} /> My jobs</Link>
       <h1 className="mt-4 text-3xl font-semibold">{job.title}</h1>
       <p className="mt-1 text-ink-soft">{job.applications.length} applicant{job.applications.length === 1 ? "" : "s"}</p>
 

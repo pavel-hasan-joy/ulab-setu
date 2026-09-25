@@ -12,18 +12,25 @@ model User {
   name           String
   email          String   @unique
   passwordHash   String
-  role           String // STUDENT | ALUMNI | ADMIN
+  role           String // STUDENT | ALUMNI | TEACHER | ADMIN
   status         String   @default("APPROVED") // PENDING | APPROVED | REJECTED
   department     String?
   studentId      String?
   batch          String? // admission year for students
   graduationYear String?
   company        String?
-  designation    String?
+  designation    String? // job title; for teachers, academic rank
   location       String?
   bio            String?
   skills         String? // comma separated
   linkedin       String?
+  // Contact details, each hidden unless the owner makes it public
+  phone          String?
+  phonePublic    Boolean  @default(false)
+  whatsapp       String?
+  whatsappPublic Boolean  @default(false)
+  facebook       String?
+  facebookPublic Boolean  @default(false)
   createdAt      DateTime @default(now())
 
   jobs          Job[]
@@ -31,6 +38,7 @@ model User {
   sentRequests  Connection[]  @relation("sent")
   gotRequests   Connection[]  @relation("received")
   messages      Message[]
+  posts         Post[]
 }
 
 model Job {
@@ -91,4 +99,18 @@ model Message {
   connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   senderId     String
   sender       User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+/** Notice board: announcements, events, scholarships and research calls from teachers and alumni. */
+model Post {
+  id        String    @id @default(cuid())
+  kind      String // Notice | Event | Scholarship | Research | Opportunity
+  title     String
+  body      String
+  link      String?
+  eventDate DateTime?
+  createdAt DateTime  @default(now())
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }

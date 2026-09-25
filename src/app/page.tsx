@@ -9,7 +9,7 @@ import { ScrollText } from "@/components/landing/scroll-text";
 import { WalkStory } from "@/components/landing/walk-story";
 import { CountUp, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SiteHeader, Logo } from "@/components/site-header";
-import { Avatar, Badge, ButtonLink, Card } from "@/components/ui";
+import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +106,7 @@ export default async function Home() {
                         <div className="mt-auto flex items-center gap-2.5 border-t border-mist/70 pt-4 mt-6">
                           <Avatar name={job.postedBy.name} size={30} />
                           <p className="text-xs text-ink-soft">
-                            Posted by <span className="font-medium text-ink">{job.postedBy.name}</span>, class of {job.postedBy.graduationYear}
+                            Posted by <span className="font-medium text-ink">{job.postedBy.name}</span>, {posterLabel(job.postedBy)}
                           </p>
                         </div>
                       </Card>
@@ -155,6 +155,9 @@ export default async function Home() {
       <footer className="border-t border-mist/70 bg-surface/60">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-ink-soft md:px-6">
           <Logo />
+          <p className="text-xs">
+            Illustration by <a href="https://commons.wikimedia.org/wiki/File:Moe-3251269_1920.png" className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">Akane-K</a> (CC0)
+          </p>
           <p>
             A community project for <a href={site.universityUrl} className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">{site.university}</a>.
           </p>

@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarClock, MapPin, Tag, Wallet } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageIn } from "@/components/motion";
-import { Avatar, Badge, Card, formatDate, timeAgo } from "@/components/ui";
+import { Avatar, Badge, Card, formatDate, posterLabel, timeAgo } from "@/components/ui";
 import { ApplyPanel } from "./apply-panel";
 
 export default async function JobDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -59,7 +59,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
               <Avatar name={job.postedBy.name} size={44} />
               <div>
                 <p className="font-semibold">{job.postedBy.name}</p>
-                <p className="text-sm text-ink-soft">{job.postedBy.department}, class of {job.postedBy.graduationYear}</p>
+                <p className="text-sm text-ink-soft">{job.postedBy.department}, {posterLabel(job.postedBy)}</p>
               </div>
             </div>
             <Link href={`/student/people?q=${encodeURIComponent(job.postedBy.name)}`} className="mt-4 block rounded-xl bg-sky px-4 py-2.5 text-center text-sm font-semibold text-ulab-deep transition hover:bg-mist">

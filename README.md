@@ -19,7 +19,11 @@ Demo accounts:
 | Student | student@ulab.edu.bd |
 | Alumni | alumni1@example.com … alumni6@example.com |
 | Alumni (awaiting approval) | pending.alumni@example.com |
+| Teacher | teacher@ulab.edu.bd, teacher2@ulab.edu.bd |
+| Teacher (awaiting approval) | pending.teacher@ulab.edu.bd |
 | Alumni office (admin) | admin@ulab.edu.bd |
+
+Roles: students apply and message; alumni and teachers (once the alumni office approves them) also post jobs and notice-board posts. Anyone can message anyone. Each person chooses whether their phone, WhatsApp and Facebook are public or private.
 
 ## Job sources
 
@@ -33,7 +37,15 @@ University name, logo, email domain and departments live in `src/lib/site.ts`. C
 
 ## Tests
 
-With the app running: `BASE=http://localhost:3000 pnpm test:e2e` (drives your installed Chrome via playwright-core; screenshots go to `e2e/shots/`).
+Tests reset their own database, so run them against a separate server, never your real data:
+
+```bash
+pnpm test:db                                   # create/seed prisma/test.db
+DATABASE_URL=file:./test.db pnpm start -p 3457 # in another terminal (after pnpm build)
+BASE=http://localhost:3457 pnpm test:e2e
+```
+
+The suite drives your installed Chrome via playwright-core; screenshots go to `e2e/shots/`.
 
 ## Deploying
 

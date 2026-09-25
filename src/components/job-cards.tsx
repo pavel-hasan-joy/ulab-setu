@@ -3,7 +3,7 @@ import { ArrowUpRight, CalendarClock, MapPin, Wallet } from "lucide-react";
 import type { Job, User } from "@prisma/client";
 import type { ExternalJob } from "@/lib/external-jobs";
 import { HoverLift } from "./motion";
-import { Avatar, Badge, Card, formatDate, timeAgo } from "./ui";
+import { Avatar, Badge, Card, formatDate, posterLabel, timeAgo } from "./ui";
 
 function isClosingSoon(deadline: Date | null) {
   return !!deadline && deadline.getTime() - Date.now() < 5 * 864e5;
@@ -31,7 +31,7 @@ export function AlumniJobCard({ job, href }: { job: Job & { postedBy: User }; hr
             <div className="flex items-center gap-2.5 border-t border-mist/70 pt-3.5">
               <Avatar name={job.postedBy.name} size={28} />
               <p className="text-xs text-ink-soft">
-                <span className="font-medium text-ink">{job.postedBy.name}</span>, class of {job.postedBy.graduationYear}
+                <span className="font-medium text-ink">{job.postedBy.name}</span>, {posterLabel(job.postedBy)}
               </p>
             </div>
           </div>

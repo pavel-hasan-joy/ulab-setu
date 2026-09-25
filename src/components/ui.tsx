@@ -144,3 +144,8 @@ export function timeAgo(date: Date | string) {
 export function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
+
+/** How a job or notice author is described: alumni by graduating class, teachers by rank. */
+export function posterLabel(u: { role: string; graduationYear: string | null; designation: string | null }) {
+  return u.role === "TEACHER" ? `${u.designation ?? "Teacher"}, ULAB` : `class of ${u.graduationYear}`;
+}

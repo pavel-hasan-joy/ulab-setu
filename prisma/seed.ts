@@ -6,6 +6,7 @@ const db = new PrismaClient();
 const days = (n: number) => new Date(Date.now() + n * 864e5);
 
 async function main() {
+  await db.post.deleteMany();
   await db.message.deleteMany();
   await db.connection.deleteMany();
   await db.application.deleteMany();
@@ -61,6 +62,11 @@ async function main() {
   });
 
   const [tanvir, nusrat, arif, sadia, rafiq, mehnaz] = alumni;
+  // Tanvir shares his phone publicly but keeps Facebook private (used by the tests).
+  await db.user.update({
+    where: { id: tanvir.id },
+    data: { phone: "01700000001", phonePublic: true, whatsapp: "01700000001", whatsappPublic: true, facebook: "https://facebook.com/tanvir.demo", facebookPublic: false },
+  });
   const jobs = await Promise.all([
     db.job.create({ data: { postedById: tanvir.id, title: "Frontend Engineer Intern", company: "Nimbus Labs", location: "Dhaka (Hybrid)", type: "Internship", category: "Software & IT", referral: true, salary: "BDT 20,000 / month", deadline: days(14),
       description: "Work with our product team on a React and TypeScript dashboard used by logistics companies. You'll ship real features in your first month, pair with senior engineers and get code reviews every day.",
@@ -84,6 +90,39 @@ async function main() {
       description: "Support IELTS and spoken English classes three evenings a week. Flexible around your university schedule.",
       requirements: "IELTS 7.0+ or equivalent\nPatient and friendly" } }),
   ]);
+
+  const [drKarim, msAnika] = await Promise.all([
+    db.user.create({
+      data: {
+        name: "Dr. Kamrul Karim", email: "teacher@ulab.edu.bd", passwordHash, role: "TEACHER", status: "APPROVED",
+        department: "Computer Science and Engineering", designation: "Associate Professor", location: "Dhaka",
+        bio: "Teaches software engineering and machine learning. Always looking for curious research assistants.", skills: "Machine learning, Software engineering",
+      },
+    }),
+    db.user.create({
+      data: {
+        name: "Anika Rahman", email: "teacher2@ulab.edu.bd", passwordHash, role: "TEACHER", status: "APPROVED",
+        department: "Media Studies and Journalism", designation: "Lecturer", location: "Dhaka",
+        bio: "Teaches digital journalism and runs the campus newsroom lab.", skills: "Journalism, Documentary",
+      },
+    }),
+  ]);
+  await db.user.create({
+    data: { name: "Pending Teacher", email: "pending.teacher@ulab.edu.bd", passwordHash, role: "TEACHER", status: "PENDING", department: "English and Humanities", designation: "Lecturer" },
+  });
+
+  await db.job.create({ data: { postedById: drKarim.id, title: "Research Assistant, ML Lab", company: "ULAB CSE Department", location: "ULAB campus", type: "Part-time", category: "Research & Education", salary: "BDT 10,000 / month", deadline: days(20),
+    description: "Help with data collection and model experiments for a Bangla speech recognition project. 12 hours a week, flexible around classes.",
+    requirements: "Python\nCompleted a machine learning course\nCGPA 3.3 or above" } });
+
+  await db.post.createMany({
+    data: [
+      { authorId: drKarim.id, kind: "Research", title: "Looking for 2 research assistants for Bangla speech project", body: "Third and fourth year CSE students can apply. Apply through the jobs tab or message me directly.", eventDate: days(20) },
+      { authorId: msAnika.id, kind: "Event", title: "Campus newsroom open day", body: "Visit the MSJ newsroom lab, see how we produce the weekly bulletin, and sign up for the reporting workshop.", eventDate: days(6) },
+      { authorId: alumni[1].id, kind: "Scholarship", title: "Meghna Foundation merit scholarship 2027", body: "Full tuition support for BBA students with CGPA 3.5+. I'm happy to review applications before you submit.", link: "https://example.com/scholarship", eventDate: days(30) },
+      { authorId: drKarim.id, kind: "Notice", title: "CSE 499 project proposal deadline moved", body: "Final year project proposals are now due next Thursday. Submit through the department portal." },
+    ],
+  });
 
   await db.application.create({ data: { jobId: jobs[0].id, studentId: student.id, note: "I built a React dashboard for my capstone project and would love to learn from your team." } });
 

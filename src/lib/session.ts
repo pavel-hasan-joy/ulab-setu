@@ -1,7 +1,7 @@
 // Edge-safe session helpers (used by proxy.ts and server code).
 import { SignJWT, jwtVerify } from "jose";
 
-export type Role = "STUDENT" | "ALUMNI" | "ADMIN";
+export type Role = "STUDENT" | "ALUMNI" | "TEACHER" | "ADMIN";
 export type SessionPayload = { userId: string; role: Role };
 
 export const SESSION_COOKIE = "setu_session";
@@ -27,6 +27,7 @@ export async function decrypt(token: string | undefined): Promise<SessionPayload
 
 export function homeFor(role: Role) {
   if (role === "ALUMNI") return "/alumni";
+  if (role === "TEACHER") return "/teacher";
   if (role === "ADMIN") return "/admin";
   return "/student";
 }

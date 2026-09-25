@@ -33,3 +33,7 @@ export const jobCategories = [
   "Development Sector / NGO",
   "Other",
 ] as const;
+
+export const teacherRanks = ["Lecturer", "Senior Lecturer", "Assistant Professor", "Associate Professor", "Professor", "Adjunct Faculty"] as const;
+
+export const postKinds = ["Notice", "Event", "Scholarship", "Research", "Opportunity"] as const;

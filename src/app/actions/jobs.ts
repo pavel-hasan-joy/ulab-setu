@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requirePoster, requireUser } from "@/lib/auth";
 import { fail, type FormState } from "./auth";
 
 const jobSchema = z.object({
@@ -21,8 +21,8 @@ const jobSchema = z.object({
 });
 
 export async function createJob(_: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser("ALUMNI");
-  if (user.status !== "APPROVED") return { error: "You can post jobs once your alumni account is verified." };
+  const { user, base } = await requirePoster();
+  if (user.status !== "APPROVED") return { error: "You can post jobs once your account is verified by the alumni office." };
 
   const raw = Object.fromEntries(formData) as Record<string, string>;
   const parsed = jobSchema.safeParse(raw);
@@ -39,16 +39,16 @@ export async function createJob(_: FormState, formData: FormData): Promise<FormS
       postedById: user.id,
     },
   });
-  revalidatePath("/alumni");
-  redirect("/alumni/jobs?posted=1");
+  revalidatePath(base);
+  redirect(`${base}/jobs?posted=1`);
 }
 
 export async function toggleJob(jobId: string) {
-  const user = await requireUser("ALUMNI");
+  const { user, base } = await requirePoster();
   const job = await db.job.findFirst({ where: { id: jobId, postedById: user.id } });
   if (!job) return;
   await db.job.update({ where: { id: jobId }, data: { active: !job.active } });
-  revalidatePath("/alumni/jobs");
+  revalidatePath(`${base}/jobs`);
 }
 
 export async function applyToJob(_: FormState, formData: FormData): Promise<FormState> {
@@ -73,11 +73,11 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
 }
 
 export async function setApplicationStatus(applicationId: string, status: "SHORTLISTED" | "REJECTED" | "APPLIED") {
-  const user = await requireUser("ALUMNI");
+  const { user, base } = await requirePoster();
   const app = await db.application.findFirst({
     where: { id: applicationId, job: { postedById: user.id } },
   });
   if (!app) return;
   await db.application.update({ where: { id: applicationId }, data: { status } });
-  revalidatePath(`/alumni/jobs/${app.jobId}`);
+  revalidatePath(`${base}/jobs/${app.jobId}`);
 }

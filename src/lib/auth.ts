@@ -26,10 +26,17 @@ export const getCurrentUser = cache(async () => {
   return db.user.findUnique({ where: { id: session.userId } });
 });
 
-/** Use at the top of every protected page and server action. */
-export async function requireUser(role?: Role) {
+/** Use at the top of every protected page and server action. Pass one role or a list. */
+export async function requireUser(role?: Role | Role[]) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (role && user.role !== role) redirect(homeFor(user.role as Role));
+  const allowed = role === undefined ? null : Array.isArray(role) ? role : [role];
+  if (allowed && !allowed.includes(user.role as Role)) redirect(homeFor(user.role as Role));
   return user;
+}
+
+/** Alumni and teachers can post jobs and notices. Returns the user and their area's base path. */
+export async function requirePoster() {
+  const user = await requireUser(["ALUMNI", "TEACHER"]);
+  return { user, base: user.role === "TEACHER" ? "/teacher" : "/alumni" };
 }

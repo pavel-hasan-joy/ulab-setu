@@ -68,6 +68,12 @@
   --scene-sun-glow: #fdf5dc;
   --scene-bubble: #ffffff;
   --scene-bubble-ink: #16294a;
+  --cloud-top: #ffffff;
+  --cloud-mid: #f4f8fd;
+  --cloud-shade: #b9cde6;
+  --city: #9fbde0;
+  --hill-far: #b7dcc4;
+  --hill-near: #92c9a8;
   color-scheme: light;
 }
 
@@ -112,6 +118,12 @@
   --scene-sun-glow: #26344c;
   --scene-bubble: #1b2d48;
   --scene-bubble-ink: #e4ecf7;
+  --cloud-top: #6c73a8;
+  --cloud-mid: #3f4a82;
+  --cloud-shade: #232d5c;
+  --city: #141c40;
+  --hill-far: #16254a;
+  --hill-near: #0f1a36;
   color-scheme: dark;
 }
 
@@ -163,4 +175,27 @@ h1, h2, h3, .font-display {
 @keyframes scrollcue {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(250%); }
+}
+
+/* Anime sky: clouds sway back and forth so the loop never jumps */
+@keyframes drift {
+  0%, 100% { transform: translateX(-70px); }
+  50% { transform: translateX(70px); }
+}
+@keyframes rays {
+  0%, 100% { transform: rotate(-3deg); opacity: 0.8; }
+  50% { transform: rotate(3deg); opacity: 1; }
+}
+
+/* Petals: fall, sway and tumble */
+@keyframes petal {
+  0% { transform: translate3d(0, -5vh, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.9; }
+  50% { transform: translate3d(-60px, 50vh, 0) rotate(200deg); }
+  100% { transform: translate3d(40px, 105vh, 0) rotate(420deg); opacity: 0; }
+}
+
+/* If scripts never run, don't leave the loading curtain over the page. */
+@keyframes curtain-failsafe {
+  to { visibility: hidden; }
 }

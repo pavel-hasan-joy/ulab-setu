@@ -5,7 +5,8 @@ import { Check } from "lucide-react";
 import { useActionState, useState } from "react";
 import type { User } from "@prisma/client";
 import { updateProfile } from "@/app/actions/profile";
-import { departments } from "@/lib/site";
+import { departments, teacherRanks } from "@/lib/site";
+import { ContactFields } from "./contact-fields";
 import { PageIn } from "./motion";
 import { Avatar, Badge, Button, Card, Field, FormError, Input, PageHeader, Select, Textarea } from "./ui";
 
@@ -23,11 +24,12 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
   }, undefined);
   const [name, setName] = useState(user.name);
   const alumni = user.role === "ALUMNI";
+  const teacher = user.role === "TEACHER";
 
 
   return (
     <PageIn>
-      <PageHeader title="Your profile" description={alumni ? "Students see this before they reach out. A friendly bio gets better questions." : "Alumni see this when you apply or connect. Keep it short and specific."} />
+      <PageHeader title="Your profile" description={alumni || teacher ? "Students see this before they reach out. A friendly bio gets better questions." : "Alumni and teachers see this when you apply or message them. Keep it short and specific."} />
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <Card className="h-fit p-6 text-center lg:sticky lg:top-8">
@@ -35,10 +37,10 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
           <p className="mt-4 font-display text-xl font-semibold">{name}</p>
           <p className="text-sm text-ink-soft">{user.email}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            <Badge tone={alumni ? "gold" : "blue"}>{alumni ? `Alumni, ${user.graduationYear}` : `Student, ${user.batch}`}</Badge>
-            {alumni && user.status === "PENDING" && <Badge tone="gray">Awaiting verification</Badge>}
+            <Badge tone={alumni ? "gold" : teacher ? "lilac" : "blue"}>{alumni ? `Alumni, ${user.graduationYear}` : teacher ? user.designation ?? "Teacher" : `Student, ${user.batch}`}</Badge>
+            {user.status === "PENDING" && <Badge tone="gray">Awaiting verification</Badge>}
           </div>
-          <p className="mt-4 text-xs text-ink-soft">ID {user.studentId}</p>
+          {user.studentId && <p className="mt-4 text-xs text-ink-soft">ID {user.studentId}</p>}
         </Card>
 
         <Card className="p-6">
@@ -52,18 +54,21 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
                   <Field label="Job title"><Input name="designation" defaultValue={user.designation ?? ""} /></Field>
                   <Field label="Graduation year"><Input name="graduationYear" defaultValue={user.graduationYear ?? ""} /></Field>
                 </>
+              ) : teacher ? (
+                <Field label="Designation"><Select name="designation" options={teacherRanks} defaultValue={user.designation ?? ""} /></Field>
               ) : (
                 <Field label="Admission year"><Input name="batch" defaultValue={user.batch ?? ""} /></Field>
               )}
               <Field label="City"><Input name="location" defaultValue={user.location ?? ""} placeholder="Dhaka" /></Field>
             </div>
-            <Field label="Bio" hint={alumni ? "What you do, and what students can ask you about." : "Two or three sentences about what you're looking for."}>
+            <Field label="Bio" hint={alumni ? "What you do, and what students can ask you about." : teacher ? "What you teach and research, and how students can work with you." : "Two or three sentences about what you're looking for."}>
               <Textarea name="bio" defaultValue={user.bio ?? ""} maxLength={500} />
             </Field>
             <Field label="Skills" hint="Separate with commas, e.g. Python, Public speaking, Figma">
               <Input name="skills" defaultValue={user.skills ?? ""} />
             </Field>
             <Field label="LinkedIn"><Input name="linkedin" type="url" defaultValue={user.linkedin ?? ""} placeholder="https://linkedin.com/in/…" /></Field>
+            <ContactFields user={user} />
             <FormError message={state?.error} />
             <Button disabled={pending} className="px-6 py-3">{pending ? "Saving…" : "Save profile"}</Button>
           </form>

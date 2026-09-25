@@ -2,9 +2,11 @@ import Link from "next/link";
 import { Building2, GraduationCap, MapPin, Search } from "lucide-react";
 import type { User } from "@prisma/client";
 import { db } from "@/lib/db";
-import { departments } from "@/lib/site";
+import { departments, site } from "@/lib/site";
 import { HoverLift, PageIn, Stagger, StaggerItem } from "./motion";
 import { MessageButton } from "./message-button";
+import { ContactLinks } from "./contact-fields";
+import { publicContacts, whatsappLink } from "@/lib/contact";
 import { Tabs } from "./tabs";
 import { Avatar, Badge, Button, Card, EmptyState, Input, PageHeader, Select } from "./ui";
 
@@ -12,7 +14,8 @@ type Params = { tab?: string; q?: string; department?: string };
 
 /** Everyone on Setu, split into alumni and students. Anyone can message anyone. */
 export async function PeopleDirectory({ viewer, basePath, messagesHref, params }: { viewer: User; basePath: string; messagesHref: string; params: Params }) {
-  const tab = params.tab === "students" ? "students" : "alumni";
+  const tab = params.tab === "students" ? "students" : params.tab === "teachers" ? "teachers" : "alumni";
+  const role = tab === "students" ? "STUDENT" : tab === "teachers" ? "TEACHER" : "ALUMNI";
   const q = params.q?.trim() ?? "";
   const department = params.department || undefined;
 
@@ -20,12 +23,12 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
     db.user.findMany({
       where: {
         id: { not: viewer.id },
-        role: tab === "students" ? "STUDENT" : "ALUMNI",
+        role,
         status: "APPROVED",
         ...(department && { department }),
         ...(q && { OR: [{ name: { contains: q } }, { company: { contains: q } }, { designation: { contains: q } }, { skills: { contains: q } }] }),
       },
-      orderBy: tab === "students" ? { createdAt: "desc" } : { graduationYear: "desc" },
+      orderBy: tab === "alumni" ? { graduationYear: "desc" } : { name: "asc" },
     }),
     db.connection.findMany({ where: { OR: [{ fromId: viewer.id }, { toId: viewer.id }] }, select: { fromId: true, toId: true } }),
     db.user.groupBy({ by: ["role"], where: { status: "APPROVED", id: { not: viewer.id } }, _count: true }),
@@ -36,11 +39,12 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
 
   return (
     <PageIn>
-      <PageHeader title="People" description="Every ULAB student and verified alumnus on Setu. Press Message to start a conversation with anyone." />
+      <PageHeader title="People" description="ULAB students, teachers and verified alumni on Setu. Press Message to start a conversation with anyone." />
       <Tabs
         active={tab}
         tabs={[
           { id: "alumni", label: "Alumni", href: link("alumni"), count: count("ALUMNI") },
+          { id: "teachers", label: "Teachers", href: link("teachers"), count: count("TEACHER") },
           { id: "students", label: "Students", href: link("students"), count: count("STUDENT") },
         ]}
       />
@@ -48,7 +52,7 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
         <input type="hidden" name="tab" value={tab} />
         <div className="relative flex-1">
           <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" />
-          <Input name="q" defaultValue={q} placeholder={tab === "alumni" ? "Name, company, role or skill" : "Name or skill"} className="pl-10" />
+          <Input name="q" defaultValue={q} placeholder={tab === "alumni" ? "Name, company, role or skill" : tab === "teachers" ? "Name, designation or subject" : "Name or skill"} className="pl-10" />
         </div>
         <Select name="department" options={departments} placeholder="All departments" defaultValue={department ?? ""} className="sm:w-64" />
         <Button variant="soft">Search</Button>
@@ -68,6 +72,8 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
                       <p className="font-display text-lg font-semibold">{p.name}</p>
                       {p.role === "ALUMNI" ? (
                         <p className="text-sm text-ink">{p.designation}</p>
+                      ) : p.role === "TEACHER" ? (
+                        <p className="text-sm text-ink">{p.designation}, {site.universityShort}</p>
                       ) : (
                         <p className="inline-flex items-center gap-1 text-sm text-ink"><GraduationCap size={14} /> Student, admitted {p.batch}</p>
                       )}
@@ -77,6 +83,7 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
                       </div>
                     </div>
                     {p.role === "ALUMNI" && <Badge tone="gold" className="shrink-0">{p.graduationYear}</Badge>}
+                    {p.role === "TEACHER" && <Badge tone="lilac" className="shrink-0">Faculty</Badge>}
                   </div>
                   {p.bio && <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">{p.bio}</p>}
                   {p.skills && (
@@ -84,6 +91,7 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
                       {p.skills.split(",").slice(0, 4).map((s) => <Badge key={s} tone="gray">{s.trim()}</Badge>)}
                     </div>
                   )}
+                  <PublicContacts user={p} />
                   <div className="mt-auto flex items-center justify-between gap-3 pt-5">
                     <span className="text-xs text-ink-soft">{p.department}</span>
                     <MessageButton toId={p.id} messagesHref={messagesHref} hasChat={talkedTo.has(p.id)} />
@@ -95,5 +103,15 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
         </Stagger>
       )}
     </PageIn>
+  );
+}
+
+function PublicContacts({ user }: { user: User }) {
+  // Private details never leave the server: only public ones are passed to the page.
+  const c = publicContacts(user);
+  return (
+    <div className="mt-3 empty:hidden">
+      <ContactLinks {...c} whatsappHref={c.whatsapp ? whatsappLink(c.whatsapp) : null} />
+    </div>
   );
 }

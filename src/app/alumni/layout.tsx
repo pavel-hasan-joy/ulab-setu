@@ -9,6 +9,7 @@ export default async function AlumniLayout({ children }: { children: React.React
       user={{ name: user.name, subtitle: user.company ? `${user.designation ?? ""} at ${user.company}` : "Alumni" }}
       nav={[
         { href: "/alumni", label: "Home", icon: "Home" },
+        { href: "/alumni/board", label: "Notices", icon: "Megaphone" },
         { href: "/alumni/jobs", label: "My jobs", icon: "Briefcase" },
         { href: "/alumni/people", label: "People", icon: "Users" },
         { href: "/alumni/messages", label: "Messages", icon: "MessageCircle" },

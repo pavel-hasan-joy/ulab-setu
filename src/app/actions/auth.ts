@@ -42,10 +42,22 @@ const alumniSchema = z.object({
   designation: z.string().trim().min(1, "Enter your job title."),
 });
 
+const teacherSchema = z.object({
+  name: base.name,
+  password: base.password,
+  department: base.department,
+  email: base.email.refine(
+    (e) => e.endsWith(`@${site.studentEmailDomain}`),
+    `Use your ${site.universityShort} email (@${site.studentEmailDomain}).`,
+  ),
+  designation: z.string().min(1, "Choose your designation."),
+});
+
 export async function signup(_: FormState, formData: FormData): Promise<FormState> {
   const raw = Object.fromEntries(formData) as Record<string, string>;
-  const role: Role = raw.role === "ALUMNI" ? "ALUMNI" : "STUDENT";
-  const parsed = (role === "ALUMNI" ? alumniSchema : studentSchema).safeParse(raw);
+  const role: Role = raw.role === "ALUMNI" ? "ALUMNI" : raw.role === "TEACHER" ? "TEACHER" : "STUDENT";
+  const schema = role === "ALUMNI" ? alumniSchema : role === "TEACHER" ? teacherSchema : studentSchema;
+  const parsed = schema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0].message, raw);
 
   const { password, ...data } = parsed.data;
@@ -57,8 +69,8 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
     data: {
       ...data,
       role,
-      // Alumni wait for an admin to confirm they really graduated from the university.
-      status: role === "ALUMNI" ? "PENDING" : "APPROVED",
+      // Alumni and teachers wait for the alumni office to confirm who they are before they can post.
+      status: role === "STUDENT" ? "APPROVED" : "PENDING",
       passwordHash: await bcrypt.hash(password, 10),
     },
   });
