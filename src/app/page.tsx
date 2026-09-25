@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, MessageCircle, Search, Sparkles, UserPlus } from "lucide-react";
 import { db } from "@/lib/db";
 import { site } from "@/lib/site";
-import { BridgeHero } from "@/components/bridge-hero";
+import { MentorWalk } from "@/components/mentor-walk";
 import { CountUp, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SiteHeader, Logo } from "@/components/site-header";
 import { Avatar, Badge, ButtonLink, Card } from "@/components/ui";
@@ -29,13 +29,12 @@ export default async function Home() {
       <SiteHeader />
       <main>
         {/* Hero */}
-        <section className="relative overflow-hidden">
-          <div className="dots pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_70%_40%,black,transparent_70%)]" />
-          <div className="pointer-events-none absolute -right-40 -top-40 size-[520px] rounded-full bg-ulab-light/15 blur-3xl" />
-          <div className="pointer-events-none absolute -left-32 top-64 size-[380px] rounded-full bg-gold/15 blur-3xl" />
+        <section className="relative overflow-hidden bg-gradient-to-b from-paper via-[#eef5fc] to-sky">
+          <div className="dots pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_30%_20%,black,transparent_65%)]" />
+          <div className="pointer-events-none absolute -left-32 top-40 size-[380px] rounded-full bg-gold/10 blur-3xl" />
 
-          <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-12 md:grid-cols-[1.05fr_1fr] md:px-6 md:pb-24 md:pt-20">
-            <div>
+          <div className="relative z-10 mx-auto max-w-6xl px-4 pt-12 md:px-6 md:pt-20">
+            <div className="max-w-xl">
               <Reveal>
                 <Badge tone="gold" className="mb-5"><Sparkles size={12} /> For {site.universityShort} students and graduates</Badge>
               </Reveal>
@@ -54,9 +53,12 @@ export default async function Home() {
                 <ButtonLink href="/signup?role=alumni" variant="outline" className="px-5 py-3">I&apos;m an alumnus</ButtonLink>
               </Reveal>
             </div>
-            <Reveal delay={0.1} y={0}>
-              <BridgeHero />
-            </Reveal>
+          </div>
+
+          {/* Background scene: an alumnus walks a student to the jobs building */}
+          <div className="relative -mt-2 overflow-hidden md:-mt-40 lg:-mt-56">
+            {/* On phones the scene is enlarged and cropped to the building side so the people stay readable. */}
+            <MentorWalk className="-ml-[70%] block h-auto w-[180%] max-w-none md:mx-auto md:w-full md:max-w-[1400px]" />
           </div>
         </section>
 
