@@ -13,7 +13,9 @@ async function step(name, fn) {
 }
 const expect = (cond, msg) => { if (!cond) throw new Error(msg); };
 
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+// HEADED=1 opens a visible Chrome window and slows each step down so you can watch.
+const headed = process.env.HEADED === "1";
+const browser = await chromium.launch({ channel: "chrome", headless: !headed, slowMo: headed ? 250 : 0, args: headed ? ["--window-position=40,40", "--window-size=1460,980"] : [] });
 async function newPage(viewport = { width: 1440, height: 900 }) {
   const ctx = await browser.newContext({ viewport });
   const page = await ctx.newPage();
