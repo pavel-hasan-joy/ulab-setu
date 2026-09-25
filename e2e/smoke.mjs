@@ -39,7 +39,7 @@ await step("landing page renders with stats and jobs", async () => {
   await p.screenshot({ path: `${SHOTS}/01-landing-full.png`, fullPage: true });
   expect(await p.locator("text=Posted by alumni this week").count() === 1, "jobs section missing");
   // Stats sit below the full-screen hero and count up once scrolled into view.
-  const stats = p.locator("section").nth(1);
+  const stats = p.locator('section[aria-label="Setu in numbers"]');
   await stats.scrollIntoViewIfNeeded();
   await p.waitForTimeout(2200);
   const stat = await stats.locator(".font-display").first().textContent();
@@ -64,6 +64,19 @@ await step("theme toggle switches and persists", async () => {
   await p.reload();
   expect((await p.evaluate(() => document.documentElement.dataset.theme)) === after, "theme not remembered");
   await shot(p, "01b-theme-toggled");
+});
+await step("3D particle section renders and morphs on scroll", async () => {
+  const p = await newPage();
+  await p.goto(BASE);
+  await p.evaluate(() => (document.documentElement.style.scrollBehavior = "auto"));
+  const sec = '[aria-label="From student to first job"]';
+  const { top, h } = await p.evaluate((s) => { const el = document.querySelector(s); return { top: el.offsetTop, h: el.offsetHeight - innerHeight }; }, sec);
+  for (const [f, name] of [[0.05, "globe"], [0.38, "cap"], [0.66, "bridge"], [0.95, "briefcase"]]) {
+    await p.evaluate((y) => window.scrollTo(0, y), top + h * f);
+    await p.waitForTimeout(2600);
+    await shot(p, `01c-morph-${name}`);
+  }
+  expect(await p.locator(`${sec} canvas`).count() === 1, "no WebGL canvas");
 });
 await step("scroll story shows one step at a time", async () => {
   const p = await newPage();
@@ -165,13 +178,14 @@ await step("apply succeeds after profile", async () => {
   await s.goto(`${BASE}/student/applications`);
   expect(await s.locator("text=Sent").count() >= 1, "application not listed");
 });
-await step("send connection request to alumni", async () => {
-  await s.goto(`${BASE}/student/alumni?q=Arif`);
-  await s.click('button:has-text("Connect")');
-  await s.fill("textarea", "Hello, I'd like advice on power sector jobs.");
-  await s.click('button:has-text("Send request")');
-  await s.waitForSelector("text=Request sent");
-  await shot(s, "10-alumni-directory");
+await step("student messages an alumnus directly from People", async () => {
+  await s.goto(`${BASE}/student/people?q=Arif`);
+  await s.click('button:has-text("Message")');
+  await s.waitForURL(/\/student\/messages\?c=/);
+  await s.fill('input[aria-label="Message"]', "Hello bhaiya, could I ask about power sector jobs?");
+  await s.click('button[aria-label="Send"]');
+  await s.waitForSelector("text=power sector jobs");
+  await shot(s, "10-student-message");
 });
 await step("mobile student dashboard", async () => {
   const m = await newPage({ width: 390, height: 844 });
@@ -202,12 +216,12 @@ await step("student sees shortlisted status", async () => {
   await s.goto(`${BASE}/student/applications`);
   expect(await s.locator("text=Shortlisted").count() >= 1, "status not updated");
 });
-await step("alumni accepts request and chats", async () => {
+await step("alumnus replies without accepting anything", async () => {
   const b = await newPage();
   await login(b, "alumni3@example.com");
   await b.goto(`${BASE}/alumni/messages`);
-  await b.click('button:has-text("Accept")');
-  await b.waitForSelector('input[aria-label="Message"]');
+  await b.click("text=Test Student");
+  await b.waitForSelector("text=power sector jobs");
   await b.fill('input[aria-label="Message"]', "Hi! Happy to help. What would you like to know?");
   await b.click('button[aria-label="Send"]');
   await b.waitForSelector("text=Happy to help");
@@ -216,6 +230,14 @@ await step("alumni accepts request and chats", async () => {
   await s.click("text=Arif Rahman");
   await s.waitForSelector("text=Happy to help", { timeout: 8000 });
   await shot(s, "15-student-chat");
+});
+await step("alumnus can message a student from People", async () => {
+  await a.goto(`${BASE}/alumni/people?tab=students`);
+  await a.waitForSelector("text=Test Student");
+  await shot(a, "15b-alumni-people");
+  await a.locator("div.rounded-2xl", { hasText: "Test Student" }).last().locator('button:has-text("Message")').click();
+  await a.waitForURL(/\/alumni\/messages\?c=/);
+  await a.waitForSelector('input[aria-label="Message"]');
 });
 await step("new job form posts a job", async () => {
   await a.goto(`${BASE}/alumni/jobs/new`);

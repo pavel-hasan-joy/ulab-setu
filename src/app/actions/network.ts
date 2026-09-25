@@ -1,36 +1,32 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentUser, requireUser } from "@/lib/auth";
 
-export async function requestConnection(toId: string, note: string) {
+/** Messaging is open to everyone: returns the conversation with `otherId`, creating it if needed. */
+export async function startConversation(otherId: string) {
   const user = await requireUser();
-  if (toId === user.id) return;
+  if (otherId === user.id) return null;
+  const other = await db.user.findFirst({ where: { id: otherId, status: "APPROVED", role: { not: "ADMIN" } } });
+  if (!other) return null;
   const existing = await db.connection.findFirst({
-    where: { OR: [{ fromId: user.id, toId }, { fromId: toId, toId: user.id }] },
+    where: { OR: [{ fromId: user.id, toId: otherId }, { fromId: otherId, toId: user.id }] },
   });
-  if (existing) return;
-  await db.connection.create({ data: { fromId: user.id, toId, note: note.trim() || null } });
-  revalidatePath("/student/alumni");
-}
-
-export async function respondConnection(connectionId: string, accept: boolean) {
-  const user = await requireUser();
-  const conn = await db.connection.findFirst({ where: { id: connectionId, toId: user.id } });
-  if (!conn) return;
-  await db.connection.update({
-    where: { id: connectionId },
-    data: { status: accept ? "ACCEPTED" : "DECLINED" },
-  });
-  revalidatePath("/", "layout");
+  if (existing) {
+    if (existing.status !== "ACCEPTED") {
+      await db.connection.update({ where: { id: existing.id }, data: { status: "ACCEPTED" } });
+    }
+    return existing.id;
+  }
+  const created = await db.connection.create({ data: { fromId: user.id, toId: otherId, status: "ACCEPTED" } });
+  return created.id;
 }
 
 export async function sendMessage(connectionId: string, body: string) {
   const user = await getCurrentUser();
   if (!user || !body.trim()) return;
   const conn = await db.connection.findFirst({
-    where: { id: connectionId, status: "ACCEPTED", OR: [{ fromId: user.id }, { toId: user.id }] },
+    where: { id: connectionId, OR: [{ fromId: user.id }, { toId: user.id }] },
   });
   if (!conn) return;
   await db.message.create({ data: { connectionId, senderId: user.id, body: body.trim().slice(0, 2000) } });

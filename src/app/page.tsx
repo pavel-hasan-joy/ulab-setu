@@ -3,6 +3,7 @@ import { ArrowUpRight, BadgeCheck, MessageCircle, Search, UserPlus } from "lucid
 import { db } from "@/lib/db";
 import { site } from "@/lib/site";
 import { CinematicHero } from "@/components/landing/cinematic-hero";
+import { MorphStory } from "@/components/landing/morph-story";
 import { ScrollProgress } from "@/components/landing/scroll-progress";
 import { ScrollText } from "@/components/landing/scroll-text";
 import { WalkStory } from "@/components/landing/walk-story";
@@ -34,8 +35,10 @@ export default async function Home() {
       <main>
         <CinematicHero />
 
+        <MorphStory />
+
         {/* Stats */}
-        <section className="border-y border-mist/70 bg-surface/60">
+        <section aria-label="Setu in numbers" className="border-y border-mist/70 bg-surface/60">
           <div className="mx-auto grid max-w-6xl grid-cols-3 divide-x divide-mist/70 px-4 md:px-6">
             {stats.map((s) => (
               <div key={s.label} className="px-2 py-8 text-center md:py-10">
@@ -61,7 +64,7 @@ export default async function Home() {
           <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
             {[
               { icon: UserPlus, title: "Join with your role", body: `Students sign up with their @${site.studentEmailDomain} email. Alumni are checked against their student ID.` },
-              { icon: MessageCircle, title: "Reach out to a senior", body: "Find alumni by department, company or batch. Send a short note, and chat once they accept." },
+              { icon: MessageCircle, title: "Reach out to a senior", body: "Find alumni by department, company or batch, and message anyone directly." },
               { icon: BadgeCheck, title: "Apply with a referral", body: "Apply to jobs alumni post here. Many come with an offer to refer you internally." },
             ].map((s, i) => (
               <StaggerItem key={s.title}>

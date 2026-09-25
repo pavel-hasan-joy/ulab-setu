@@ -2,52 +2,30 @@ import Link from "next/link";
 import type { User } from "@prisma/client";
 import { db } from "@/lib/db";
 import { PageIn } from "./motion";
-import { Avatar, Card, EmptyState, PageHeader, cn, timeAgo } from "./ui";
+import { Avatar, ButtonLink, Card, EmptyState, PageHeader, cn, timeAgo } from "./ui";
 import { ChatWindow } from "./chat-window";
-import { RequestActions } from "./request-actions";
 
 export async function MessagesView({ user, basePath, selected }: { user: User; basePath: string; selected?: string }) {
   const connections = await db.connection.findMany({
-    where: { OR: [{ fromId: user.id }, { toId: user.id }], status: { not: "DECLINED" } },
+    where: { OR: [{ fromId: user.id }, { toId: user.id }] },
     include: { from: true, to: true, messages: { orderBy: { createdAt: "desc" }, take: 1 } },
     orderBy: { createdAt: "desc" },
   });
-  const incoming = connections.filter((c) => c.status === "PENDING" && c.toId === user.id);
-  const outgoing = connections.filter((c) => c.status === "PENDING" && c.fromId === user.id);
+  // Messaging is open: every conversation is active, most recent first.
   const active = connections
-    .filter((c) => c.status === "ACCEPTED")
     .sort((a, b) => (b.messages[0]?.createdAt ?? b.createdAt).getTime() - (a.messages[0]?.createdAt ?? a.createdAt).getTime());
   const current = active.find((c) => c.id === selected) ?? (selected ? undefined : active[0]);
   const other = (c: (typeof connections)[number]) => (c.fromId === user.id ? c.to : c.from);
 
   return (
     <PageIn>
-      <PageHeader title="Messages" description={user.role === "ALUMNI" ? "Students who want to learn from you. Accept a request to start chatting." : "Your conversations with alumni."} />
-
-      {incoming.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold text-ink-soft">Requests waiting for you</h2>
-          <div className="space-y-3">
-            {incoming.map((c) => (
-              <Card key={c.id} className="flex flex-wrap items-start gap-4 border-gold/40 p-5">
-                <Avatar name={c.from.name} size={44} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">{c.from.name}</p>
-                  <p className="text-xs text-ink-soft">{c.from.department}{c.from.batch ? `, admitted ${c.from.batch}` : ""}{c.from.company ? `, ${c.from.company}` : ""}</p>
-                  {c.note && <p className="mt-2 rounded-xl bg-paper px-3.5 py-2.5 text-sm text-ink">&ldquo;{c.note}&rdquo;</p>}
-                  {c.from.skills && <p className="mt-2 text-xs text-ink-soft">Skills: {c.from.skills}</p>}
-                </div>
-                <RequestActions connectionId={c.id} />
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
+      <PageHeader title="Messages" description="Anyone at ULAB Setu can message anyone. Find people on the People page." />
 
       {active.length === 0 ? (
         <EmptyState
           title="No conversations yet"
-          body={user.role === "ALUMNI" ? "When a student reaches out and you accept, the conversation shows up here." : "Find an alumnus in your field and send a connection request."}
+          body="Open the People page and press Message on anyone to start a conversation."
+          action={<ButtonLink href={basePath.replace("/messages", "/people")}>Find people</ButtonLink>}
         />
       ) : (
         <Card className="grid overflow-hidden md:h-[560px] md:grid-cols-[260px_1fr]">
@@ -76,11 +54,6 @@ export async function MessagesView({ user, basePath, selected }: { user: User; b
         </Card>
       )}
 
-      {outgoing.length > 0 && (
-        <p className="mt-6 text-sm text-ink-soft">
-          Waiting for a reply from {outgoing.map((c) => c.to.name).join(", ")}.
-        </p>
-      )}
     </PageIn>
   );
 }

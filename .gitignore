@@ -47,3 +47,4 @@ prisma/*.db-journal
 
 # e2e screenshots
 e2e/shots/
+prisma/test.db

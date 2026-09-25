@@ -62,7 +62,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                 <p className="text-sm text-ink-soft">{job.postedBy.department}, class of {job.postedBy.graduationYear}</p>
               </div>
             </div>
-            <Link href={`/student/alumni?q=${encodeURIComponent(job.postedBy.name)}`} className="mt-4 block rounded-xl bg-sky px-4 py-2.5 text-center text-sm font-semibold text-ulab-deep transition hover:bg-mist">
+            <Link href={`/student/people?q=${encodeURIComponent(job.postedBy.name)}`} className="mt-4 block rounded-xl bg-sky px-4 py-2.5 text-center text-sm font-semibold text-ulab-deep transition hover:bg-mist">
               Ask {job.postedBy.name.split(" ")[0]} a question
             </Link>
           </Card>

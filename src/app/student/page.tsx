@@ -28,7 +28,7 @@ export default async function StudentHome() {
           <h1 className="mt-1 max-w-lg text-3xl font-semibold md:text-4xl">What would you like to work on today?</h1>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/student/jobs"><Briefcase size={16} /> Browse jobs</ButtonLink>
-            <ButtonLink href="/student/alumni" variant="outline"><MessageCircle size={16} /> Talk to alumni</ButtonLink>
+            <ButtonLink href="/student/people" variant="outline"><MessageCircle size={16} /> Talk to alumni</ButtonLink>
           </div>
         </div>
       </div>
@@ -77,12 +77,12 @@ export default async function StudentHome() {
         <section className="mt-10">
           <div className="mb-4 flex items-end justify-between">
             <h2 className="text-xl font-semibold">Alumni from your department</h2>
-            <Link href="/student/alumni" className="inline-flex items-center gap-1 text-sm font-semibold text-ulab hover:underline">See all <ArrowUpRight size={14} /></Link>
+            <Link href="/student/people" className="inline-flex items-center gap-1 text-sm font-semibold text-ulab hover:underline">See all <ArrowUpRight size={14} /></Link>
           </div>
           <Stagger className="grid gap-3 sm:grid-cols-2">
             {alumni.map((a) => (
               <StaggerItem key={a.id}>
-                <Link href={`/student/alumni?q=${encodeURIComponent(a.name)}`}>
+                <Link href={`/student/people?q=${encodeURIComponent(a.name)}`}>
                   <Card className="flex items-center gap-3 p-4 transition hover:shadow-lift">
                     <Avatar name={a.name} size={44} />
                     <div className="min-w-0">
