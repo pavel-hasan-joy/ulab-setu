@@ -32,6 +32,7 @@ model User {
   facebook       String?
   facebookPublic Boolean  @default(false)
   createdAt      DateTime @default(now())
+  lastLoginAt    DateTime?
 
   jobs          Job[]
   applications  Application[]
@@ -39,6 +40,7 @@ model User {
   gotRequests   Connection[]  @relation("received")
   messages      Message[]
   posts         Post[]
+  loginLogs     LoginLog[]
 }
 
 model Job {
@@ -113,4 +115,16 @@ model Post {
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+/** Login activity audit logs for admin analytics */
+model LoginLog {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  name      String
+  role      String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

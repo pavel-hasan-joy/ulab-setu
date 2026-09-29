@@ -1,7 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageIn, Stagger, StaggerItem } from "@/components/motion";
-import { Avatar, Badge, Card, EmptyState, PageHeader, timeAgo } from "@/components/ui";
+import { BarChart3 } from "lucide-react";
+import { Avatar, Badge, ButtonLink, Card, EmptyState, PageHeader, timeAgo } from "@/components/ui";
 import { ApprovalButtons } from "./approval-buttons";
 
 export default async function AdminPage() {
@@ -13,7 +14,15 @@ export default async function AdminPage() {
 
   return (
     <PageIn>
-      <PageHeader title="Approvals" description={`Check alumni student IDs and faculty emails against university records before approving. ${approvedCount} alumni verified so far.`} />
+      <PageHeader
+        title="Approvals"
+        description={`Check alumni student IDs and faculty emails against university records before approving. ${approvedCount} alumni verified so far.`}
+        action={
+          <ButtonLink href="/admin/analytics" variant="soft" className="gap-2">
+            <BarChart3 size={16} /> Analytics & Logins
+          </ButtonLink>
+        }
+      />
       {pending.length === 0 ? (
         <EmptyState title="All caught up" body="New alumni and teacher sign-ups will appear here for verification." />
       ) : (

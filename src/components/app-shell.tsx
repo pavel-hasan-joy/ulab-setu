@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  Briefcase, FileText, Home, LogOut, Megaphone, MessageCircle, PlusCircle, ShieldCheck, User, Users,
+  Briefcase, FileText, Home, LogOut, Megaphone, MessageCircle, PlusCircle, ShieldCheck, User, Users, BarChart3,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Logo } from "./site-header";
 import { ThemeToggle } from "./theme";
 import { Avatar, cn } from "./ui";
 
-const icons = { Home, Briefcase, Users, MessageCircle, User, FileText, PlusCircle, ShieldCheck, Megaphone };
+const icons = { Home, Briefcase, Users, MessageCircle, User, FileText, PlusCircle, ShieldCheck, Megaphone, BarChart3 };
 export type NavItem = { href: string; label: string; icon: keyof typeof icons; badge?: number };
 
 export function AppShell({

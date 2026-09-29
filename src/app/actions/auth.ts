@@ -90,7 +90,24 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   if (user.status === "REJECTED") {
     return { error: "Your alumni request was not approved. Contact the alumni office.", fields: { email } };
   }
-  await createSession(user.id, user.role as Role);
+  const now = new Date();
+  await Promise.all([
+    createSession(user.id, user.role as Role),
+    db.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: now },
+    }),
+    db.loginLog.create({
+      data: {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: now,
+      },
+    }),
+  ]).catch(() => {});
+
   const home = homeFor(user.role as Role);
   redirect(next.startsWith(home) ? next : home);
 }
