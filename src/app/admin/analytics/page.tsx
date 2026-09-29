@@ -27,6 +27,10 @@ export default async function AdminAnalyticsPage() {
     teacherCount,
     adminCount,
     pendingCount,
+    totalJobs,
+    totalApplications,
+    totalConnections,
+    totalPosts,
     loginLogs,
     allUsersRaw,
   ] = await Promise.all([
@@ -36,6 +40,10 @@ export default async function AdminAnalyticsPage() {
     db.user.count({ where: { role: "TEACHER" } }),
     db.user.count({ where: { role: "ADMIN" } }),
     db.user.count({ where: { status: "PENDING" } }),
+    db.job.count(),
+    db.application.count(),
+    db.connection.count(),
+    db.post.count(),
     db.loginLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 60,
@@ -130,6 +138,10 @@ export default async function AdminAnalyticsPage() {
         teacherCount={teacherCount}
         adminCount={adminCount}
         pendingCount={pendingCount}
+        totalJobs={totalJobs}
+        totalApplications={totalApplications}
+        totalConnections={totalConnections}
+        totalPosts={totalPosts}
         dailyLogins={dailyLogins}
         departmentStats={departmentStats}
         recentLogins={serializedLogs}

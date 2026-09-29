@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import {
   GraduationCap, Search, ShieldCheck, TrendingUp, UserCheck, Users,
+  Briefcase, FileText, MessageCircle, Megaphone, Download,
 } from "lucide-react";
 import { Avatar, Badge, Card, timeAgo } from "@/components/ui";
 
@@ -47,6 +48,10 @@ export function AdminAnalyticsView({
   teacherCount,
   adminCount,
   pendingCount,
+  totalJobs = 0,
+  totalApplications = 0,
+  totalConnections = 0,
+  totalPosts = 0,
   dailyLogins,
   departmentStats,
   recentLogins,
@@ -58,6 +63,10 @@ export function AdminAnalyticsView({
   teacherCount: number;
   adminCount: number;
   pendingCount: number;
+  totalJobs?: number;
+  totalApplications?: number;
+  totalConnections?: number;
+  totalPosts?: number;
   dailyLogins: DailyData[];
   departmentStats: DepartmentStat[];
   recentLogins: LoginLogItem[];
@@ -66,6 +75,47 @@ export function AdminAnalyticsView({
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [activeTab, setActiveTab] = useState<"logins" | "users">("logins");
+
+  const handleExportCSV = () => {
+    if (activeTab === "logins") {
+      const headers = ["ID", "Name", "Email", "Role", "Timestamp"];
+      const rows = filteredLogs.map((l) => [
+        `"${l.id}"`,
+        `"${l.name.replace(/"/g, '""')}"`,
+        `"${l.email}"`,
+        `"${l.role}"`,
+        `"${new Date(l.createdAt).toISOString()}"`,
+      ]);
+      const csv =
+        "data:text/csv;charset=utf-8," +
+        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const link = document.createElement("a");
+      link.href = encodeURI(csv);
+      link.download = `ulab_logins_audit_${Date.now()}.csv`;
+      link.click();
+    } else {
+      const headers = ["ID", "Name", "Email", "Role", "Status", "Department", "Company", "Designation", "Joined Date", "Last Login"];
+      const rows = filteredUsers.map((u) => [
+        `"${u.id}"`,
+        `"${u.name.replace(/"/g, '""')}"`,
+        `"${u.email}"`,
+        `"${u.role}"`,
+        `"${u.status}"`,
+        `"${(u.department || "").replace(/"/g, '""')}"`,
+        `"${(u.company || "").replace(/"/g, '""')}"`,
+        `"${(u.designation || "").replace(/"/g, '""')}"`,
+        `"${new Date(u.createdAt).toISOString()}"`,
+        `"${u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : "Never"}"`,
+      ]);
+      const csv =
+        "data:text/csv;charset=utf-8," +
+        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const link = document.createElement("a");
+      link.href = encodeURI(csv);
+      link.download = `ulab_users_audit_${Date.now()}.csv`;
+      link.click();
+    }
+  };
 
   const filteredUsers = allUsers.filter((u) => {
     const matchesSearch =
@@ -177,6 +227,46 @@ export function AdminAnalyticsView({
             </div>
           </Card>
         </motion.div>
+      </div>
+
+      {/* Platform Activity & Opportunity Highlights */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card className="flex items-center gap-3 p-4">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-sky text-ulab-deep">
+            <Briefcase size={20} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-ink-soft">Jobs Posted</p>
+            <p className="text-xl font-bold text-ink">{totalJobs}</p>
+          </div>
+        </Card>
+        <Card className="flex items-center gap-3 p-4">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <FileText size={20} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-ink-soft">Job Applications</p>
+            <p className="text-xl font-bold text-ink">{totalApplications}</p>
+          </div>
+        </Card>
+        <Card className="flex items-center gap-3 p-4">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-gold-wash text-gold-ink">
+            <MessageCircle size={20} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-ink-soft">Connections</p>
+            <p className="text-xl font-bold text-ink">{totalConnections}</p>
+          </div>
+        </Card>
+        <Card className="flex items-center gap-3 p-4">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-lilac-wash text-lilac-ink">
+            <Megaphone size={20} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-ink-soft">Broadcasts & Events</p>
+            <p className="text-xl font-bold text-ink">{totalPosts}</p>
+          </div>
+        </Card>
       </div>
 
       {/* Main Graphs Grid: 7-Day Login Activity & Department Distribution */}
@@ -366,6 +456,14 @@ export function AdminAnalyticsView({
               <option value="TEACHER">Teachers</option>
               <option value="ADMIN">Admins</option>
             </select>
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink shadow-sm transition hover:bg-mist/40"
+              title="Download table data as CSV"
+            >
+              <Download size={13} /> Export CSV
+            </button>
           </div>
         </div>
 

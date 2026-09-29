@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageIn, Stagger, StaggerItem } from "@/components/motion";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Users, Briefcase } from "lucide-react";
 import { Avatar, Badge, ButtonLink, Card, EmptyState, PageHeader, timeAgo } from "@/components/ui";
 import { ApprovalButtons } from "./approval-buttons";
 
@@ -18,9 +18,17 @@ export default async function AdminPage() {
         title="Approvals"
         description={`Check alumni student IDs and faculty emails against university records before approving. ${approvedCount} alumni verified so far.`}
         action={
-          <ButtonLink href="/admin/analytics" variant="soft" className="gap-2">
-            <BarChart3 size={16} /> Analytics & Logins
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-2">
+            <ButtonLink href="/admin/users" variant="outline" className="gap-1.5 text-xs py-2">
+              <Users size={15} /> Users Directory
+            </ButtonLink>
+            <ButtonLink href="/admin/jobs" variant="outline" className="gap-1.5 text-xs py-2">
+              <Briefcase size={15} /> Jobs
+            </ButtonLink>
+            <ButtonLink href="/admin/analytics" variant="soft" className="gap-1.5 text-xs py-2">
+              <BarChart3 size={15} /> Analytics
+            </ButtonLink>
+          </div>
         }
       />
       {pending.length === 0 ? (
