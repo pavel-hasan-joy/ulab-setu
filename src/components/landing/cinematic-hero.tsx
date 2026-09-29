@@ -86,9 +86,9 @@ export function CinematicHero() {
           <div className="animate-float [animation-duration:6s]">
             <Image
               src="/images/anime-student.webp"
-              alt="Anime-style illustration of a smiling student in school uniform making a peace sign"
-              width={1034}
-              height={1553}
+              alt="Illustration of a student with a backpack and books"
+              width={659}
+              height={1024}
               priority
               className="h-auto w-full [mask-image:linear-gradient(to_bottom,black_86%,transparent)]"
             />
