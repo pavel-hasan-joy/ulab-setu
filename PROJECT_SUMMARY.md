@@ -156,7 +156,121 @@ The Admin suite provides the university administration and Alumni Relations Offi
 
 ---
 
-## 6. Database Schema & Data Models
+## 6. User Manual (How to Use Setu — Step-by-Step Guide)
+
+This section provides a complete, role-by-role operational guide for using the ULAB Setu platform. 
+
+### 🎬 Interactive Video Demonstration & Walkthrough
+A complete, 60 FPS live video walkthrough is available locally and deployed on the platform:
+- **Primary Video Walkthrough:** [`/how_to_use.webm`](file:///c:/Users/mdpav/Downloads/joy/joy/setu/public/how_to_use.webm) *(High-definition full walkthrough covering Student, Alumni, Teacher, and Admin sections)*
+- **Admin Control Center Deep Dive:** [`/how-to-use/how_to_use_admin_panel.webm`](file:///c:/Users/mdpav/Downloads/joy/joy/setu/public/how-to-use/how_to_use_admin_panel.webm) *(Walkthrough of approvals, user role management, job moderation, broadcasts, and analytics)*
+- **All Sections Complete Tour:** [`/how-to-use/how_to_use_all_sections.webm`](file:///c:/Users/mdpav/Downloads/joy/joy/setu/public/how-to-use/how_to_use_all_sections.webm)
+
+---
+
+### 6.1. Student User Manual (`/student`)
+
+1. **Account Registration & Login:**
+   - Navigate to `/signup` or click **"Join the Network"** on the landing page.
+   - Select the **Student** role.
+   - Enter your official university email ending with `@ulab.edu.bd` (e.g., `student@ulab.edu.bd`).
+   - Enter your full name, student ID, department, graduation batch, and a strong password.
+   - Registration for students is instant—no manual approval required. Log in immediately at `/login`.
+2. **Navigating the Student Dashboard:**
+   - View live campus statistics (total alumni connected, active job circulars, pending applications).
+   - Check out recommended alumni from your own academic department.
+3. **Finding & Applying for Jobs (`/student/jobs`):**
+   - **Internal Opportunities (Campus Network):** View job and internship circulars posted directly by ULAB alumni and faculty. Look out for the green badge **"Employee Referral Available"**—these alumni can refer your resume internally at their company.
+   - **Bangladesh Jobs (Careerjet):** Filter live job listings across Bangladesh from leading job portals.
+   - **Global Remote Jobs (Himalayas):** Access verified international remote engineering, design, and business jobs.
+   - **Applying to a Position:** Click **"Apply Now"** on any internal job card. Add an optional introduction note highlighting your skills, and submit.
+   - **Tracking Applications:** Switch to the **"My Applications"** tab to monitor application statuses (*Applied*, *Shortlisted*, or *Rejected*).
+4. **Mentorship & Alumni Directory (`/student/network`):**
+   - Search the directory by alumni name, company (e.g., Google, bKash, BAT, Brain Station 23), department, graduation year, or technical skills (e.g., Python, React, SEO).
+   - Click on an alumnus's profile to view their professional journey, bio, and public social links.
+   - Click **"Connect"** or **"Send Message"** to initiate a direct 1-on-1 chat for career guidance, CV feedback, or interview preparation.
+5. **Campus Notice Board & Opportunities (`/student/board`):**
+   - Read categorized university notices: *Notices*, *Events*, *Scholarships*, *Research Calls*, and *Competitions*.
+   - Filter by category or search by keywords to stay ahead of upcoming deadlines.
+6. **Profile Customization & Contact Privacy (`/student/profile`):**
+   - Update your bio, skills tags, portfolio link, and LinkedIn profile.
+   - **Granular Privacy Controls:** Choose whether your phone number, WhatsApp, and Facebook profile are visible to other members using the privacy toggle switches (*Public* / *Private*).
+
+---
+
+### 6.2. Alumni User Manual (`/alumni`)
+
+1. **Registration & Alumni Verification:**
+   - Register at `/signup` and select the **Alumni** role.
+   - Provide your graduation year, department, current company, designation, and LinkedIn profile.
+   - For campus safety and verified credentials, alumni accounts are placed in *Pending* status until verified by the ULAB Alumni Relations Office. Once approved, you gain full access to the Alumni portal.
+2. **Posting Jobs & Internships (`/alumni/jobs`):**
+   - Click **"Post a Job"** to open the job submission modal.
+   - Enter Job Title, Company Name, Location, Employment Type (Full-time, Part-time, Internship), Salary details, Description, and Deadline.
+   - **Referral Toggle:** Tick the checkbox **"I can provide an internal employee referral"** if you are willing to refer qualified students within your organization.
+   - Click **"Publish Job"** to instantly broadcast it to all students.
+3. **Reviewing & Shortlisting Applicants (`/alumni/applicants`):**
+   - Open your posted circulars to view all candidate submissions.
+   - Read candidate cover notes, check their student profiles, portfolios, and skills.
+   - Update status to **Shortlisted** or **Rejected** so students receive immediate feedback.
+4. **Notice Board Contributions (`/alumni/board`):**
+   - Post industry events, hiring hackathons, skill-building webinars, or general career advice directly to the campus notice board.
+5. **Mentoring Juniors via Direct Chat (`/alumni/messages`):**
+   - Receive inquiries and connection requests from ambitious juniors.
+   - Share real-world industry perspectives, review resumes, and recommend relevant career paths.
+
+---
+
+### 6.3. Teacher / Faculty User Manual (`/teacher`)
+
+1. **Registration & Departmental Verification:**
+   - Register at `/signup` with your academic designation and university email.
+   - Faculty accounts are verified by university administrators.
+2. **Posting Academic Openings (`/teacher/jobs`):**
+   - Post campus opportunities such as **Teaching Assistant (TA)**, **Research Assistant (RA)**, or Lab Proctor roles.
+   - Specify academic prerequisites (e.g., minimum CGPA, specific course completed, Python/SPSS skills).
+   - Review student applicants directly from your dashboard and select top performers.
+3. **Publishing Research Calls & Academic Notices (`/teacher/board`):**
+   - Broadcast research lab openings, international paper submission deadlines, funded projects, and departmental seminar schedules.
+4. **Connecting with Alumni for Industry Collabs:**
+   - Search the alumni directory to invite industry-leading graduates as guest speakers or advisory committee members.
+
+---
+
+### 6.4. Admin (Alumni Relations Office) User Manual (`/admin`)
+
+1. **Accessing the Admin Control Center:**
+   - Log in with institutional admin credentials (e.g., `admin@ulab.edu.bd`).
+   - Admins are automatically directed to the 5-tab unified control center.
+2. **Verifying New Registrations (`/admin`):**
+   - Review pending registrations for Alumni and Teachers.
+   - Verify Student IDs, graduation records, and departmental affiliations.
+   - Click **"Approve"** to activate an account or **"Reject"** to deny unverified submissions.
+3. **Users Directory & Access Controls (`/admin/users`):**
+   - **Live Search & Filter:** Filter users by name, email, student ID, department, batch, or company.
+   - **Role Assignment:** Change roles between Student, Alumni, Teacher, or Admin instantly.
+   - **Account Actions:** Approve, suspend, or delete accounts (with self-deletion protection).
+   - **Export CSV:** Click **"Export Users CSV"** to generate a complete spreadsheet of all registered members.
+4. **Job & Internship Moderation (`/admin/jobs`):**
+   - Inspect all internal circulars, their posters, categories, and applicant tallies.
+   - Toggle postings between **Active** and **Closed**.
+   - Delete inappropriate or expired listings with full database safety.
+   - Click **"Export Jobs CSV"** to export placement and vacancy statistics.
+5. **Notices & University Broadcasts (`/admin/notices`):**
+   - Click **"Create Notice"** to open the broadcast modal.
+   - Choose category (*Notice*, *Event*, *Scholarship*, *Research*, *Opportunity*), add title, body, optional link, and date.
+   - Click **"Publish Broadcast"** to display it across all student and alumni dashboards.
+   - Moderate or delete inappropriate community notices.
+6. **Platform Analytics & Login Audit (`/admin/analytics`):**
+   - Track key metrics: Total Users, Role Breakdown, Pending Verifications.
+   - Monitor engagement: Jobs Posted, Student Applications, Connections, Broadcasts.
+   - Analyze 7-Day Login Trends visual chart and Department Breakdown percentages.
+   - Review the Real-Time Authentication Audit Log (user email, role, login timestamp).
+   - Click **"Export Audit CSV"** for institutional governance records.
+
+---
+
+## 7. Database Schema & Data Models
 
 Managed via **Prisma ORM** (`prisma/schema.prisma`):
 
@@ -196,7 +310,7 @@ Managed via **Prisma ORM** (`prisma/schema.prisma`):
 
 ---
 
-## 7. Directory & File Structure
+## 8. Directory & File Structure
 
 ```
 setu/
@@ -246,14 +360,14 @@ setu/
 ├── prisma/
 │   ├── schema.prisma             # Relational database schema
 │   └── seed.ts                   # Realistic demo dataset
-├── public/                       # Static branding, logos, sw.js, offline.html
+├── public/                       # Static branding, logos, sw.js, offline.html, how_to_use.webm
 ├── e2e/                          # Playwright automated test suite
 └── package.json                  # Dependencies & scripts
 ```
 
 ---
 
-## 8. Deployment & CI/CD Workflow
+## 9. Deployment & CI/CD Workflow
 
 ### Production Build Script
 In `package.json`:
@@ -276,6 +390,7 @@ In `package.json`:
 
 ---
 
-## 9. Conclusion & Project Value
+## 10. Conclusion & Project Value
 
 **ULAB Setu** delivers an end-to-end institutional solution combining high performance, strict institutional security, dynamic modern aesthetics, and administrative governance. By bridging alumni career insights directly to students while providing faculty and administrators with comprehensive oversight, Setu establishes an enduring digital foundation for the entire university community.
+
