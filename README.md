@@ -1,56 +1,242 @@
-# ULAB Setu
+# 🌉 ULAB Setu — University & Alumni Ecosystem Platform
 
-A place where ULAB students connect with alumni, apply to jobs alumni post, and browse live job listings from Bangladesh and remote teams.
+<div align="center">
 
-## Run locally
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-E2E-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-Ready-orange?style=for-the-badge&logo=pwa&logoColor=white)
 
+**A unified academic and career platform connecting ULAB students, verified alumni, faculty members, and the alumni administration office.**
+
+[Features](#-key-features) • [Tech Stack](#-tech-stack) • [Architecture](#-system-architecture) • [Getting Started](#-getting-started) • [API Integrations](#-external-job-integrations) • [Deployment](#-deployment)
+
+</div>
+
+---
+
+## 📖 Overview
+
+**ULAB Setu** (সেতু — *Bridge*) is a modern full-stack web application and Progressive Web App (PWA) designed to bridge the gap between academia and the professional world. 
+
+The platform enables students to connect with alumni mentors, apply for curated jobs and internships, communicate directly through private messaging, and access real-time job listings from both Bangladeshi job portals and global remote companies. An automated verification workflow managed by the Alumni Office ensures safety, authenticity, and verified community networking.
+
+---
+
+## ✨ Key Features by User Role
+
+### 🎓 1. Student Portal
+- **Smart Job Search & Filters:** Browse direct alumni job postings, Bangladeshi jobs via Careerjet API, and global remote opportunities via Himalayas API.
+- **Application Tracking:** Apply directly to alumni/teacher postings and track application statuses.
+- **Alumni Mentorship Directory:** Discover alumni filtered by department, batch, company, and location.
+- **Community Notice Board:** Stay updated with official announcements, career seminars, and campus events.
+- **1-on-1 Direct Messaging:** Private messaging with alumni mentors and faculty members.
+- **Privacy First:** Control visibility of personal contact info (Phone, WhatsApp, Facebook).
+
+### 💼 2. Alumni Portal
+- **Job & Internship Posting:** Post job openings directly with custom application requirements, deadlines, and salary details.
+- **Talent Discovery:** Review incoming student applications and resumes.
+- **Community Engagement:** Publish career advice, opportunities, and discussions on the notice board.
+- **Peer Networking:** Connect with fellow alumni across various graduating batches and industries.
+- **Approval Workflow:** Verified status granted by the Alumni Office ensures authentic alumni representation.
+
+### 👨‍🏫 3. Faculty / Teacher Portal
+- **Research & TA Opportunities:** Post openings for Teaching Assistants (TA), Research Assistants (RA), and lab projects.
+- **Department Notices:** Share academic announcements and guidance.
+- **Direct Mentorship:** Connect with both current students and graduated alumni.
+
+### 🛡️ 4. Alumni Office (Admin Portal)
+- **User Verification Queue:** Review, approve, or reject pending alumni and faculty registration requests.
+- **Platform Analytics & Telemetry:** Real-time metrics on user growth, role distribution, active jobs, and engagement.
+- **Job & Notice Moderation:** Manage and moderate posted listings across the platform.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend Framework** | **Next.js 16** (App Router, Server Components & Server Actions) |
+| **UI Library** | **React 19**, **Tailwind CSS v4**, **Lucide Icons** |
+| **Animation & 3D** | **Three.js**, **Motion** (Framer Motion v13) for interactive particle & canvas effects |
+| **Language & Validation** | **TypeScript 5**, **Zod** (runtime validation) |
+| **Database & ORM** | **Prisma ORM**, SQLite (Local development) / PostgreSQL (Production) |
+| **Authentication & Security** | **Jose** (JWT session tokens), **bcryptjs** (salted password hashing), HTTP-only cookies |
+| **Testing** | **Playwright** (End-to-end / smoke tests) |
+| **Mobile & Offline** | **Progressive Web App (PWA)** with Service Worker (`sw.js`) and offline fallback |
+| **Package Manager** | **pnpm v11** |
+
+---
+
+## 🏛️ System Architecture & Data Model
+
+The database is built on **Prisma ORM** with relational integrity:
+
+```
+┌──────────────┐          1:N           ┌──────────────┐
+│     User     │───────────────────────<│     Job      │
+│ (RBAC Roles) │                        └──────┬───────┘
+└──────┬───────┘                               │ 1:N
+       │ 1:N                                   ▼
+       ├───────────────────────────────<┌──────────────┐
+       │                                │ Application  │
+       │ 1:N                            └──────────────┘
+       ├───────────────────────────────<┌──────────────┐
+       │                                │   Message    │
+       │ 1:N                            └──────────────┘
+       └───────────────────────────────<┌──────────────┐
+                                        │  Post/Notice │
+                                        └──────────────┘
+```
+
+- **User Model:** Stores credentials, university details (`department`, `studentId`, `batch`, `graduationYear`), career info (`company`, `designation`), role (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`), and approval status (`PENDING`, `APPROVED`, `REJECTED`).
+- **Granular Privacy:** Dedicated booleans (`phonePublic`, `whatsappPublic`, `facebookPublic`) so users control contact disclosure.
+- **Job & Application Model:** Tracks employer metadata, requirements, deadlines, application counts, and candidate statuses.
+- **Communication & Social:** Direct peer-to-peer messages and community notice-board feeds.
+
+---
+
+## 🌐 External Job Integrations
+
+Setu aggregates three distinct streams of employment opportunities:
+1. **Alumni & Faculty Postings:** Curated, verified campus-exclusive jobs directly posted within the platform.
+2. **Bangladesh Job Market (Careerjet API):** Pulls live listings from Bdjobs and major Bangladeshi recruitment sites (`locale_code=en_BD`).
+3. **Global Remote Careers (Himalayas API):** Real-time remote opportunities from international technology companies.
+
+---
+
+## 📱 Progressive Web App (PWA)
+
+Setu functions as a native-feeling application across Android, iOS, and Desktop:
+- **Mobile Installation:** Supports "Add to Home Screen" on iOS Safari and Web App Install prompts on Android Chrome.
+- **Service Worker (`public/sw.js`):** Caches static assets, app icons, and critical scripts.
+- **Offline Resilience:** Renders an elegant fallback page (`public/offline.html`) when the device loses network connectivity.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** (v20+ recommended)
+- **pnpm** (v9+ or `npm install -g pnpm`)
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/pavel-hasan-joy/ulab-setu.git
+cd ulab-setu
+```
+
+### 2. Install Dependencies
 ```bash
 pnpm install
-cp .env.example .env        # then set AUTH_SECRET (openssl rand -hex 32)
-pnpm db:push                # create the SQLite database
-pnpm db:seed                # demo data (password for every account: *****)
+```
+
+### 3. Environment Variables
+Create a `.env` file based on `.env.example`:
+```bash
+cp .env.example .env
+```
+Generate an authentication secret:
+```bash
+# On Linux/macOS or Git Bash
+openssl rand -hex 32
+```
+Add the values to `.env`:
+```env
+DATABASE_URL="file:./dev.db"
+AUTH_SECRET="your_generated_32_byte_secret"
+CAREERJET_API_KEY="" # Optional: Required for live Careerjet BD listings
+```
+
+### 4. Database Setup & Seeding
+Initialize the SQLite database schema and load demonstration seed accounts:
+```bash
+pnpm db:push
+pnpm db:seed
+```
+
+### 5. Start the Development Server
+```bash
 pnpm dev
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Demo accounts:
+---
 
-| Role | Email |
-|---|---|
-| Student | student@ulab.edu.bd |
-| Alumni | alumni1@example.com … alumni6@example.com |
-| Alumni (awaiting approval) | pending.alumni@example.com |
-| Teacher | teacher@ulab.edu.bd, teacher2@ulab.edu.bd |
-| Teacher (awaiting approval) | pending.teacher@ulab.edu.bd |
-| Alumni office (admin) | admin@ulab.edu.bd |
+## 🔐 Seed & Demo Accounts
 
-Roles: students apply and message; alumni and teachers (once the alumni office approves them) also post jobs and notice-board posts. Anyone can message anyone. Each person chooses whether their phone, WhatsApp and Facebook are public or private.
+For local testing, the seed script generates ready-to-use profiles across all roles:
 
-## Job sources
+| Role | Email | Status |
+|---|---|---|
+| **Student** | `student@ulab.edu.bd` | Approved |
+| **Alumni (Active)** | `alumni1@example.com` to `alumni6@example.com` | Approved |
+| **Alumni (Pending)** | `pending.alumni@example.com` | Pending Verification |
+| **Teacher (Active)** | `teacher@ulab.edu.bd`, `teacher2@ulab.edu.bd` | Approved |
+| **Teacher (Pending)** | `pending.teacher@ulab.edu.bd` | Pending Verification |
+| **Admin (Alumni Office)** | `admin@ulab.edu.bd` | Approved Administrator |
 
-- **Alumni jobs**: posted on this site by verified alumni.
-- **Bangladesh**: [Careerjet API](https://www.careerjet.com.bd/partners/api) (`locale_code=en_BD`), which aggregates Bdjobs and other Bangladeshi sites. Set `CAREERJET_API_KEY`; without it the tab shows sample listings.
-- **Remote**: [Himalayas API](https://himalayas.app/api), free with no key. Their terms require linking back and naming Himalayas as the source.
+> 🔒 **Security Notice:** Default seed passwords are strictly meant for local evaluation (`*****`). For production deployments, always create unique credentials with strong passwords.
 
-## Rebranding
+---
 
-University name, logo, email domain and departments live in `src/lib/site.ts`. Colors are tokens at the top of `src/app/globals.css`.
+## 🧪 Testing
 
-## Tests
-
-Tests reset their own database, so run them against a separate server, never your real data:
+The repository includes end-to-end tests driven by **Playwright**:
 
 ```bash
-pnpm test:db                                   # create/seed prisma/test.db
-DATABASE_URL=file:./test.db pnpm start -p 3457 # in another terminal (after pnpm build)
+# 1. Initialize isolated test database
+pnpm test:db
+
+# 2. Build and start test server (in terminal 1)
+pnpm build
+DATABASE_URL=file:./test.db pnpm start -p 3457
+
+# 3. Execute Playwright smoke tests (in terminal 2)
 BASE=http://localhost:3457 pnpm test:e2e
 ```
+*Screenshots from automated test runs are saved to `e2e/shots/`.*
 
-The suite drives your installed Chrome via playwright-core; screenshots go to `e2e/shots/`.
+---
 
-## Deploying
+## 📦 Production Deployment
 
-SQLite is for local use. For production, switch `provider` in `prisma/schema.prisma` to `postgresql`, point `DATABASE_URL` at a hosted Postgres (Supabase or Neon free tier), run `pnpm db:push`, and deploy to Vercel with `AUTH_SECRET`, `DATABASE_URL` and `CAREERJET_API_KEY` set.
+### 1. Database
+For production environments, switch from local SQLite to a hosted PostgreSQL instance (e.g., **Supabase** or **Neon**):
+1. In `prisma/schema.prisma`, update the provider:
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+   ```
+2. Run database push:
+   ```bash
+   pnpm db:push
+   ```
 
-## Installable app (PWA)
+### 2. Vercel Deployment
+Deploy seamlessly with Vercel:
+1. Import the repository in your Vercel Dashboard.
+2. Configure Environment Variables:
+   - `DATABASE_URL`: Hosted PostgreSQL connection URL.
+   - `AUTH_SECRET`: Strong random secret.
+   - `CAREERJET_API_KEY`: Your Careerjet API key (optional).
+3. Deploy!
 
-`src/app/manifest.ts`, the icons in `public/icons/` and `src/app/icon.png` / `apple-icon.png`, and `public/sw.js` make Setu installable from a phone browser (Android: the in-page "Install app" button; iPhone: Share → Add to Home Screen). The service worker only caches built assets and icons and shows `public/offline.html` when there is no connection; pages and data always come from the network. Installing requires the site to be served over HTTPS, so it works once deployed.
+---
+
+## 🎨 Rebranding & Customization
+
+The project is structured for easy white-labeling and adaptation to other universities:
+- **University Identity:** Name, logo, domain, and departments are configured in `src/lib/site.ts`.
+- **Theme & Colors:** Design system tokens and brand palettes are defined in `src/app/globals.css`.
+
+---
+
+## 📄 License & Credits
+
+Developed with ❤️ by **[Pavel Hasan Joy](https://github.com/pavel-hasan-joy)** for the **University of Liberal Arts Bangladesh (ULAB)** community.
