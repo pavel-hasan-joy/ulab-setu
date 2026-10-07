@@ -8,7 +8,7 @@ A place where ULAB students connect with alumni, apply to jobs alumni post, and 
 pnpm install
 cp .env.example .env        # then set AUTH_SECRET (openssl rand -hex 32)
 pnpm db:push                # create the SQLite database
-pnpm db:seed                # demo data (password for every account: password123)
+pnpm db:seed                # demo data (password for every account: *****)
 pnpm dev
 ```
 
