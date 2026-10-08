@@ -110,6 +110,37 @@ The database is built on **Prisma ORM** with relational integrity:
 - **Communication & Social:** Direct peer-to-peer messages and community notice-board feeds.
 
 ---
+## 🧠 Architectural Decisions & Engineering Rationale
+
+Technical decisions across Setu were guided by industry best practices, defense-in-depth security, and scalable systems architecture:
+
+### 1. Why Prisma ORM over Raw SQL or Query Builders?
+- **End-to-End Type Safety & Schema Integrity:** Prisma generates typed client bindings directly from `schema.prisma`. Schema mutations trigger immediate compile-time errors across application server actions and UI components, eliminating runtime impedance mismatches.
+- **Multi-Environment Portability (SQLite ⇋ PostgreSQL):** Prisma abstracts SQL dialect divergence, allowing zero-friction local development and isolated, ephemeral CI test runners using SQLite, while seamlessly targeting distributed production PostgreSQL instances (Supabase, Neon) without query refactoring.
+- **Defensive Query Construction:** All database queries are automatically parameterized and sanitized internally, providing robust out-of-the-box mitigation against SQL injection vectors.
+
+### 2. How and Where is Role-Based Authorization & Approval Enforced?
+Setu implements a **multi-tiered, defense-in-depth authorization model**:
+- **Layer 1 — Cryptographic Session Verification (`src/lib/session.ts`):** Client sessions are minted as cryptographically signed JSON Web Tokens (JWT) using `jose`, stored in secure, `HTTP-only`, `SameSite=Lax` cookies. This architecture prevents token leakage via Cross-Site Scripting (XSS).
+- **Layer 2 — Route-Level Edge Interception:** Server-side layout and route handlers verify the decoded JWT `role` claim (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`) prior to evaluating or rendering role-protected portal routes (`/admin/*`, `/alumni/*`, `/teacher/*`, `/student/*`).
+- **Layer 3 — Mutation & Approval State Assertion (`status === 'APPROVED'`):** For sensitive mutative actions (e.g., posting job vacancies or publishing notice-board broadcasts), server actions assert two strict preconditions:
+  1. The authenticated subject holds the requisite role.
+  2. The account verification state explicitly evaluates to `APPROVED`.
+  *Unverified alumni or faculty accounts remain quarantined in a read-only state until university credentials are authenticated by the Alumni Administration office via `/admin/users`.*
+- **Layer 4 — Selective Data Projection (Granular Privacy):** Database queries apply selective field projection based on privacy flags (`phonePublic`, `whatsappPublic`, `facebookPublic`), stripping private contact vectors before payloads reach the presentation layer.
+
+### 3. Why Next.js 16 App Router & Server Actions over a Decoupled REST Backend?
+- **Elimination of Network Waterfalls:** React Server Components (RSC) fetch and process records directly at the data layer, avoiding redundant client-to-server HTTP round trips and dramatically slimming the client-side JavaScript payload delivered to mobile devices.
+- **Type-Safe Remote Procedure Calls (RPC):** Server Actions co-locate backend mutation logic with client forms, removing the overhead of managing separate REST endpoint boilerplate, JSON serialization DTOs, and client-side fetching hooks.
+
+### 4. Why Playwright for End-to-End Testing?
+- **Deterministic Cross-Role Validation:** Playwright drives headless Chromium with full browser isolation, enabling automated verification of complex multi-actor workflows (e.g., student submitting an application, alumni reviewing candidate profiles, and admin approving user accounts).
+- **Automated Regression Artifacts:** CI test suites capture visual DOM snapshots into `e2e/shots/`, allowing verification of responsive layouts and Canvas graphics across viewport sizes.
+
+### 5. Why Progressive Web App (PWA) Architecture?
+- Rather than requiring students and alumni to navigate mobile app store approvals, Setu leverages Web App Manifests (`manifest.ts`) and Service Workers (`sw.js`). This provides zero-install friction, instant desktop/mobile installation, and reliable offline fallback capabilities via cached static application shells.
+
+---
 
 ## 🌐 External Job Integrations
 
