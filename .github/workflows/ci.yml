@@ -2,54 +2,74 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-build-test:
     name: Lint, Build & E2E Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      AUTH_SECRET: ci-auth-secret-test-key-32-characters-minimum
 
     steps:
-      - name: ⬇️ Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: pnpm
 
-      - name: 📦 Install pnpm
-        run: npm install -g pnpm
-
-      - name: 📥 Install dependencies
+      - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: 🗄️ Generate Prisma Client
+      - name: Generate Prisma Client
         run: pnpm prisma generate
 
-      - name: 🔍 Lint check
-        run: pnpm lint || echo "Lint finished with warnings, continuing to build"
+      - name: Lint
+        run: pnpm lint
+        continue-on-error: true # green hoyar por eta bondho koro (lint error gulo fix kore)
 
-      - name: 🏗️ Build Next.js Application
+      - name: Create build database
         env:
-          DATABASE_URL: "file:./build.db"
-          AUTH_SECRET: "ci-auth-secret-test-key-32-characters-minimum"
+          DATABASE_URL: file:./build.db
+        run: pnpm db:push
+
+      - name: Build
+        env:
+          DATABASE_URL: file:./build.db
         run: pnpm build
 
-      - name: 🧪 Setup Test Database & Seed
+      - name: Create and seed test database
         run: pnpm test:db
 
-      - name: 🌐 Install Playwright Chromium
-        run: npx playwright install --with-deps chromium || true
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright-core install --with-deps chromium
 
-      - name: 🚀 Run E2E Smoke Tests
+      - name: Run E2E tests
         env:
-          DATABASE_URL: "file:./test.db"
-          AUTH_SECRET: "ci-auth-secret-test-key-32-characters-minimum"
-          BASE: "http://localhost:3457"
+          DATABASE_URL: file:./test.db
+          BASE: http://localhost:3457
+          CHROME_PATH: /usr/bin/google-chrome
         run: |
           pnpm start -p 3457 &
-          npx wait-on http://localhost:3457 --timeout 60000
+          npx --yes wait-on http://localhost:3457 --timeout 60000
           pnpm test:e2e
+
+      - name: Upload E2E screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-shots
+          path: e2e/shots
+          if-no-files-found: ignore
