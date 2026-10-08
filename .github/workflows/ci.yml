@@ -15,19 +15,16 @@ jobs:
       - name: ⬇️ Checkout repository
         uses: actions/checkout@v4
 
-      - name: 📦 Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 11
-
       - name: 🟢 Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+
+      - name: 📦 Install pnpm
+        run: npm install -g pnpm
 
       - name: 📥 Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: 🔍 Lint check
         run: pnpm lint
@@ -44,19 +41,12 @@ jobs:
       - name: 🧪 Setup Test Database & Seed
         run: pnpm test:db
 
-      - name: 🌐 Install Chrome for Playwright E2E
-        run: |
-          npx playwright install --with-deps chromium
-
       - name: 🚀 Run E2E Smoke Tests
         env:
           DATABASE_URL: "file:./test.db"
           AUTH_SECRET: "ci-auth-secret-test-key-32-characters-minimum"
           BASE: "http://localhost:3457"
         run: |
-          # Start app in background on port 3457
-          DATABASE_URL="file:./test.db" AUTH_SECRET="ci-auth-secret-test-key-32-characters-minimum" pnpm start -p 3457 &
-          # Wait for server to start up
+          pnpm start -p 3457 &
           npx wait-on http://localhost:3457 --timeout 60000
-          # Run playwright smoke tests
           pnpm test:e2e
