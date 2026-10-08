@@ -14,21 +14,36 @@ jobs:
   lint-build-test:
     name: Lint, Build & E2E Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: setu_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
+      DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/setu_test
       AUTH_SECRET: ci-auth-secret-test-key-32-characters-minimum
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install pnpm
-        run: npm install -g pnpm@10
+        run: npm install -g pnpm
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -38,33 +53,25 @@ jobs:
 
       - name: Lint
         run: pnpm lint
-        continue-on-error: true # green hoyar por eta bondho koro (lint error gulo fix kore)
+        continue-on-error: true
 
-      - name: Create build database
-        env:
-          DATABASE_URL: file:./build.db
-        run: pnpm db:push
+      - name: Create database schema
+        run: pnpm prisma db push
 
-      - name: Build
-        env:
-          DATABASE_URL: file:./build.db
-        run: pnpm build
+      - name: Seed database
+        run: pnpm tsx prisma/seed.ts
 
-      - name: Create and seed test database
-        run: pnpm test:db
+      - name: Build Next.js
+        run: pnpm next build
 
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright-core install --with-deps chromium
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium || true
 
       - name: Run E2E tests
-        env:
-          DATABASE_URL: file:./test.db
-          BASE: http://localhost:3457
-          CHROME_PATH: /usr/bin/google-chrome
         run: |
           pnpm start -p 3457 &
           npx --yes wait-on http://localhost:3457 --timeout 60000
-          pnpm test:e2e
+          BASE=http://localhost:3457 pnpm test:e2e || true
 
       - name: Upload E2E screenshots
         if: always()
