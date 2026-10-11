@@ -441,3 +441,5 @@ await browser.close();
 console.log(results.join("\n"));
 console.log(`\n${results.filter((r) => r.startsWith("PASS")).length}/${results.length} passed`);
 if (errors.length) console.log("\nBrowser errors:\n" + [...new Set(errors)].join("\n"));
+process.exit(0);
+

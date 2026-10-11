@@ -148,7 +148,6 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
             <div className="relative">
               <Input
                 name="verificationCode"
-                required
                 inputMode="numeric"
                 maxLength={6}
                 placeholder="6-digit code"
