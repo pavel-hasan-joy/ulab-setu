@@ -61,6 +61,8 @@ The platform enables students to connect with alumni mentors, apply for curated 
 
 ### 🛡️ 4. Alumni Office (Admin Portal)
 - **User Verification Queue:** Review, approve, or reject pending alumni and faculty registration requests.
+- **Bulk Directory Import (Excel & CSV):** Upload official institutional faculty and alumni lists (`.xlsx`, `.xls`, `.csv`) with auto-column detection. Members in the directory are auto-approved instantly on signup, and existing pending accounts are reconciled immediately.
+- **Email OTP Verification Engine:** Ensures email ownership at signup with 6-digit one-time passwords before account creation.
 - **Platform Analytics & Telemetry:** Real-time metrics on user growth, role distribution, active jobs, and engagement.
 - **Job & Notice Moderation:** Manage and moderate posted listings across the platform.
 
@@ -75,7 +77,9 @@ The platform enables students to connect with alumni mentors, apply for curated 
 | **Animation & 3D** | **Three.js**, **Motion** (Framer Motion v13) for interactive particle & canvas effects |
 | **Language & Validation** | **TypeScript 5**, **Zod** (runtime validation) |
 | **Database & ORM** | **Prisma ORM**, SQLite (Local development) / PostgreSQL (Production) |
-| **Authentication & Security** | **Jose** (JWT session tokens), **bcryptjs** (salted password hashing), HTTP-only cookies |
+| **File & Data Ingestion** | **XLSX (SheetJS)** for Excel (.xlsx, .xls) & CSV parsing and template generation |
+| **Email Delivery** | **Nodemailer** (SMTP) & **Resend API** integration with resilient demo fallback |
+| **Authentication & Security** | **Jose** (JWT session tokens), **bcryptjs** (salted password hashing), HTTP-only cookies, 6-digit OTP verification |
 | **Testing** | **Playwright** (End-to-end / smoke tests) |
 | **CI / CD** | **GitHub Actions** (Automated Linting, Next.js Build & Playwright E2E testing) |
 | **Mobile & Offline** | **Progressive Web App (PWA)** with Service Worker (`sw.js`) and offline fallback |
@@ -105,6 +109,8 @@ The database is built on **Prisma ORM** with relational integrity:
 ```
 
 - **User Model:** Stores credentials, university details (`department`, `studentId`, `batch`, `graduationYear`), career info (`company`, `designation`), role (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`), and approval status (`PENDING`, `APPROVED`, `REJECTED`).
+- **PreApprovedMember Model:** Stores whitelisted institutional records (email, student ID, faculty designation) uploaded by the Alumni Office via Excel/CSV for automated zero-latency verification.
+- **VerificationCode Model:** Manages ephemeral, cryptographically random 6-digit one-time passwords (OTP) tied to applicant emails with a 10-minute validity window.
 - **Granular Privacy:** Dedicated booleans (`phonePublic`, `whatsappPublic`, `facebookPublic`) so users control contact disclosure.
 - **Job & Application Model:** Tracks employer metadata, requirements, deadlines, application counts, and candidate statuses.
 - **Communication & Social:** Direct peer-to-peer messages and community notice-board feeds.
@@ -139,6 +145,12 @@ Setu implements a **multi-tiered, defense-in-depth authorization model**:
 
 ### 5. Why Progressive Web App (PWA) Architecture?
 - Rather than requiring students and alumni to navigate mobile app store approvals, Setu leverages Web App Manifests (`manifest.ts`) and Service Workers (`sw.js`). This provides zero-install friction, instant desktop/mobile installation, and reliable offline fallback capabilities via cached static application shells.
+
+### 6. Why Pre-Approved Whitelist Ingestion (Excel & CSV) for Verification?
+- Real-world institutional integration requires bridging legacy university spreadsheets (faculty directories, graduation records) with a modern web portal. By supporting client-side template downloads and server-side XLSX/CSV parsing, administrators can ingest thousands of records in seconds. Signups matching institutional emails or student IDs are granted immediate `APPROVED` status, while unrecognized registrations gracefully route to manual review.
+
+### 7. Why Email OTP Verification over Static Link Tokens?
+- Static email links require deep linking or context-switching between mail clients and mobile browsers, which frequently fails inside embedded webviews (e.g., Messenger or LinkedIn in-app browsers). 6-digit numeric OTPs provide high deliverability, a clean interactive signup form, and strict 10-minute cryptographic expiration against replay attacks.
 
 ---
 
