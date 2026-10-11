@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { Briefcase, GraduationCap, Presentation } from "lucide-react";
-import { useActionState, useState } from "react";
-import { signup } from "@/app/actions/auth";
+import { Briefcase, GraduationCap, Presentation, MailCheck, KeyRound } from "lucide-react";
+import { useActionState, useState, useEffect } from "react";
+import { signup, requestSignupOtp, type RequestOtpResult } from "@/app/actions/auth";
 import { PageIn } from "@/components/motion";
 import { Button, Field, FormError, Input, Select, cn } from "@/components/ui";
 import { departments, site, teacherRanks } from "@/lib/site";
@@ -24,6 +24,42 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
   const [state, action, pending] = useActionState(signup, undefined);
   const f = state?.fields ?? {};
   const needsUniEmail = role !== "ALUMNI";
+
+  const [emailValue, setEmailValue] = useState(f.email || "");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpInfo, setOtpInfo] = useState<RequestOtpResult | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const handleSendOtp = async () => {
+    if (!emailValue.trim()) {
+      setOtpError("Please enter your email first.");
+      return;
+    }
+    setOtpError(null);
+    setIsSendingOtp(true);
+    try {
+      const res = await requestSignupOtp(emailValue, role);
+      if (res.success) {
+        setOtpSent(true);
+        setOtpInfo(res);
+        setCooldown(60);
+      } else {
+        setOtpError(res.message);
+      }
+    } catch (err: unknown) {
+      setOtpError(err instanceof Error ? err.message : "Failed to send verification code.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
 
   return (
     <PageIn>
@@ -57,12 +93,73 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
         <Field label="Full name">
           <Input name="name" autoComplete="name" required defaultValue={f.name} />
         </Field>
-        <Field
-          label={needsUniEmail ? `${site.universityShort} email` : "Email"}
-          hint={needsUniEmail ? `Use your @${site.studentEmailDomain} address.` : "Use the email you check most."}
-        >
-          <Input name="email" type="email" autoComplete="email" required defaultValue={f.email} placeholder={needsUniEmail ? `you@${site.studentEmailDomain}` : ""} />
-        </Field>
+
+        <div className="space-y-3">
+          <Field
+            label={needsUniEmail ? `${site.universityShort} email` : "Email"}
+            hint={needsUniEmail ? `Use your @${site.studentEmailDomain} address.` : "Use the email you check most."}
+          >
+            <div className="flex gap-2">
+              <Input
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+                placeholder={needsUniEmail ? `you@${site.studentEmailDomain}` : ""}
+                className="flex-1"
+              />
+              <button
+                type="button"
+                disabled={isSendingOtp || cooldown > 0}
+                onClick={handleSendOtp}
+                className="shrink-0 rounded-xl bg-ulab-deep px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-ulab-deep/90 active:scale-95 disabled:opacity-50"
+              >
+                {isSendingOtp ? (
+                  "Sending…"
+                ) : cooldown > 0 ? (
+                  `Resend in ${cooldown}s`
+                ) : otpSent ? (
+                  "Resend Code"
+                ) : (
+                  "Send Code"
+                )}
+              </button>
+            </div>
+          </Field>
+
+          {otpError && (
+            <p className="text-xs text-rose-600 font-medium">{otpError}</p>
+          )}
+
+          {otpInfo && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3 text-xs text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <p className="font-semibold flex items-center gap-1.5">
+                <MailCheck size={15} /> {otpInfo.message}
+              </p>
+            </div>
+          )}
+
+          <Field
+            label="Verification Code (OTP)"
+            hint="Enter the 6-digit verification code sent to your email."
+          >
+            <div className="relative">
+              <Input
+                name="verificationCode"
+                required
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="6-digit code"
+                className="font-mono tracking-widest text-base pl-9"
+                defaultValue={f.verificationCode || (otpInfo?.isDemo ? otpInfo?.code : "")}
+              />
+              <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft/60 pointer-events-none" />
+            </div>
+          </Field>
+        </div>
+
         <Field label="Department">
           <Select name="department" options={departments} placeholder="Choose department" required defaultValue={f.department} />
         </Field>

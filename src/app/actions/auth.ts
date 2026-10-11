@@ -7,8 +7,71 @@ import { db } from "@/lib/db";
 import { createSession, deleteSession } from "@/lib/auth";
 import { homeFor, type Role } from "@/lib/session";
 import { site } from "@/lib/site";
+import { sendOtpEmail } from "@/lib/email";
 
 export type FormState = { error?: string; fields?: Record<string, string>; at?: number } | undefined;
+
+export type RequestOtpResult = {
+  success: boolean;
+  message: string;
+  isDemo?: boolean;
+  code?: string;
+};
+
+/**
+ * Sends a 6-digit email OTP to verify email ownership before signup
+ */
+export async function requestSignupOtp(
+  emailRaw: string,
+  role: Role
+): Promise<RequestOtpResult> {
+  const email = emailRaw.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { success: false, message: "Enter a valid email address." };
+  }
+
+  // Check institutional domain for students and faculty
+  if (role !== "ALUMNI" && !email.endsWith(`@${site.studentEmailDomain}`)) {
+    return {
+      success: false,
+      message: `Use your ${site.universityShort} email (@${site.studentEmailDomain}).`,
+    };
+  }
+
+  // Check if email already registered
+  const existingUser = await db.user.findUnique({ where: { email } });
+  if (existingUser) {
+    return {
+      success: false,
+      message: "An account with this email already exists. Log in instead.",
+    };
+  }
+
+  // Generate 6-digit OTP
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  // Clean up any old unused codes for this email
+  await db.verificationCode.deleteMany({ where: { email } });
+
+  // Store new code
+  await db.verificationCode.create({
+    data: {
+      email,
+      code,
+      expiresAt,
+    },
+  });
+
+  // Send the email
+  const sendRes = await sendOtpEmail(email, code);
+  return {
+    success: true,
+    message: sendRes.message,
+    isDemo: sendRes.isDemo,
+    code: sendRes.code,
+  };
+}
 
 /**
  * React resets a form after its action runs, and <select> elements don't get their defaultValue back.
@@ -64,6 +127,28 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
   if (await db.user.findUnique({ where: { email: data.email } })) {
     return fail("An account with this email already exists. Log in instead.", raw);
   }
+
+  // Verify Email OTP
+  const verificationCode = String(raw.verificationCode ?? "").trim();
+  if (!verificationCode) {
+    return fail("Please enter the 6-digit verification code sent to your email.", raw);
+  }
+
+  const validOtp = await db.verificationCode.findFirst({
+    where: {
+      email: data.email,
+      code: verificationCode,
+      expiresAt: { gte: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!validOtp) {
+    return fail("Invalid or expired verification code. Please click 'Get Code' to receive a new one.", raw);
+  }
+
+  // Delete used codes
+  await db.verificationCode.deleteMany({ where: { email: data.email } });
 
   // Check auto-approval: students are auto-approved, alumni/teachers are checked against pre-approved directory
   let initialStatus: "APPROVED" | "PENDING" = "PENDING";
