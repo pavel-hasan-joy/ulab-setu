@@ -65,12 +65,37 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
     return fail("An account with this email already exists. Log in instead.", raw);
   }
 
+  // Check auto-approval: students are auto-approved, alumni/teachers are checked against pre-approved directory
+  let initialStatus: "APPROVED" | "PENDING" = "PENDING";
+  if (role === "STUDENT") {
+    initialStatus = "APPROVED";
+  } else {
+    const matchConditions: Array<{ email?: string; studentId?: string }> = [];
+    if (data.email) {
+      matchConditions.push({ email: data.email.toLowerCase() });
+    }
+    if ("studentId" in data && typeof data.studentId === "string" && data.studentId.trim()) {
+      matchConditions.push({ studentId: data.studentId.trim() });
+    }
+
+    if (matchConditions.length > 0) {
+      const preApproved = await db.preApprovedMember.findFirst({
+        where: {
+          role,
+          OR: matchConditions,
+        },
+      });
+      if (preApproved) {
+        initialStatus = "APPROVED";
+      }
+    }
+  }
+
   const user = await db.user.create({
     data: {
       ...data,
       role,
-      // Alumni and teachers wait for the alumni office to confirm who they are before they can post.
-      status: role === "STUDENT" ? "APPROVED" : "PENDING",
+      status: initialStatus,
       passwordHash: await bcrypt.hash(password, 10),
     },
   });

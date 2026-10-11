@@ -128,3 +128,23 @@ model LoginLog {
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+/** Pre-approved faculty and alumni directory for instant auto-approval */
+model PreApprovedMember {
+  id             String   @id @default(cuid())
+  email          String?
+  studentId      String?
+  name           String?
+  role           String   // ALUMNI | TEACHER
+  department     String?
+  designation    String?
+  graduationYear String?
+  batch          String?
+  sourceFile     String?
+  createdAt      DateTime @default(now())
+
+  @@index([email])
+  @@index([studentId])
+  @@index([role])
+}
+

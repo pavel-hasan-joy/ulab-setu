@@ -12,25 +12,28 @@ export const dynamic = "force-dynamic";
 export default async function AdminUsersPage() {
   const admin = await requireUser("ADMIN");
 
-  const rawUsers = await db.user.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      department: true,
-      studentId: true,
-      batch: true,
-      graduationYear: true,
-      company: true,
-      designation: true,
-      location: true,
-      createdAt: true,
-      lastLoginAt: true,
-    },
-  });
+  const [rawUsers, preApprovedCount] = await Promise.all([
+    db.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        department: true,
+        studentId: true,
+        batch: true,
+        graduationYear: true,
+        company: true,
+        designation: true,
+        location: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    }),
+    db.preApprovedMember.count(),
+  ]);
 
   const users: AdminUserRecord[] = rawUsers.map((u) => ({
     id: u.id,
@@ -53,9 +56,13 @@ export default async function AdminUsersPage() {
     <PageIn>
       <PageHeader
         title="Users Directory & Access Control"
-        description="Search, manage roles, audit student IDs, verify accounts, or export university membership records."
+        description="Search, manage roles, audit student IDs, verify accounts, or import/export university membership records."
       />
-      <AdminUsersView users={users} currentAdminId={admin.id} />
+      <AdminUsersView
+        users={users}
+        currentAdminId={admin.id}
+        initialPreApprovedCount={preApprovedCount}
+      />
     </PageIn>
   );
 }

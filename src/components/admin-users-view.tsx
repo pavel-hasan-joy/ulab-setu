@@ -15,12 +15,21 @@ import {
   Calendar,
   Building,
   MoreVertical,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Sparkles,
 } from "lucide-react";
 import { Avatar, Badge, Card, EmptyState, timeAgo } from "@/components/ui";
 import {
   setAdminUserStatus,
   changeUserRole,
   deleteUserByAdmin,
+  importDirectoryMembers,
+  clearPreApprovedDirectory,
+  type ImportDirectoryResult,
 } from "@/app/actions/admin";
 import { departments } from "@/lib/site";
 
@@ -44,16 +53,133 @@ export type AdminUserRecord = {
 export function AdminUsersView({
   users,
   currentAdminId,
+  initialPreApprovedCount = 0,
 }: {
   users: AdminUserRecord[];
   currentAdminId: string;
+  initialPreApprovedCount?: number;
 }) {
+  const [preApprovedCount, setPreApprovedCount] = useState(initialPreApprovedCount);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadRole, setUploadRole] = useState("AUTO");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<ImportDirectoryResult | null>(null);
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [deptFilter, setDeptFilter] = useState("ALL");
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const handleDownloadSampleCSV = () => {
+    const csvContent =
+      "Name,Email,Student ID,Role,Department,Designation,Graduation Year\n" +
+      "Tanvir Ahmed,tanvir.ahmed@ulab.edu.bd,191014022,ALUMNI,CSE,Software Engineer,2023\n" +
+      "Dr. Sajjad Hossain,sajjad.hossain@ulab.edu.bd,,TEACHER,CSE,Associate Professor,\n" +
+      "Farhana Yasmin,farhana.yasmin@ulab.edu.bd,182015045,ALUMNI,BBA,Product Manager,2022\n";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "ulab_directory_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadSampleExcel = async () => {
+    try {
+      const XLSX = await import("xlsx");
+      const sampleData = [
+        {
+          "Name": "Tanvir Ahmed",
+          "Email": "tanvir.ahmed@ulab.edu.bd",
+          "Student ID": "191014022",
+          "Role": "ALUMNI",
+          "Department": "CSE",
+          "Designation": "Software Engineer",
+          "Graduation Year": "2023",
+        },
+        {
+          "Name": "Dr. Sajjad Hossain",
+          "Email": "sajjad.hossain@ulab.edu.bd",
+          "Student ID": "",
+          "Role": "TEACHER",
+          "Department": "CSE",
+          "Designation": "Associate Professor",
+          "Graduation Year": "",
+        },
+        {
+          "Name": "Farhana Yasmin",
+          "Email": "farhana.yasmin@ulab.edu.bd",
+          "Student ID": "182015045",
+          "Role": "ALUMNI",
+          "Department": "BBA",
+          "Designation": "Product Manager",
+          "Graduation Year": "2022",
+        },
+      ];
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Directory");
+      XLSX.writeFile(workbook, "ulab_directory_template.xlsx");
+    } catch {
+      handleDownloadSampleCSV();
+    }
+  };
+
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("defaultRole", uploadRole);
+
+    setIsUploading(true);
+    setUploadResult(null);
+
+    try {
+      const res = await importDirectoryMembers(null, formData);
+      setUploadResult(res);
+      if (res.success) {
+        setPreApprovedCount((prev) => prev + res.imported);
+        setSelectedFile(null);
+      }
+    } catch (err: unknown) {
+      setUploadResult({
+        success: false,
+        message: err instanceof Error ? err.message : "Upload failed",
+        totalParsed: 0,
+        imported: 0,
+        autoApprovedCount: 0,
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleClearDirectory = () => {
+    if (!confirm("Are you sure you want to clear the pre-approved directory? This will not affect already registered users.")) return;
+    startTransition(async () => {
+      try {
+        await clearPreApprovedDirectory();
+        setPreApprovedCount(0);
+        setUploadResult({
+          success: true,
+          message: "Pre-approved directory cleared.",
+          totalParsed: 0,
+          imported: 0,
+          autoApprovedCount: 0,
+        });
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Failed to clear directory");
+      }
+    });
+  };
 
   // Filtered users list
   const filteredUsers = useMemo(() => {
@@ -180,7 +306,7 @@ export function AdminUsersView({
   return (
     <div className="space-y-6">
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-7">
         <Card className="p-4 text-center">
           <p className="text-xs font-medium text-ink-soft">Total Users</p>
           <p className="mt-1 text-2xl font-bold text-ink">{roleCounts.total}</p>
@@ -207,6 +333,12 @@ export function AdminUsersView({
             {roleCounts.pending}
           </p>
         </Card>
+        <Card className="p-4 text-center border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/20">
+          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Pre-Approved</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {preApprovedCount}
+          </p>
+        </Card>
       </div>
 
       {/* Control Bar: Search & Filters */}
@@ -227,6 +359,19 @@ export function AdminUsersView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Import Directory Button */}
+            <button
+              onClick={() => {
+                setShowImportModal(true);
+                setUploadResult(null);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-ulab-deep px-3.5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-ulab-deep/90 active:scale-95"
+              title="Upload verified faculty or alumni records (Excel / CSV)"
+            >
+              <Upload size={15} />
+              Import Directory (Excel/CSV)
+            </button>
+
             {/* CSV Export Button */}
             <button
               onClick={handleExportCSV}
@@ -490,6 +635,185 @@ export function AdminUsersView({
                 </Card>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="relative w-full max-w-lg rounded-2xl border border-mist bg-surface p-6 shadow-2xl space-y-5">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ulab-deep/10 text-ulab-deep">
+                    <FileSpreadsheet size={18} />
+                  </div>
+                  <h3 className="text-lg font-bold text-ink">
+                    Import Verified Directory
+                  </h3>
+                </div>
+                <p className="mt-1 text-xs text-ink-soft">
+                  Upload an Excel (.xlsx, .xls) or CSV file. Matching signups will be auto-approved, and any pending accounts will be verified immediately.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="rounded-lg p-1.5 text-ink-soft hover:bg-mist hover:text-ink transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleFileUpload} className="space-y-4">
+              {/* File Dropzone */}
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                  Choose Spreadsheet File
+                </label>
+                <div className="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-mist p-6 text-center hover:border-ulab-deep/50 transition cursor-pointer bg-mist/20">
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls, .csv"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        setSelectedFile(e.target.files[0]);
+                        setUploadResult(null);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <FileSpreadsheet size={32} className="text-ulab-deep mb-2" />
+                  {selectedFile ? (
+                    <div>
+                      <p className="text-sm font-semibold text-ink">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-ink-soft mt-0.5">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm font-medium text-ink">
+                        Click or drag Excel (.xlsx, .xls) or CSV file here
+                      </p>
+                      <p className="text-xs text-ink-soft mt-1">
+                        Columns supported: Name, Email, Student ID, Role, Department, Designation, Graduation Year
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Default Role Selection */}
+              <div>
+                <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                  Role Assignment
+                </label>
+                <select
+                  value={uploadRole}
+                  onChange={(e) => setUploadRole(e.target.value)}
+                  className="w-full rounded-xl border border-mist bg-surface px-3 py-2 text-xs font-medium text-ink focus:border-ulab-light focus:outline-none"
+                >
+                  <option value="AUTO">Auto-detect from Role column (Recommended)</option>
+                  <option value="ALUMNI">All records in file are Alumni</option>
+                  <option value="TEACHER">All records in file are Teachers / Faculty</option>
+                </select>
+              </div>
+
+              {/* Sample Templates */}
+              <div className="rounded-xl border border-mist/80 bg-mist/30 p-3 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-ink-soft font-medium flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-gold-ink" /> Need a format template?
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadSampleExcel}
+                    className="inline-flex items-center gap-1 rounded-lg border border-mist bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink hover:text-ulab-deep transition shadow-sm"
+                  >
+                    <Download size={12} /> Excel (.xlsx)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadSampleCSV}
+                    className="inline-flex items-center gap-1 rounded-lg border border-mist bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink hover:text-ulab-deep transition shadow-sm"
+                  >
+                    <Download size={12} /> CSV (.csv)
+                  </button>
+                </div>
+              </div>
+
+              {/* Result Banner */}
+              {uploadResult && (
+                <div
+                  className={`rounded-xl p-3 text-xs flex items-start gap-2.5 ${
+                    uploadResult.success
+                      ? "border border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+                      : "border border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300"
+                  }`}
+                >
+                  {uploadResult.success ? (
+                    <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                  ) : (
+                    <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-semibold">{uploadResult.message}</p>
+                    {uploadResult.success && (
+                      <p className="mt-0.5 opacity-90">
+                        Parsed: {uploadResult.totalParsed} | Imported/Updated: {uploadResult.imported} | Auto-approved pending users: {uploadResult.autoApprovedCount}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-2">
+                {preApprovedCount > 0 ? (
+                  <button
+                    type="button"
+                    disabled={isPending || isUploading}
+                    onClick={handleClearDirectory}
+                    className="text-xs text-rose-600 hover:text-rose-700 underline font-medium disabled:opacity-50"
+                  >
+                    Clear Directory ({preApprovedCount})
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowImportModal(false)}
+                    className="rounded-xl border border-mist px-4 py-2 text-xs font-semibold text-ink hover:bg-mist transition"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!selectedFile || isUploading}
+                    className="inline-flex items-center gap-2 rounded-xl bg-ulab-deep px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-ulab-deep/90 disabled:opacity-50"
+                  >
+                    {isUploading ? (
+                      <>
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={14} />
+                        Upload & Auto-Approve
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
