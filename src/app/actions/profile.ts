@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { deleteSession, requireUser } from "@/lib/auth";
 import type { FormState } from "./auth";
 import { cleanFacebook, cleanPhone } from "@/lib/contact";
 
@@ -46,4 +47,14 @@ export async function setAlumniStatus(userId: string, status: "APPROVED" | "REJE
   await requireUser("ADMIN");
   await db.user.update({ where: { id: userId, role: { in: ["ALUMNI", "TEACHER"] } }, data: { status } });
   revalidatePath("/admin");
+}
+
+/**
+ * Permanently deletes the current user's account and terminates their session
+ */
+export async function deleteOwnAccount() {
+  const user = await requireUser();
+  await db.user.delete({ where: { id: user.id } });
+  await deleteSession();
+  redirect("/?deleted=1");
 }

@@ -14,7 +14,16 @@ type SendOtpResult = {
  * 2. Custom/Gmail SMTP (if SMTP_USER and SMTP_PASS are present)
  * 3. Graceful Demo Mode fallback (if no email provider is configured yet)
  */
-export async function sendOtpEmail(toEmail: string, code: string): Promise<SendOtpResult> {
+export async function sendOtpEmail(
+  toEmail: string,
+  code: string,
+  purpose: "signup" | "reset" = "signup"
+): Promise<SendOtpResult> {
+  const isReset = purpose === "reset";
+  const emailSubject = isReset
+    ? `${code} is your ULAB Setu password reset code`
+    : `${code} is your ULAB Setu verification code`;
+
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #f8fafc; border-radius: 16px;">
       <div style="background-color: #ffffff; padding: 32px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
@@ -27,7 +36,11 @@ export async function sendOtpEmail(toEmail: string, code: string): Promise<SendO
           Hello,
         </p>
         <p style="color: #334155; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">
-          Thank you for joining <strong>ULAB Setu</strong>. Please use the following 6-digit verification code to verify your email address:
+          ${
+            isReset
+              ? "We received a request to reset the password for your <strong>ULAB Setu</strong> account. Please use the following 6-digit verification code to complete your password reset:"
+              : "Thank you for joining <strong>ULAB Setu</strong>. Please use the following 6-digit verification code to verify your email address:"
+          }
         </p>
         
         <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 2px dashed #0d9488; border-radius: 12px; padding: 20px; text-align: center; margin: 28px 0;">
@@ -40,7 +53,11 @@ export async function sendOtpEmail(toEmail: string, code: string): Promise<SendO
         </div>
         
         <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 0;">
-          If you did not request this verification code, please ignore this email.
+          ${
+            isReset
+              ? "If you did not request a password reset, you can safely ignore this email. Your account remains secure."
+              : "If you did not request this verification code, please ignore this email."
+          }
         </p>
       </div>
       
@@ -63,7 +80,7 @@ export async function sendOtpEmail(toEmail: string, code: string): Promise<SendO
         body: JSON.stringify({
           from: fromEmail,
           to: toEmail,
-          subject: `${code} is your ULAB Setu verification code`,
+          subject: emailSubject,
           html: emailHtml,
         }),
       });
@@ -94,7 +111,7 @@ export async function sendOtpEmail(toEmail: string, code: string): Promise<SendO
       await transporter.sendMail({
         from: process.env.EMAIL_FROM || `"ULAB Setu" <${process.env.SMTP_USER}>`,
         to: toEmail,
-        subject: `${code} is your ULAB Setu verification code`,
+        subject: emailSubject,
         html: emailHtml,
       });
 
@@ -107,7 +124,7 @@ export async function sendOtpEmail(toEmail: string, code: string): Promise<SendO
   // 3. Graceful Demo / Dev Fallback
   // If no email service is configured yet in environment variables,
   // we log the OTP and provide it so testing / demo never breaks!
-  console.log(`[ULAB Setu OTP] Verification code for ${toEmail}: ${code}`);
+  console.log(`[ULAB Setu OTP] ${purpose.toUpperCase()} code for ${toEmail}: ${code}`);
   return {
     success: true,
     isDemo: true,

@@ -14,6 +14,7 @@ const buttonStyles = {
   ghost: "text-ink-soft hover:bg-sky hover:text-ink",
   outline: "border border-mist bg-surface text-ink hover:border-ulab-light hover:text-ulab-deep",
   gold: "bg-gold-wash text-gold-ink hover:bg-gold/25",
+  danger: "bg-rose text-white hover:opacity-90 shadow-soft",
 };
 
 type Variant = keyof typeof buttonStyles;

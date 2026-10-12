@@ -74,6 +74,104 @@ export async function requestSignupOtp(
 }
 
 /**
+ * Sends a 6-digit email OTP to verify account ownership before resetting password
+ */
+export async function requestPasswordResetOtp(emailRaw: string): Promise<RequestOtpResult> {
+  const email = emailRaw.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { success: false, message: "Enter a valid email address." };
+  }
+
+  // Check if user exists
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) {
+    return {
+      success: false,
+      message: "No registered account found with this email address.",
+    };
+  }
+
+  // Generate 6-digit OTP
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  // Clean up any old unused codes for this email
+  await db.verificationCode.deleteMany({ where: { email } });
+
+  // Store new code
+  await db.verificationCode.create({
+    data: {
+      email,
+      code,
+      expiresAt,
+    },
+  });
+
+  // Send the email
+  const sendRes = await sendOtpEmail(email, code, "reset");
+  return {
+    success: true,
+    message: sendRes.message,
+    isDemo: sendRes.isDemo,
+    code: sendRes.code,
+  };
+}
+
+/**
+ * Validates OTP and updates password for user
+ */
+export async function resetPassword(_: FormState, formData: FormData): Promise<FormState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const code = String(formData.get("code") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  const fields = { email, code };
+
+  if (!email || !email.includes("@")) {
+    return fail("Enter a valid email address.", fields);
+  }
+  if (!code || code.length !== 6) {
+    return fail("Enter the 6-digit verification code sent to your email.", fields);
+  }
+  if (password.length < 8) {
+    return fail("New password must be at least 8 characters long.", fields);
+  }
+  if (password !== confirmPassword) {
+    return fail("Passwords do not match.", fields);
+  }
+
+  const validOtp = await db.verificationCode.findFirst({
+    where: {
+      email,
+      code,
+      expiresAt: { gte: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!validOtp) {
+    return fail("Invalid or expired verification code. Please request a new code.", fields);
+  }
+
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) {
+    return fail("No account found with this email address.", fields);
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await db.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  });
+
+  // Clean up used codes
+  await db.verificationCode.deleteMany({ where: { email } });
+
+  redirect("/login?reset=1");
+}
+
+/**
  * React resets a form after its action runs, and <select> elements don't get their defaultValue back.
  * Forms use `key={state?.at}` so they remount with the submitted values when validation fails.
  */

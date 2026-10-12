@@ -62,7 +62,9 @@ The platform enables students to connect with alumni mentors, apply for curated 
 ### 🛡️ 4. Alumni Office (Admin Portal)
 - **User Verification Queue:** Review, approve, or reject pending alumni and faculty registration requests.
 - **Bulk Directory Import (Excel & CSV):** Upload official institutional faculty and alumni lists (`.xlsx`, `.xls`, `.csv`) with auto-column detection. Members in the directory are auto-approved instantly on signup, and existing pending accounts are reconciled immediately.
-- **Email OTP Verification Engine:** Ensures email ownership at signup with 6-digit one-time passwords before account creation.
+- **Email OTP Verification Engine:** Ensures email ownership at signup and during password recovery with 6-digit one-time passwords.
+- **Forgot Password & Password Reset:** Self-service password recovery flow sending 6-digit verification codes to the user's registered institutional or personal email.
+- **Account Deletion & Data Privacy:** Self-service account deletion allowing any student, alumni, or teacher to permanently delete their account, messages, and profile data at any time.
 - **Platform Analytics & Telemetry:** Real-time metrics on user growth, role distribution, active jobs, and engagement.
 - **Job & Notice Moderation:** Manage and moderate posted listings across the platform.
 

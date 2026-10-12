@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check } from "lucide-react";
 import { useActionState, useState } from "react";
 import type { User } from "@prisma/client";
-import { updateProfile } from "@/app/actions/profile";
+import { updateProfile, deleteOwnAccount } from "@/app/actions/profile";
 import { departments, teacherRanks } from "@/lib/site";
 import { ContactFields } from "./contact-fields";
 import { PageIn } from "./motion";
@@ -14,6 +14,8 @@ type SafeUser = Omit<User, "passwordHash" | "createdAt">;
 
 export function ProfileFormClient({ user }: { user: SafeUser }) {
   const [toast, setToast] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [state, action, pending] = useActionState(async (prev: Awaited<ReturnType<typeof updateProfile>>, fd: FormData) => {
     const result = await updateProfile(prev, fd);
     if (result?.fields?.saved) {
@@ -43,37 +45,104 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
           {user.studentId && <p className="mt-4 text-xs text-ink-soft">ID {user.studentId}</p>}
         </Card>
 
-        <Card className="p-6">
-          <form key={state?.at} action={action} className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Full name"><Input name="name" defaultValue={user.name} onChange={(e) => setName(e.target.value)} required /></Field>
-              <Field label="Department"><Select name="department" options={departments} defaultValue={user.department ?? ""} /></Field>
-              {alumni ? (
-                <>
-                  <Field label="Company"><Input name="company" defaultValue={user.company ?? ""} /></Field>
-                  <Field label="Job title"><Input name="designation" defaultValue={user.designation ?? ""} /></Field>
-                  <Field label="Graduation year"><Input name="graduationYear" defaultValue={user.graduationYear ?? ""} /></Field>
-                </>
-              ) : teacher ? (
-                <Field label="Designation"><Select name="designation" options={teacherRanks} defaultValue={user.designation ?? ""} /></Field>
-              ) : (
-                <Field label="Admission year"><Input name="batch" defaultValue={user.batch ?? ""} /></Field>
-              )}
-              <Field label="City"><Input name="location" defaultValue={user.location ?? ""} placeholder="Dhaka" /></Field>
+        <div className="space-y-6">
+          <Card className="p-6">
+            <form key={state?.at} action={action} className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Full name"><Input name="name" defaultValue={user.name} onChange={(e) => setName(e.target.value)} required /></Field>
+                <Field label="Department"><Select name="department" options={departments} defaultValue={user.department ?? ""} /></Field>
+                {alumni ? (
+                  <>
+                    <Field label="Company"><Input name="company" defaultValue={user.company ?? ""} /></Field>
+                    <Field label="Job title"><Input name="designation" defaultValue={user.designation ?? ""} /></Field>
+                    <Field label="Graduation year"><Input name="graduationYear" defaultValue={user.graduationYear ?? ""} /></Field>
+                  </>
+                ) : teacher ? (
+                  <Field label="Designation"><Select name="designation" options={teacherRanks} defaultValue={user.designation ?? ""} /></Field>
+                ) : (
+                  <Field label="Admission year"><Input name="batch" defaultValue={user.batch ?? ""} /></Field>
+                )}
+                <Field label="City"><Input name="location" defaultValue={user.location ?? ""} placeholder="Dhaka" /></Field>
+              </div>
+              <Field label="Bio" hint={alumni ? "What you do, and what students can ask you about." : teacher ? "What you teach and research, and how students can work with you." : "Two or three sentences about what you're looking for."}>
+                <Textarea name="bio" defaultValue={user.bio ?? ""} maxLength={500} />
+              </Field>
+              <Field label="Skills" hint="Separate with commas, e.g. Python, Public speaking, Figma">
+                <Input name="skills" defaultValue={user.skills ?? ""} />
+              </Field>
+              <Field label="LinkedIn"><Input name="linkedin" type="url" defaultValue={user.linkedin ?? ""} placeholder="https://linkedin.com/in/…" /></Field>
+              <ContactFields user={user} />
+              <FormError message={state?.error} />
+              <Button disabled={pending} className="px-6 py-3">{pending ? "Saving…" : "Save profile"}</Button>
+            </form>
+          </Card>
+
+          <Card className="border border-rose/30 bg-rose-wash/30 p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-display text-base font-semibold text-rose">Delete account</h3>
+                <p className="mt-1 text-xs text-ink-soft">
+                  Permanently delete your account, connections, messages, and profile data. This cannot be undone.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => setShowDeleteModal(true)}
+                className="shrink-0"
+              >
+                Delete account
+              </Button>
             </div>
-            <Field label="Bio" hint={alumni ? "What you do, and what students can ask you about." : teacher ? "What you teach and research, and how students can work with you." : "Two or three sentences about what you're looking for."}>
-              <Textarea name="bio" defaultValue={user.bio ?? ""} maxLength={500} />
-            </Field>
-            <Field label="Skills" hint="Separate with commas, e.g. Python, Public speaking, Figma">
-              <Input name="skills" defaultValue={user.skills ?? ""} />
-            </Field>
-            <Field label="LinkedIn"><Input name="linkedin" type="url" defaultValue={user.linkedin ?? ""} placeholder="https://linkedin.com/in/…" /></Field>
-            <ContactFields user={user} />
-            <FormError message={state?.error} />
-            <Button disabled={pending} className="px-6 py-3">{pending ? "Saving…" : "Save profile"}</Button>
-          </form>
-        </Card>
+          </Card>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md rounded-2xl border border-mist bg-surface p-6 shadow-lift"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid size-10 place-items-center rounded-xl bg-rose-wash text-xl">⚠️</span>
+                <div>
+                  <h4 className="font-display text-lg font-semibold text-ink">Delete your account?</h4>
+                  <p className="text-xs text-ink-soft">This action is permanent and irreversible.</p>
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm text-ink-soft leading-relaxed">
+                Are you sure you want to delete your account? All your personal profile information, messages, job applications, and connections will be permanently wiped.
+              </p>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <form action={deleteOwnAccount}>
+                  <Button
+                    type="submit"
+                    variant="danger"
+                    disabled={isDeleting}
+                    onClick={() => setIsDeleting(true)}
+                  >
+                    {isDeleting ? "Deleting…" : "Yes, delete account"}
+                  </Button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center md:bottom-8" role="status">
         <AnimatePresence>
