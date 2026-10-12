@@ -100,15 +100,20 @@ export async function sendOtpEmail(
   }
 
   // 2. Try SMTP if configured (Gmail, Brevo, custom SMTP)
-  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  const rawUser = process.env.SMTP_USER?.trim().replace(/['"]/g, "");
+  const rawPass = process.env.SMTP_PASS?.trim().replace(/[\s'"]/g, "");
+
+  if (rawUser && rawPass) {
     try {
       const isGmail = !process.env.SMTP_HOST || process.env.SMTP_HOST.includes("gmail");
       const transporter = isGmail
         ? nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
             auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS.replace(/\s+/g, ""),
+              user: rawUser,
+              pass: rawPass,
             },
           })
         : nodemailer.createTransport({
@@ -116,13 +121,13 @@ export async function sendOtpEmail(
             port: Number(process.env.SMTP_PORT) || 587,
             secure: Number(process.env.SMTP_PORT) === 465,
             auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
+              user: rawUser,
+              pass: rawPass,
             },
           });
 
       await transporter.sendMail({
-        from: process.env.EMAIL_FROM || `"ULAB Setu" <${process.env.SMTP_USER}>`,
+        from: process.env.EMAIL_FROM || `"ULAB Setu" <${rawUser}>`,
         to: toEmail,
         subject: emailSubject,
         html: emailHtml,
