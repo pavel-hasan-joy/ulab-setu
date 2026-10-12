@@ -54,7 +54,46 @@ export async function setAlumniStatus(userId: string, status: "APPROVED" | "REJE
  */
 export async function deleteOwnAccount() {
   const user = await requireUser();
-  await db.user.delete({ where: { id: user.id } });
+
+  await db.$transaction(async (tx) => {
+    // 1. Delete user's login audit logs
+    await tx.loginLog.deleteMany({ where: { userId: user.id } });
+
+    // 2. Delete posts authored by user
+    await tx.post.deleteMany({ where: { authorId: user.id } });
+
+    // 3. Delete messages where user was sender
+    await tx.message.deleteMany({ where: { senderId: user.id } });
+
+    // 4. Delete job applications submitted by this user
+    await tx.application.deleteMany({ where: { studentId: user.id } });
+
+    // 5. Delete jobs posted by this user (including other users' applications on them)
+    const userJobs = await tx.job.findMany({
+      where: { postedById: user.id },
+      select: { id: true },
+    });
+    if (userJobs.length > 0) {
+      const jobIds = userJobs.map((j) => j.id);
+      await tx.application.deleteMany({ where: { jobId: { in: jobIds } } });
+      await tx.job.deleteMany({ where: { id: { in: jobIds } } });
+    }
+
+    // 6. Delete connections involving this user (and all conversation messages within them)
+    const userConns = await tx.connection.findMany({
+      where: { OR: [{ fromId: user.id }, { toId: user.id }] },
+      select: { id: true },
+    });
+    if (userConns.length > 0) {
+      const connIds = userConns.map((c) => c.id);
+      await tx.message.deleteMany({ where: { connectionId: { in: connIds } } });
+      await tx.connection.deleteMany({ where: { id: { in: connIds } } });
+    }
+
+    // 7. Delete user account
+    await tx.user.delete({ where: { id: user.id } });
+  });
+
   await deleteSession();
-  redirect("/?deleted=1");
+  redirect("/login?deleted=1");
 }

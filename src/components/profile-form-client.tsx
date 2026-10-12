@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { Check } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import type { User } from "@prisma/client";
 import { updateProfile, deleteOwnAccount } from "@/app/actions/profile";
 import { departments, teacherRanks } from "@/lib/site";
@@ -15,7 +15,22 @@ type SafeUser = Omit<User, "passwordHash" | "createdAt">;
 export function ProfileFormClient({ user }: { user: SafeUser }) {
   const [toast, setToast] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = () => {
+    setDeleteError(null);
+    startDeleteTransition(async () => {
+      try {
+        await deleteOwnAccount();
+      } catch (err: any) {
+        if (err?.message === "NEXT_REDIRECT" || err?.digest?.startsWith?.("NEXT_REDIRECT")) {
+          throw err;
+        }
+        setDeleteError(err?.message || "Failed to delete account. Please try again.");
+      }
+    });
+  };
   const [state, action, pending] = useActionState(async (prev: Awaited<ReturnType<typeof updateProfile>>, fd: FormData) => {
     const result = await updateProfile(prev, fd);
     if (result?.fields?.saved) {
@@ -119,25 +134,34 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
                 Are you sure you want to delete your account? All your personal profile information, messages, job applications, and connections will be permanently wiped.
               </p>
 
+              {deleteError && (
+                <div className="mt-4 rounded-xl border border-rose/30 bg-rose-wash p-3 text-xs font-medium text-rose">
+                  {deleteError}
+                </div>
+              )}
+
               <div className="mt-6 flex justify-end gap-3">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowDeleteModal(false)}
+                  onClick={() => {
+                    if (!isDeleting) {
+                      setShowDeleteModal(false);
+                      setDeleteError(null);
+                    }
+                  }}
                   disabled={isDeleting}
                 >
                   Cancel
                 </Button>
-                <form action={deleteOwnAccount}>
-                  <Button
-                    type="submit"
-                    variant="danger"
-                    disabled={isDeleting}
-                    onClick={() => setIsDeleting(true)}
-                  >
-                    {isDeleting ? "Deleting…" : "Yes, delete account"}
-                  </Button>
-                </form>
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                >
+                  {isDeleting ? "Deleting…" : "Yes, delete account"}
+                </Button>
               </div>
             </motion.div>
           </div>
