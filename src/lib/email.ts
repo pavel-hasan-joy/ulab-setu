@@ -90,23 +90,36 @@ export async function sendOtpEmail(
       }
       const data = await res.json().catch(() => ({}));
       console.warn("Resend API warning:", data);
-    } catch (err) {
+      const errMsg = (data && typeof data === "object" && "message" in data) ? String(data.message) : "Resend delivery failed.";
+      return { success: false, message: `Email service error: ${errMsg}` };
+    } catch (err: unknown) {
       console.warn("Resend email delivery error:", err);
+      const errMsg = err instanceof Error ? err.message : "Network error contacting email provider.";
+      return { success: false, message: `Email delivery error: ${errMsg}` };
     }
   }
 
   // 2. Try SMTP if configured (Gmail, Brevo, custom SMTP)
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: Number(process.env.SMTP_PORT) || 465,
-        secure: (process.env.SMTP_PORT || "465") === "465",
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
+      const isGmail = !process.env.SMTP_HOST || process.env.SMTP_HOST.includes("gmail");
+      const transporter = isGmail
+        ? nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS.replace(/\s+/g, ""),
+            },
+          })
+        : nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: Number(process.env.SMTP_PORT) || 587,
+            secure: Number(process.env.SMTP_PORT) === 465,
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          });
 
       await transporter.sendMail({
         from: process.env.EMAIL_FROM || `"ULAB Setu" <${process.env.SMTP_USER}>`,
@@ -116,8 +129,10 @@ export async function sendOtpEmail(
       });
 
       return { success: true, message: `Verification code sent to ${toEmail}` };
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn("SMTP email delivery error:", err);
+      const errMsg = err instanceof Error ? err.message : "SMTP delivery failed.";
+      return { success: false, message: `SMTP error: ${errMsg}. Check SMTP_USER & App Password.` };
     }
   }
 
