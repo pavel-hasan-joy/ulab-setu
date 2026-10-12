@@ -94,13 +94,21 @@ export async function sendOtpEmail(
         return { success: true, message: `Verification code sent to ${toEmail}` };
       }
       const data = await res.json().catch(() => ({}));
-      console.warn("Resend API warning:", data);
-      const errMsg = (data && typeof data === "object" && "message" in data) ? String(data.message) : "Resend delivery failed.";
-      return { success: false, message: `Email service error: ${errMsg}` };
+      console.warn("Resend API warning, falling back to SMTP:", data);
+      const rawUserCheck = process.env.SMTP_USER?.trim().replace(/['"]/g, "");
+      const rawPassCheck = process.env.SMTP_PASS?.trim().replace(/[\s'"]/g, "");
+      if (!rawUserCheck || !rawPassCheck) {
+        const errMsg = (data && typeof data === "object" && "message" in data) ? String(data.message) : "Resend delivery failed.";
+        return { success: false, message: `Email service error: ${errMsg}` };
+      }
     } catch (err: unknown) {
-      console.warn("Resend email delivery error:", err);
-      const errMsg = err instanceof Error ? err.message : "Network error contacting email provider.";
-      return { success: false, message: `Email delivery error: ${errMsg}` };
+      console.warn("Resend email delivery error, attempting SMTP:", err);
+      const rawUserCheck = process.env.SMTP_USER?.trim().replace(/['"]/g, "");
+      const rawPassCheck = process.env.SMTP_PASS?.trim().replace(/[\s'"]/g, "");
+      if (!rawUserCheck || !rawPassCheck) {
+        const errMsg = err instanceof Error ? err.message : "Network error contacting email provider.";
+        return { success: false, message: `Email delivery error: ${errMsg}` };
+      }
     }
   }
 
