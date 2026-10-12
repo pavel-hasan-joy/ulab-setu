@@ -151,7 +151,7 @@ export default async function Home() {
                 <p className="mx-auto mt-3 max-w-md text-ink-soft">Post an opening at your company or answer one question a month. It adds up.</p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
                   <ButtonLink href="/signup?role=alumni" className="px-5 py-3">Join as alumni</ButtonLink>
-                  <ButtonLink href="/signup?role=student" variant="outline" className="px-5 py-3"><Search size={16} /> Find a mentor</ButtonLink>
+                  <ButtonLink href="/student/messages" variant="outline" className="px-5 py-3"><MessageCircle size={16} /> Find your mentor</ButtonLink>
                 </div>
               </div>
             </div>

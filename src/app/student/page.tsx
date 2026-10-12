@@ -31,7 +31,7 @@ export default async function StudentHome() {
           <h1 className="mt-1 max-w-lg text-3xl font-semibold md:text-4xl">What would you like to work on today?</h1>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/student/jobs"><Briefcase size={16} /> Browse jobs</ButtonLink>
-            <ButtonLink href="/student/people" variant="outline"><MessageCircle size={16} /> Talk to alumni</ButtonLink>
+            <ButtonLink href="/student/messages" variant="outline"><MessageCircle size={16} /> Find your mentor</ButtonLink>
           </div>
         </div>
       </div>
