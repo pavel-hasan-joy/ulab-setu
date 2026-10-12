@@ -61,7 +61,7 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
       {people.length === 0 ? (
         <EmptyState title="Nobody matches that search" body="Try a shorter keyword or clear the department filter." action={<Link href={`${basePath}?tab=${tab}`} className="text-sm font-semibold text-ulab hover:underline">Clear search</Link>} />
       ) : (
-        <Stagger className="grid gap-4 md:grid-cols-2">
+        <Stagger key={`${tab}-${department ?? ""}-${q}`} className="grid gap-4 md:grid-cols-2">
           {people.map((p) => (
             <StaggerItem key={p.id}>
               <HoverLift className="h-full">

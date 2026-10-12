@@ -48,7 +48,7 @@ export async function BoardView({ viewer, basePath, params }: { viewer: User; ba
       {posts.length === 0 ? (
         <EmptyState title="Nothing posted here yet" body={canPost ? "Be the first: share a notice, event or opportunity above." : "Teachers and alumni will post notices, events and scholarships here."} />
       ) : (
-        <Stagger className="space-y-4">
+        <Stagger key={kind ?? "all"} className="space-y-4">
           {posts.map((p) => (
             <StaggerItem key={p.id}>
               <Card className="p-5 md:p-6">

@@ -23,8 +23,7 @@ export function Stagger({ gap = 0.07, ...props }: HTMLMotionProps<"div"> & { gap
   return (
     <motion.div
       initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-40px" }}
+      animate="show"
       variants={{ hidden: {}, show: { transition: { staggerChildren: gap } } }}
       {...props}
     />

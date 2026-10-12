@@ -81,7 +81,7 @@ async function AlumniJobs({ q, category, type }: { q: string; category?: string;
     return <EmptyState title="No alumni jobs match that" body="Try a broader search, or check the Bangladesh tab for more openings." />;
   }
   return (
-    <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <Stagger key={`${q}-${category ?? ""}-${type ?? ""}`} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {jobs.map((job) => (
         <StaggerItem key={job.id}><AlumniJobCard job={job} href={`/student/jobs/${job.id}`} /></StaggerItem>
       ))}
