@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requirePoster, requireUser } from "@/lib/auth";
+import { cleanExpiredJobs } from "@/lib/jobs";
 import { fail, type FormState } from "./auth";
 
 const jobSchema = z.object({
@@ -29,6 +30,11 @@ export async function createJob(_: FormState, formData: FormData): Promise<FormS
   if (!parsed.success) return fail(parsed.error.issues[0].message, raw);
 
   const { deadline, referral, ...data } = parsed.data;
+  if (deadline && new Date(deadline).getTime() < Date.now()) {
+    return fail("Deadline cannot be in the past.", raw);
+  }
+
+  await cleanExpiredJobs();
   await db.job.create({
     data: {
       ...data,
@@ -45,6 +51,7 @@ export async function createJob(_: FormState, formData: FormData): Promise<FormS
 
 export async function toggleJob(jobId: string) {
   const { user, base } = await requirePoster();
+  await cleanExpiredJobs();
   const job = await db.job.findFirst({ where: { id: jobId, postedById: user.id } });
   if (!job) return;
   await db.job.update({ where: { id: jobId }, data: { active: !job.active } });
@@ -56,8 +63,15 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
   const jobId = String(formData.get("jobId"));
   const note = String(formData.get("note") ?? "").trim();
 
-  const job = await db.job.findFirst({ where: { id: jobId, active: true } });
-  if (!job) return { error: "This job is no longer open." };
+  await cleanExpiredJobs();
+  const job = await db.job.findFirst({
+    where: {
+      id: jobId,
+      active: true,
+      OR: [{ deadline: null }, { deadline: { gte: new Date() } }],
+    },
+  });
+  if (!job) return { error: "This job is no longer open or its deadline has passed." };
   if (!user.skills || !user.bio) {
     return { error: "Add a short bio and your skills to your profile before applying." };
   }

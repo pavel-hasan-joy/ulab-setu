@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PlusCircle, Users } from "lucide-react";
 import { requirePoster } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs } from "@/lib/jobs";
 import { PageIn, Stagger, StaggerItem } from "@/components/motion";
 import { PendingBanner } from "@/components/pending-banner";
 import { Badge, ButtonLink, Card, EmptyState, PageHeader, formatDate } from "@/components/ui";
@@ -13,6 +14,7 @@ export const metadata: Metadata = { title: "My jobs" };
 export default async function MyJobs({ searchParams }: { searchParams: Promise<{ posted?: string }> }) {
   const { posted } = await searchParams;
   const { user, base } = await requirePoster();
+  await cleanExpiredJobs();
   const jobs = await db.job.findMany({
     where: { postedById: user.id },
     include: { _count: { select: { applications: true } } },

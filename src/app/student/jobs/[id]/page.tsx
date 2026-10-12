@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarClock, MapPin, Tag, Wallet } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs } from "@/lib/jobs";
 import { PageIn } from "@/components/motion";
 import { Avatar, Badge, Card, formatDate, posterLabel, timeAgo } from "@/components/ui";
 import { ApplyPanel } from "./apply-panel";
@@ -10,8 +11,13 @@ import { ApplyPanel } from "./apply-panel";
 export default async function JobDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser("STUDENT");
+  await cleanExpiredJobs();
   const job = await db.job.findUnique({ where: { id }, include: { postedBy: true } });
   if (!job) notFound();
+  if (job.deadline && job.deadline.getTime() < Date.now()) {
+    await db.job.delete({ where: { id } }).catch(() => {});
+    notFound();
+  }
   const application = await db.application.findUnique({ where: { jobId_studentId: { jobId: id, studentId: user.id } } });
 
   return (

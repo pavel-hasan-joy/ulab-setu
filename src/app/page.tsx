@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, BadgeCheck, MessageCircle, Search, UserPlus } from "lucide-react";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { site } from "@/lib/site";
 import { CinematicHero } from "@/components/landing/cinematic-hero";
 import { JobPortals } from "@/components/job-portals";
@@ -15,11 +16,12 @@ import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  await cleanExpiredJobs();
   const [alumniCount, studentCount, jobCount, jobs, companies] = await Promise.all([
     db.user.count({ where: { role: "ALUMNI", status: "APPROVED" } }),
     db.user.count({ where: { role: "STUDENT" } }),
-    db.job.count({ where: { active: true } }),
-    db.job.findMany({ where: { active: true }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
+    db.job.count({ where: { active: true, ...activeDeadlineCondition() } }),
+    db.job.findMany({ where: { active: true, ...activeDeadlineCondition() }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", company: { not: null } }, select: { company: true }, distinct: ["company"] }),
   ]);
 

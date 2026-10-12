@@ -2,16 +2,18 @@ import Link from "next/link";
 import { ArrowUpRight, Briefcase, Megaphone, MessageCircle, Sparkles, UserRoundPen } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { AlumniJobCard } from "@/components/job-cards";
 import { CountUp, PageIn, Stagger, StaggerItem } from "@/components/motion";
 import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 
 export default async function StudentHome() {
   const user = await requireUser("STUDENT");
+  await cleanExpiredJobs();
   const [applications, connections, jobs, alumni, notices] = await Promise.all([
     db.application.count({ where: { studentId: user.id } }),
     db.connection.count({ where: { status: "ACCEPTED", OR: [{ fromId: user.id }, { toId: user.id }] } }),
-    db.job.findMany({ where: { active: true }, include: { postedBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
+    db.job.findMany({ where: { active: true, ...activeDeadlineCondition() }, include: { postedBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", department: user.department }, take: 4, orderBy: { graduationYear: "desc" } }),
     db.post.findMany({ include: { author: true }, orderBy: { createdAt: "desc" }, take: 3 }),
   ]);

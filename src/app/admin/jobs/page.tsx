@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs } from "@/lib/jobs";
 import { PageIn } from "@/components/motion";
 import { PageHeader } from "@/components/ui";
 import {
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminJobsPage() {
   await requireUser("ADMIN");
+  await cleanExpiredJobs();
 
   const rawJobs = await db.job.findMany({
     orderBy: { createdAt: "desc" },

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { requirePoster } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs } from "@/lib/jobs";
 import { PageIn, Stagger, StaggerItem } from "@/components/motion";
 import { Avatar, Badge, Card, EmptyState, timeAgo } from "@/components/ui";
 import { ApplicantActions } from "./applicant-actions";
@@ -10,6 +11,7 @@ import { ApplicantActions } from "./applicant-actions";
 export default async function JobApplicants({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user, base } = await requirePoster();
+  await cleanExpiredJobs();
   const job = await db.job.findFirst({
     where: { id, postedById: user.id },
     include: { applications: { include: { student: true }, orderBy: { createdAt: "desc" } } },

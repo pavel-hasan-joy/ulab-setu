@@ -2,14 +2,16 @@ import Link from "next/link";
 import { ArrowUpRight, PlusCircle } from "lucide-react";
 import { requirePoster } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { CountUp, PageIn, Stagger, StaggerItem } from "@/components/motion";
 import { PendingBanner } from "@/components/pending-banner";
 import { Avatar, Badge, ButtonLink, Card, EmptyState, timeAgo } from "@/components/ui";
 
 export default async function AlumniHome() {
   const { user, base } = await requirePoster();
+  await cleanExpiredJobs();
   const [activeJobs, applicants, connections, recent] = await Promise.all([
-    db.job.count({ where: { postedById: user.id, active: true } }),
+    db.job.count({ where: { postedById: user.id, active: true, ...activeDeadlineCondition() } }),
     db.application.count({ where: { job: { postedById: user.id } } }),
     db.connection.count({ where: { status: "ACCEPTED", OR: [{ fromId: user.id }, { toId: user.id }] } }),
     db.application.findMany({ where: { job: { postedById: user.id } }, include: { student: true, job: true }, orderBy: { createdAt: "desc" }, take: 5 }),

@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Info, Search } from "lucide-react";
 import { db } from "@/lib/db";
+import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { getBangladeshJobs, getRemoteJobs } from "@/lib/external-jobs";
 import { jobCategories, jobTypes } from "@/lib/site";
 import { AlumniJobCard, ExternalJobCard, JobGridSkeleton } from "@/components/job-cards";
@@ -64,9 +65,11 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 }
 
 async function AlumniJobs({ q, category, type }: { q: string; category?: string; type?: string }) {
+  await cleanExpiredJobs();
   const jobs = await db.job.findMany({
     where: {
       active: true,
+      ...activeDeadlineCondition(),
       ...(category && { category }),
       ...(type && { type }),
       ...(q && { OR: [{ title: { contains: q } }, { company: { contains: q } }, { description: { contains: q } }] }),

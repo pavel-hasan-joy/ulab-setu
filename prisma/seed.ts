@@ -74,21 +74,6 @@ async function main() {
     db.job.create({ data: { postedById: tanvir.id, title: "Junior Backend Developer", company: "Nimbus Labs", location: "Dhaka", type: "Full-time", category: "Software & IT", referral: true, salary: "BDT 45,000 – 60,000", deadline: days(21),
       description: "Build and maintain Node.js services and PostgreSQL databases for our routing platform. We're looking for someone curious who likes understanding how things work under the hood.",
       requirements: "Node.js or Python\nSQL fundamentals\n0–2 years of experience" } }),
-    db.job.create({ data: { postedById: nusrat.id, title: "Management Trainee, Marketing", company: "Meghna Consumer Goods", location: "Dhaka", type: "Full-time", category: "Marketing & Communication", referral: true, deadline: days(10),
-      description: "A 12-month rotational program across brand, trade marketing and consumer insights. I went through this program myself and I'm happy to answer questions from ULAB students.",
-      requirements: "BBA or related degree\nStrong communication in English and Bangla\nCGPA 3.25 or above" } }),
-    db.job.create({ data: { postedById: arif.id, title: "Graduate Engineer, Substations", company: "Padma Grid Solutions", location: "Chattogram", type: "Full-time", category: "Engineering", deadline: days(18),
-      description: "Join the substation design team working on 33/11 kV projects. You'll support site surveys, prepare single-line diagrams and learn protection coordination.",
-      requirements: "BSc in EEE\nAutoCAD\nWilling to travel to project sites" } }),
-    db.job.create({ data: { postedById: sadia.id, title: "Editorial Intern", company: "Daily Horizon", location: "Dhaka", type: "Internship", category: "Media & Journalism", salary: "BDT 12,000 / month", deadline: days(7),
-      description: "Help the digital desk write, edit and fact-check stories. Great fit for MSJ students who want newsroom experience before graduating.",
-      requirements: "Excellent written English\nBasic social media skills" } }),
-    db.job.create({ data: { postedById: rafiq.id, title: "Field Research Assistant", company: "GreenDelta Foundation", location: "Sylhet", type: "Contract", category: "Development Sector / NGO", salary: "BDT 30,000 / month", deadline: days(25),
-      description: "Six-month contract collecting and analysing data on haor-area climate adaptation projects. Includes training in survey tools and GIS.",
-      requirements: "Environmental Science or related\nComfortable with field travel\nExcel or SPSS" } }),
-    db.job.create({ data: { postedById: mehnaz.id, title: "Part-time Teaching Assistant", company: "Brightpath Education", location: "Dhaka (Dhanmondi)", type: "Part-time", category: "Research & Education", referral: true, salary: "BDT 15,000 / month", deadline: days(12),
-      description: "Support IELTS and spoken English classes three evenings a week. Flexible around your university schedule.",
-      requirements: "IELTS 7.0+ or equivalent\nPatient and friendly" } }),
   ]);
 
   const [drKarim, msAnika] = await Promise.all([
@@ -110,10 +95,6 @@ async function main() {
   await db.user.create({
     data: { name: "Pending Teacher", email: "pending.teacher@ulab.edu.bd", passwordHash, role: "TEACHER", status: "PENDING", department: "English and Humanities", designation: "Lecturer" },
   });
-
-  await db.job.create({ data: { postedById: drKarim.id, title: "Research Assistant, ML Lab", company: "ULAB CSE Department", location: "ULAB campus", type: "Part-time", category: "Research & Education", salary: "BDT 10,000 / month", deadline: days(20),
-    description: "Help with data collection and model experiments for a Bangla speech recognition project. 12 hours a week, flexible around classes.",
-    requirements: "Python\nCompleted a machine learning course\nCGPA 3.3 or above" } });
 
   await db.post.createMany({
     data: [
