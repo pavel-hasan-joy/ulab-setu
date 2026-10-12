@@ -67,6 +67,10 @@ export async function sendOtpEmail(
     </div>
   `;
 
+  const emailText = isReset
+    ? `ULAB Setu Password Reset\n\nYour 6-digit verification code is: ${code}\nThis code will expire in 10 minutes.\n\nIf you did not request a password reset, you can safely ignore this email.`
+    : `Welcome to ULAB Setu\n\nYour 6-digit verification code is: ${code}\nThis code will expire in 10 minutes.\n\nThank you for joining ULAB Setu!`;
+
   // 1. Try Resend API if configured
   if (process.env.RESEND_API_KEY) {
     try {
@@ -81,6 +85,7 @@ export async function sendOtpEmail(
           from: fromEmail,
           to: toEmail,
           subject: emailSubject,
+          text: emailText,
           html: emailHtml,
         }),
       });
@@ -130,7 +135,11 @@ export async function sendOtpEmail(
         from: process.env.EMAIL_FROM || `"ULAB Setu" <${rawUser}>`,
         to: toEmail,
         subject: emailSubject,
+        text: emailText,
         html: emailHtml,
+        headers: {
+          "X-Entity-Ref-ID": `${Date.now()}-${code}`,
+        },
       });
 
       return { success: true, message: `Verification code sent to ${toEmail}` };
