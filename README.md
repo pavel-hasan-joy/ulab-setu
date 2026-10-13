@@ -37,27 +37,52 @@ The platform enables students to connect with alumni mentors, apply for curated 
 
 ---
 
+## 🚀 Recent Platform Upgrades (v2.0)
+
+ULAB Setu has been significantly upgraded with enterprise-grade collaborative and networking features:
+
+- 🏫 **Google Classroom + WhatsApp Group Chat System:**
+  - **Faculty & Student Portals:** A dedicated Classroom space accessible only to Students and Teachers.
+  - **1-Click Class Codes:** Course instructors generate unique 6-character alphanumeric codes (e.g., `ULAB31`) with a copy button for instant student enrollment.
+  - **WhatsApp-Style Group Discussion:** Real-time group messaging with role distinction (Faculty badge vs. Student ID), auto-scrolling, and fast message dispatch.
+  - **Pinned Course Announcements:** Teachers can post exam schedules, syllabi, and assignment updates with a **Pin to Top** toggle.
+  - **Roster & Member Controls:** Detailed member lists with instructor and student categorization.
+- 🤝 **Interactive Networking & Disconnect Controls:**
+  - LinkedIn-style Connection Requests (Send, Pending with withdrawal, Accept, Decline).
+  - **Disconnect / Remove Connection:** Once connected, users can remove connections with a safe confirmation modal preventing accidental removal.
+  - **Dynamic Invitation Badges:** Real-time notification counters on sidebar tabs across Student, Teacher, and Alumni spaces.
+- 📄 **Rich Job Candidate Dossiers & Profile Modal:**
+  - Interactive applicant cards displaying full profile information, skills badges, student ID, batch, and CV preview.
+  - Global **Profile Modal** allowing one-click profile inspection from any directory card or job applicant listing.
+- 🔐 **Pre-configured Testing & Demonstration Accounts:**
+  - Seeded ready-to-use accounts for Faculty, Student, and Alumni with sample classroom `ULAB31`.
+
+---
+
 ## ✨ Key Features by User Role
 
 ### 🎓 1. Student Portal
 - **Smart Job Search & Filters:** Browse direct alumni job postings, Bangladeshi jobs via Careerjet API, and global remote opportunities via Himalayas API.
 - **Application Tracking:** Apply directly to alumni/teacher postings and track application statuses.
-- **Alumni Mentorship Directory:** Discover alumni filtered by department, batch, company, and location.
+- **Google Classroom & Group Chat:** Join classrooms using teacher-provided codes, participate in WhatsApp-style discussions, and read pinned announcements.
+- **Alumni Mentorship Directory:** Discover alumni filtered by department, batch, company, and location with Connect/Disconnect options.
 - **Community Notice Board:** Stay updated with official announcements, career seminars, and campus events.
 - **1-on-1 Direct Messaging:** Private messaging with alumni mentors and faculty members.
 - **Privacy First:** Control visibility of personal contact info (Phone, WhatsApp, Facebook).
 
 ### 💼 2. Alumni Portal
 - **Job & Internship Posting:** Post job openings directly with custom application requirements, deadlines, and salary details.
-- **Talent Discovery:** Review incoming student applications and resumes.
+- **Applicant Review & Candidate Dossier:** View comprehensive applicant details (Avatar, Student ID, batch, department, skills, and CV preview) with full profile modals.
+- **Talent Discovery & Networking:** Connect with students and peer alumni with connect and disconnect options.
 - **Community Engagement:** Publish career advice, opportunities, and discussions on the notice board.
-- **Peer Networking:** Connect with fellow alumni across various graduating batches and industries.
 - **Approval Workflow:** Verified status granted by the Alumni Office ensures authentic alumni representation.
 
 ### 👨‍🏫 3. Faculty / Teacher Portal
+- **Classroom Management:** Create and manage course classrooms with unique join codes.
+- **WhatsApp-Style Course Group Chat:** Chat with enrolled students in real time with distinctive Faculty badges.
+- **Course Announcements:** Publish important notices and pin key updates (exams, deadlines, syllabus).
 - **Research & TA Opportunities:** Post openings for Teaching Assistants (TA), Research Assistants (RA), and lab projects.
-- **Department Notices:** Share academic announcements and guidance.
-- **Direct Mentorship:** Connect with both current students and graduated alumni.
+- **Direct Mentorship & Networking:** Connect with current students and alumni with full connection management.
 
 ### 🛡️ 4. Alumni Office (Admin Portal)
 - **User Verification Queue:** Review, approve, or reject pending alumni and faculty registration requests.
@@ -224,18 +249,21 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔐 Seed & Demo Accounts
 
-For local testing, the seed script generates ready-to-use profiles across all roles:
+For local and staging testing, ready-to-use profiles across all roles are provisioned:
 
-| Role | Email | Status |
-|---|---|---|
-| **Student** | `student@ulab.edu.bd` | Approved |
-| **Alumni (Active)** | `alumni1@example.com` to `alumni6@example.com` | Approved |
-| **Alumni (Pending)** | `pending.alumni@example.com` | Pending Verification |
-| **Teacher (Active)** | `teacher@ulab.edu.bd`, `teacher2@ulab.edu.bd` | Approved |
-| **Teacher (Pending)** | `pending.teacher@ulab.edu.bd` | Pending Verification |
-| **Admin (Alumni Office)** | `admin@ulab.edu.bd` | Approved Administrator |
+| Role | Name | Email | Password | Status |
+|---|---|---|---|---|
+| **Student** | Farhana Akter | `student@ulab.edu.bd` | `password123` | Approved |
+| **Teacher** | Dr. Kamrul Karim | `teacher@ulab.edu.bd` | `password123` | Approved |
+| **Alumni** | Tanvir Hasan | `alumni@ulab.edu.bd` | `password123` | Approved |
+| **Admin** | Alumni Office | `admin@ulab.edu.bd` | `password123` | Administrator |
 
-> 🔒 **Security Notice:** Default seed passwords are strictly meant for local evaluation (`*****`). For production deployments, always create unique credentials with strong passwords.
+#### 🏫 Demonstration Classroom:
+- **Course Name:** `CSE 311: Database Management Systems`
+- **Class Code:** `ULAB31`
+- **Features:** WhatsApp group discussion feed, pinned syllabus notice, and dual-enrolled teacher/student.
+
+> 🔒 **Security Notice:** Default seed passwords are strictly meant for local evaluation and feature verification. For production deployments, always create unique credentials with strong passwords.
 
 ---
 
