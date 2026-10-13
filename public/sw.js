@@ -1,8 +1,8 @@
 // ULAB Setu service worker: keeps a small offline page and the app icons.
 // Pages and data always come from the network (they're personal and change often);
 // if the network is down, navigation falls back to the offline page.
-const CACHE = "setu-v1";
-const PRECACHE = ["/offline.html", "/icons/icon-192.png", "/icons/icon-512.png", "/ulab-logo.svg"];
+const CACHE = "setu-v2";
+const PRECACHE = ["/offline.html", "/icons/icon-192.png", "/icons/icon-512.png", "/ulab-logo.svg", "/ulab-logo-white.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
