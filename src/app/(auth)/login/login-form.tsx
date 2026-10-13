@@ -49,6 +49,53 @@ export function LoginForm({
         <FormError message={state?.error} />
         <Button className="w-full py-3" disabled={pending}>{pending ? "Logging in…" : "Log in"}</Button>
       </form>
+
+      {/* 1-Click Demo Accounts for easy testing */}
+      <div className="mt-6 rounded-2xl border border-mist bg-paper/60 p-3.5">
+        <div className="flex items-center justify-between mb-2 text-xs">
+          <span className="font-bold text-ink">Sample Accounts for Testing</span>
+          <span className="font-mono text-[11px] text-ink-soft bg-surface px-2 py-0.5 rounded-lg border border-mist">pass: password123</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
+              const passInput = document.querySelector<HTMLInputElement>('input[name="password"]');
+              if (emailInput) emailInput.value = "teacher@ulab.edu.bd";
+              if (passInput) passInput.value = "password123";
+            }}
+            className="rounded-xl border border-mist bg-surface py-1.5 px-2 text-xs font-semibold text-ink transition hover:border-lilac hover:bg-lilac-wash hover:text-lilac-ink active:scale-95 text-center"
+          >
+            👨‍🏫 Teacher
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
+              const passInput = document.querySelector<HTMLInputElement>('input[name="password"]');
+              if (emailInput) emailInput.value = "student@ulab.edu.bd";
+              if (passInput) passInput.value = "password123";
+            }}
+            className="rounded-xl border border-mist bg-surface py-1.5 px-2 text-xs font-semibold text-ink transition hover:border-ulab hover:bg-sky hover:text-ulab-deep active:scale-95 text-center"
+          >
+            🎓 Student
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const emailInput = document.querySelector<HTMLInputElement>('input[name="email"]');
+              const passInput = document.querySelector<HTMLInputElement>('input[name="password"]');
+              if (emailInput) emailInput.value = "alumni@ulab.edu.bd";
+              if (passInput) passInput.value = "password123";
+            }}
+            className="rounded-xl border border-mist bg-surface py-1.5 px-2 text-xs font-semibold text-ink transition hover:border-gold hover:bg-gold-wash hover:text-gold-ink active:scale-95 text-center"
+          >
+            💼 Alumni
+          </button>
+        </div>
+      </div>
+
       <p className="mt-6 text-center text-sm text-ink-soft">
         New here? <Link href="/signup" className="font-semibold text-ulab hover:underline">Create an account</Link>
       </p>
