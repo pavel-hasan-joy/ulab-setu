@@ -31,6 +31,7 @@ model User {
   whatsappPublic Boolean  @default(false)
   facebook       String?
   facebookPublic Boolean  @default(false)
+  isPrivate      Boolean  @default(false)
   createdAt      DateTime @default(now())
   lastLoginAt    DateTime?
 

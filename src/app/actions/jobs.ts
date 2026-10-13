@@ -61,7 +61,14 @@ export async function toggleJob(jobId: string) {
 export async function applyToJob(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser("STUDENT");
   const jobId = String(formData.get("jobId"));
-  const note = String(formData.get("note") ?? "").trim();
+  const coverNote = String(formData.get("note") ?? formData.get("coverNote") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const linkedin = String(formData.get("linkedin") ?? "").trim();
+  const portfolio = String(formData.get("portfolio") ?? "").trim();
+  const availability = String(formData.get("availability") ?? "").trim();
+  const cvFileName = String(formData.get("cvFileName") ?? "").trim();
+  const cvUrl = String(formData.get("cvUrl") ?? "").trim();
+  const cvData = String(formData.get("cvData") ?? "").trim();
 
   await cleanExpiredJobs();
   const job = await db.job.findFirst({
@@ -72,14 +79,42 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     },
   });
   if (!job) return { error: "This job is no longer open or its deadline has passed." };
-  if (!user.skills || !user.bio) {
-    return { error: "Add a short bio and your skills to your profile before applying." };
+
+  if (!coverNote && !cvData && !cvUrl) {
+    return { error: "Please write why you're a good fit or attach your CV before submitting." };
   }
+
+  // Auto-sync phone or linkedin to user profile if newly provided
+  if ((phone && !user.phone) || (linkedin && !user.linkedin)) {
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        ...(phone && !user.phone ? { phone } : {}),
+        ...(linkedin && !user.linkedin ? { linkedin } : {}),
+      },
+    }).catch(() => {});
+  }
+
+  const structuredPayload = JSON.stringify({
+    coverNote: coverNote || null,
+    phone: phone || user.phone || null,
+    email: user.email,
+    name: user.name,
+    department: user.department,
+    batch: user.batch,
+    studentId: user.studentId,
+    linkedin: linkedin || user.linkedin || null,
+    portfolio: portfolio || null,
+    availability: availability || null,
+    cvFileName: cvFileName || null,
+    cvUrl: cvUrl || null,
+    cvData: cvData || null,
+  });
 
   await db.application.upsert({
     where: { jobId_studentId: { jobId, studentId: user.id } },
-    create: { jobId, studentId: user.id, note: note || null },
-    update: {},
+    create: { jobId, studentId: user.id, note: structuredPayload },
+    update: { note: structuredPayload },
   });
   revalidatePath(`/student/jobs/${jobId}`);
   revalidatePath("/student/applications");

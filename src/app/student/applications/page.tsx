@@ -25,20 +25,39 @@ export default async function Applications() {
         <EmptyState title="You haven't applied yet" body="Alumni jobs often come with a referral. Start there." action={<ButtonLink href="/student/jobs">Browse alumni jobs</ButtonLink>} />
       ) : (
         <Stagger className="space-y-3">
-          {apps.map((a) => (
-            <StaggerItem key={a.id}>
-              <Link href={`/student/jobs/${a.jobId}`}>
-                <Card className="flex flex-wrap items-center gap-4 p-5 transition hover:shadow-lift">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{a.job.title}</p>
-                    <p className="text-sm text-ink-soft">{a.job.company}, posted by {a.job.postedBy.name}</p>
-                  </div>
-                  <span className="text-xs text-ink-soft">{timeAgo(a.createdAt)}</span>
-                  <Badge tone={tone[a.status as keyof typeof tone]}>{label[a.status as keyof typeof label]}</Badge>
-                </Card>
-              </Link>
-            </StaggerItem>
-          ))}
+          {apps.map((a) => {
+            let hasCv = false;
+            let cvName = "";
+            try {
+              if (a.note?.trim().startsWith("{")) {
+                const parsed = JSON.parse(a.note);
+                if (parsed.cvFileName || parsed.cvUrl || parsed.cvData) {
+                  hasCv = true;
+                  cvName = parsed.cvFileName || "CV Attached";
+                }
+              }
+            } catch {}
+
+            return (
+              <StaggerItem key={a.id}>
+                <Link href={`/student/jobs/${a.jobId}`}>
+                  <Card className="flex flex-wrap items-center gap-4 p-5 transition hover:shadow-lift">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-ink">{a.job.title}</p>
+                      <p className="text-sm text-ink-soft">{a.job.company}, posted by {a.job.postedBy.name}</p>
+                      {hasCv && (
+                        <p className="mt-1 text-xs text-sage font-medium inline-flex items-center gap-1">
+                          📄 {cvName}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs text-ink-soft">{timeAgo(a.createdAt)}</span>
+                    <Badge tone={tone[a.status as keyof typeof tone]}>{label[a.status as keyof typeof label]}</Badge>
+                  </Card>
+                </Link>
+              </StaggerItem>
+            );
+          })}
         </Stagger>
       )}
     </PageIn>

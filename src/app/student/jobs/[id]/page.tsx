@@ -56,9 +56,8 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
             <p className="mt-8 text-xs text-ink-soft">Posted {timeAgo(job.createdAt)}</p>
           </Card>
         </div>
-
         <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start">
-          <ApplyPanel jobId={job.id} open={job.active} applied={application?.status ?? null} />
+          <ApplyPanel jobId={job.id} open={job.active} applied={application?.status ?? null} student={user} />
           <Card className="p-5">
             <p className="text-xs font-medium text-ink-soft">Posted by</p>
             <div className="mt-3 flex items-center gap-3">

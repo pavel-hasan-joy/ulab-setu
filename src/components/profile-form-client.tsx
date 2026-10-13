@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Check } from "lucide-react";
+import { Check, Globe, Lock } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import type { User } from "@prisma/client";
 import { updateProfile, deleteOwnAccount } from "@/app/actions/profile";
@@ -40,6 +40,7 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
     return result;
   }, undefined);
   const [name, setName] = useState(user.name);
+  const [isPrivate, setIsPrivate] = useState(user.isPrivate ?? false);
   const alumni = user.role === "ALUMNI";
   const teacher = user.role === "TEACHER";
 
@@ -55,6 +56,7 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
           <p className="text-sm text-ink-soft">{user.email}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
             <Badge tone={alumni ? "gold" : teacher ? "lilac" : "blue"}>{alumni ? `Alumni, ${user.graduationYear}` : teacher ? user.designation ?? "Teacher" : `Student, ${user.batch}`}</Badge>
+            <Badge tone={isPrivate ? "gray" : "sage"}>{isPrivate ? "🔒 Private Account" : "🌐 Public Profile"}</Badge>
             {user.status === "PENDING" && <Badge tone="gray">Awaiting verification</Badge>}
           </div>
           {user.studentId && <p className="mt-4 text-xs text-ink-soft">ID {user.studentId}</p>}
@@ -87,6 +89,60 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
               </Field>
               <Field label="LinkedIn"><Input name="linkedin" type="url" defaultValue={user.linkedin ?? ""} placeholder="https://linkedin.com/in/…" /></Field>
               <ContactFields user={user} />
+
+              {/* Account Privacy (Public vs Private) */}
+              <fieldset className="space-y-3 rounded-2xl border border-mist p-4">
+                <legend className="px-1 text-sm font-semibold text-ink">Account Privacy</legend>
+                <p className="-mt-1 text-xs text-ink-soft">
+                  Control your account visibility: <b>Public</b> allows students, teachers, and alumni to view your profile details. <b>Private</b> keeps your account hidden and shows &ldquo;This account is private&rdquo; when others click on your card.
+                </p>
+                <input type="hidden" name="isPrivate" value={isPrivate ? "private" : "public"} />
+                <div role="radiogroup" aria-label="Account Privacy Setting" className="grid gap-2 sm:grid-cols-2 pt-1">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={!isPrivate}
+                    onClick={() => setIsPrivate(false)}
+                    className={`relative flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                      !isPrivate
+                        ? "border-sage bg-sage-wash/40 shadow-soft"
+                        : "border-mist bg-paper/50 hover:border-mist-deep"
+                    }`}
+                  >
+                    <span className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-lg ${!isPrivate ? "bg-sage text-white" : "bg-surface text-ink-soft"}`}>
+                      <Globe size={14} />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-ink">Public Account</p>
+                      <p className="mt-0.5 text-[11px] text-ink-soft leading-snug">
+                        Profile, bio, skills, and public details are visible to the Setu community.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={isPrivate}
+                    onClick={() => setIsPrivate(true)}
+                    className={`relative flex items-start gap-3 rounded-xl border p-3 text-left transition ${
+                      isPrivate
+                        ? "border-ink bg-surface shadow-soft ring-2 ring-ink/10"
+                        : "border-mist bg-paper/50 hover:border-mist-deep"
+                    }`}
+                  >
+                    <span className={`mt-0.5 grid size-6 shrink-0 place-items-center rounded-lg ${isPrivate ? "bg-ink text-white" : "bg-surface text-ink-soft"}`}>
+                      <Lock size={14} />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-ink">Private Account</p>
+                      <p className="mt-0.5 text-[11px] text-ink-soft leading-snug">
+                        Hides your profile. Others will see &ldquo;This account is private&rdquo; when clicking your card.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </fieldset>
               <FormError message={state?.error} />
               <Button disabled={pending} className="px-6 py-3">{pending ? "Saving…" : "Save profile"}</Button>
             </form>

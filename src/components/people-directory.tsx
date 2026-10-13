@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { Building2, GraduationCap, MapPin, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import type { User } from "@prisma/client";
 import { db } from "@/lib/db";
-import { departments, site } from "@/lib/site";
-import { HoverLift, PageIn, Stagger, StaggerItem } from "./motion";
-import { MessageButton } from "./message-button";
-import { ContactLinks } from "./contact-fields";
-import { publicContacts, whatsappLink } from "@/lib/contact";
+import { departments } from "@/lib/site";
+import { PageIn } from "./motion";
 import { Tabs } from "./tabs";
-import { Avatar, Badge, Button, Card, EmptyState, Input, PageHeader, Select } from "./ui";
+import { Button, EmptyState, Input, PageHeader, Select } from "./ui";
+import { PeopleDirectoryClient } from "./people-directory-client";
 
 type Params = { tab?: string; q?: string; department?: string };
 
@@ -61,57 +59,15 @@ export async function PeopleDirectory({ viewer, basePath, messagesHref, params }
       {people.length === 0 ? (
         <EmptyState title="Nobody matches that search" body="Try a shorter keyword or clear the department filter." action={<Link href={`${basePath}?tab=${tab}`} className="text-sm font-semibold text-ulab hover:underline">Clear search</Link>} />
       ) : (
-        <Stagger key={`${tab}-${department ?? ""}-${q}`} className="grid gap-4 md:grid-cols-2">
-          {people.map((p) => (
-            <StaggerItem key={p.id}>
-              <HoverLift className="h-full">
-                <Card className="flex h-full flex-col p-5">
-                  <div className="flex items-start gap-4">
-                    <Avatar name={p.name} size={52} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-display text-lg font-semibold">{p.name}</p>
-                      {p.role === "ALUMNI" ? (
-                        <p className="text-sm text-ink">{p.designation}</p>
-                      ) : p.role === "TEACHER" ? (
-                        <p className="text-sm text-ink">{p.designation}, {site.universityShort}</p>
-                      ) : (
-                        <p className="inline-flex items-center gap-1 text-sm text-ink"><GraduationCap size={14} /> Student, admitted {p.batch}</p>
-                      )}
-                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-soft">
-                        {p.company && <span className="inline-flex items-center gap-1"><Building2 size={12} />{p.company}</span>}
-                        {p.location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{p.location}</span>}
-                      </div>
-                    </div>
-                    {p.role === "ALUMNI" && <Badge tone="gold" className="shrink-0">{p.graduationYear}</Badge>}
-                    {p.role === "TEACHER" && <Badge tone="lilac" className="shrink-0">Faculty</Badge>}
-                  </div>
-                  {p.bio && <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">{p.bio}</p>}
-                  {p.skills && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {p.skills.split(",").slice(0, 4).map((s) => <Badge key={s} tone="gray">{s.trim()}</Badge>)}
-                    </div>
-                  )}
-                  <PublicContacts user={p} />
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-5">
-                    <span className="text-xs text-ink-soft">{p.department}</span>
-                    <MessageButton toId={p.id} messagesHref={messagesHref} hasChat={talkedTo.has(p.id)} />
-                  </div>
-                </Card>
-              </HoverLift>
-            </StaggerItem>
-          ))}
-        </Stagger>
+        <PeopleDirectoryClient
+          people={people.map(({ passwordHash, ...safe }) => safe)}
+          talkedToIds={Array.from(talkedTo)}
+          messagesHref={messagesHref}
+          tab={tab}
+          department={department}
+          q={q}
+        />
       )}
     </PageIn>
-  );
-}
-
-function PublicContacts({ user }: { user: User }) {
-  // Private details never leave the server: only public ones are passed to the page.
-  const c = publicContacts(user);
-  return (
-    <div className="mt-3 empty:hidden">
-      <ContactLinks {...c} whatsappHref={c.whatsapp ? whatsappLink(c.whatsapp) : null} />
-    </div>
   );
 }

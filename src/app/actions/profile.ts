@@ -33,11 +33,12 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
   for (const key of ["phonePublic", "whatsappPublic", "facebookPublic"] as const) {
     contact[key] = formData.get(key) === "public";
   }
+  const isPrivate = formData.get("isPrivate") === "private";
 
   if (data.skills) {
     data.skills = data.skills.split(",").map((s) => s.trim()).filter(Boolean).join(", ");
   }
-  await db.user.update({ where: { id: user.id }, data: { ...data, ...contact } });
+  await db.user.update({ where: { id: user.id }, data: { ...data, ...contact, isPrivate } });
   revalidatePath("/", "layout");
   return { fields: { saved: "1" }, at: Date.now() };
 }
