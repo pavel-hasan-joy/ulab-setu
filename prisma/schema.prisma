@@ -198,27 +198,36 @@ model ClassroomMember {
 }
 
 model ClassroomMessage {
-  id          String    @id @default(cuid())
-  classroomId String
-  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
-  senderId    String
-  sender      User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  body        String
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(cuid())
+  classroomId    String
+  classroom      Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentSize String?
+  attachmentType String?
+  createdAt      DateTime  @default(now())
 
   @@index([classroomId, createdAt])
 }
 
 model ClassroomNotice {
-  id          String    @id @default(cuid())
-  classroomId String
-  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  title       String
-  content     String
-  isPinned    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(cuid())
+  classroomId    String
+  classroom      Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title          String
+  content        String
+  link           String?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentSize String?
+  attachmentType String?
+  isPinned       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
 
   @@index([classroomId])
 }

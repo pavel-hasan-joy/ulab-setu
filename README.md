@@ -44,7 +44,13 @@ ULAB Setu has been significantly upgraded with enterprise-grade collaborative an
 - 🏫 **Google Classroom + WhatsApp Group Chat System:**
   - **Faculty & Student Portals:** A dedicated Classroom space accessible only to Students and Teachers.
   - **1-Click Class Codes:** Course instructors generate unique 6-character alphanumeric codes (e.g., `ULAB31`) with a copy button for instant student enrollment.
-  - **WhatsApp-Style Group Discussion:** Real-time group messaging with role distinction (Faculty badge vs. Student ID), auto-scrolling, and fast message dispatch.
+  - **Educational Materials & PDF Uploads:**
+    - Full support for uploading **Lecture Slides, Course Syllabus PDFs, Word documents (.docx), Presentations (.pptx), datasets, and ZIP files** (up to 15MB).
+    - One-click **PDF Preview & Direct File Download** for students.
+    - Integration for **Google Drive folders, YouTube lectures, and GitHub repository links**.
+  - **WhatsApp-Style Group Discussion & File Sharing:**
+    - Real-time group messaging with role distinction (Faculty badge vs. Student ID), auto-scrolling, and fast message dispatch.
+    - **In-Chat File Attachments:** Share study notes, screenshots, and PDFs directly inside the group chat via paperclip button.
   - **Pinned Course Announcements:** Teachers can post exam schedules, syllabi, and assignment updates with a **Pin to Top** toggle.
   - **Roster & Member Controls:** Detailed member lists with instructor and student categorization.
 - 🤝 **Interactive Networking & Disconnect Controls:**

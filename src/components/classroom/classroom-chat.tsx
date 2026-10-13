@@ -1,13 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { GraduationCap, Send, ShieldCheck } from "lucide-react";
+import {
+  Download,
+  FileText,
+  GraduationCap,
+  Paperclip,
+  Send,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { fetchClassroomMessages, sendClassroomMessage } from "@/app/actions/classroom";
-import { Avatar, Badge, Button, cn } from "../ui";
+import { Avatar, Button, cn } from "../ui";
 
 export interface ChatMessage {
   id: string;
   body: string;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
+  attachmentSize?: string | null;
+  attachmentType?: string | null;
   mine: boolean;
   at: string;
   sender: {
@@ -31,9 +43,17 @@ export function ClassroomChat({
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [text, setText] = useState("");
+  const [file, setFile] = useState<{
+    name: string;
+    size: string;
+    type: string;
+    url: string;
+  } | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Scroll to bottom smoothly on mount and whenever messages change
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -68,15 +88,54 @@ export function ClassroomChat({
     };
   }, [classroomId]);
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setFileError(null);
+
+    // 15MB limit
+    if (f.size > 15 * 1024 * 1024) {
+      setFileError("File exceeds 15MB limit.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const sizeStr =
+        f.size > 1024 * 1024
+          ? `${(f.size / (1024 * 1024)).toFixed(1)} MB`
+          : `${Math.round(f.size / 1024)} KB`;
+      setFile({
+        name: f.name,
+        size: sizeStr,
+        type: f.type || "file",
+        url: reader.result as string,
+      });
+    };
+    reader.onerror = () => {
+      setFileError("Error reading file.");
+    };
+    reader.readAsDataURL(f);
+  };
+
+  const removeFile = () => {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSend = () => {
     const trimmed = text.trim();
-    if (!trimmed || isPending) return;
+    if ((!trimmed && !file) || isPending) return;
 
     // Optimistic message
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       id: tempId,
       body: trimmed,
+      attachmentUrl: file?.url || null,
+      attachmentName: file?.name || null,
+      attachmentSize: file?.size || null,
+      attachmentType: file?.type || null,
       mine: true,
       at: new Date().toISOString(),
       sender: {
@@ -89,15 +148,18 @@ export function ClassroomChat({
       },
     };
 
+    const currentFile = file;
     setMessages((prev) => [...prev, optimisticMsg]);
     setText("");
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
 
     startTransition(async () => {
-      const res = await sendClassroomMessage(classroomId, trimmed);
+      const res = await sendClassroomMessage(classroomId, trimmed, currentFile);
       if (res.error) {
         // Rollback if failed
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -126,15 +188,15 @@ export function ClassroomChat({
   };
 
   return (
-    <div className="flex h-[620px] flex-col rounded-3xl border border-mist bg-surface shadow-soft overflow-hidden">
+    <div className="flex h-[640px] flex-col rounded-3xl border border-mist bg-surface shadow-soft overflow-hidden">
       {/* WhatsApp Header Bar */}
       <div className="flex items-center justify-between border-b border-mist/60 bg-paper/60 px-5 py-3">
         <div className="flex items-center gap-2">
           <span className="flex size-3 rounded-full bg-emerald-500 animate-pulse" />
-          <p className="text-xs font-semibold text-ink">Classroom Group Chat</p>
+          <p className="text-xs font-semibold text-ink">Classroom Discussion & File Sharing</p>
         </div>
         <p className="text-[11px] text-ink-soft">
-          {messages.length} message{messages.length === 1 ? "" : "s"} • Real-time discussion
+          {messages.length} message{messages.length === 1 ? "" : "s"} • Real-time WhatsApp sync
         </p>
       </div>
 
@@ -147,13 +209,14 @@ export function ClassroomChat({
             </div>
             <p className="font-heading text-sm font-semibold text-ink">No messages yet</p>
             <p className="text-xs text-ink-soft max-w-xs mt-1">
-              Start the discussion! Teachers and students in this classroom can chat here anytime.
+              Start the discussion! Share questions, study notes, or PDF files with your classroom.
             </p>
           </div>
         ) : (
           messages.map((m, index) => {
             const isMine = m.mine;
             const isTeacher = m.sender.role === "TEACHER";
+            const isPdf = m.attachmentName?.toLowerCase().endsWith(".pdf");
 
             return (
               <div
@@ -171,7 +234,7 @@ export function ClassroomChat({
 
                 <div
                   className={cn(
-                    "relative max-w-[82%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 shadow-xs transition",
+                    "relative max-w-[84%] sm:max-w-[70%] rounded-2xl px-3.5 py-2.5 shadow-xs transition",
                     isMine
                       ? "rounded-br-xs bg-ulab text-white"
                       : "rounded-bl-xs border border-mist/70 bg-surface text-ink"
@@ -179,7 +242,7 @@ export function ClassroomChat({
                 >
                   {/* Sender Header for others */}
                   {!isMine && (
-                    <div className="mb-1 flex flex-wrap items-center gap-1.5 pb-1 border-b border-mist/40">
+                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5 pb-1 border-b border-mist/40">
                       <span className="text-xs font-bold text-ink truncate max-w-[150px]">
                         {m.sender.name}
                       </span>
@@ -195,10 +258,54 @@ export function ClassroomChat({
                     </div>
                   )}
 
+                  {/* Attached File Inside Chat Bubble */}
+                  {m.attachmentUrl && (
+                    <div
+                      className={cn(
+                        "mb-2 flex items-center justify-between gap-3 rounded-xl p-2.5 text-xs transition",
+                        isMine
+                          ? "bg-black/20 text-white"
+                          : "border border-mist/80 bg-paper/80 text-ink"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText
+                          size={18}
+                          className={isMine ? "text-white" : isPdf ? "text-rose" : "text-ulab"}
+                        />
+                        <div className="min-w-0">
+                          <p className="font-bold truncate max-w-[160px] sm:max-w-[220px]">
+                            {m.attachmentName || "Attached Document"}
+                          </p>
+                          {m.attachmentSize && (
+                            <p className="text-[10px] opacity-75">{m.attachmentSize}</p>
+                          )}
+                        </div>
+                      </div>
+                      <a
+                        href={m.attachmentUrl}
+                        download={m.attachmentName || "document.pdf"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "rounded-lg p-1.5 transition active:scale-95 shrink-0",
+                          isMine
+                            ? "bg-white/20 hover:bg-white/30 text-white"
+                            : "bg-sky hover:bg-ulab hover:text-white text-ulab-deep"
+                        )}
+                        title="Download / View Attachment"
+                      >
+                        <Download size={14} />
+                      </a>
+                    </div>
+                  )}
+
                   {/* Message Body */}
-                  <p className="whitespace-pre-wrap break-words text-xs sm:text-sm leading-relaxed">
-                    {m.body}
-                  </p>
+                  {m.body && (
+                    <p className="whitespace-pre-wrap break-words text-xs sm:text-sm leading-relaxed">
+                      {m.body}
+                    </p>
+                  )}
 
                   {/* Timestamp */}
                   <div
@@ -218,8 +325,47 @@ export function ClassroomChat({
       </div>
 
       {/* Input Bar */}
-      <div className="border-t border-mist/60 bg-surface p-3 sm:p-4">
+      <div className="border-t border-mist/60 bg-surface p-3 sm:p-4 space-y-2">
+        {fileError && (
+          <p className="text-xs text-rose font-medium">{fileError}</p>
+        )}
+
+        {/* Selected file preview chip */}
+        {file && (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-sage/40 bg-sage-wash/60 px-3 py-1.5 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <FileText size={15} className="text-sage shrink-0" />
+              <span className="truncate max-w-xs font-semibold text-ink">{file.name}</span>
+              <span className="text-[10px] text-ink-soft">({file.size})</span>
+            </div>
+            <button
+              type="button"
+              onClick={removeFile}
+              className="text-ink-soft hover:text-rose p-0.5"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-end gap-2 rounded-2xl border border-mist bg-paper/40 p-1.5 focus-within:border-ulab-light focus-within:ring-4 focus-within:ring-ulab-light/15 transition">
+          {/* File Attachment Button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach file (PDF, PPT, DOC, Image)"
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl text-ink-soft hover:bg-sky hover:text-ulab-deep transition"
+          >
+            <Paperclip size={17} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileUpload}
+            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.png,.jpg,.jpeg,.txt"
+            className="hidden"
+          />
+
           <textarea
             ref={textareaRef}
             value={text}
@@ -231,14 +377,14 @@ export function ClassroomChat({
             onKeyDown={handleKeyDown}
             placeholder="Type a message (Enter to send, Shift+Enter for new line)..."
             rows={1}
-            className="flex-1 resize-none bg-transparent px-3 py-2 text-xs sm:text-sm text-ink placeholder:text-ink-soft/60 focus:outline-hidden"
+            className="flex-1 resize-none bg-transparent px-2 py-2 text-xs sm:text-sm text-ink placeholder:text-ink-soft/60 focus:outline-hidden"
           />
 
           <Button
             type="button"
             variant="primary"
             onClick={handleSend}
-            disabled={!text.trim() || isPending}
+            disabled={(!text.trim() && !file) || isPending}
             className="size-9 shrink-0 rounded-xl p-0"
             title="Send Message"
           >

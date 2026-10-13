@@ -179,7 +179,7 @@ export function ClassroomView({
           )}
         >
           <Megaphone size={16} />
-          <span>Notices & Announcements</span>
+          <span>Classwork & Materials</span>
           <span className="rounded-full bg-paper px-2 py-0.5 text-xs text-ink-soft font-mono">
             {notices.length}
           </span>

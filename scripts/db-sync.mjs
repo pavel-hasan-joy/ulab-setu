@@ -156,7 +156,7 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres"))
         },
       });
 
-      // Sample Pinned Notice
+      // Sample Pinned Notice with Attached PDF & Google Drive link
       const existingNotice = await db.classroomNotice.findFirst({
         where: { classroomId: sampleClassroom.id },
       });
@@ -165,8 +165,13 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres"))
           data: {
             classroomId: sampleClassroom.id,
             authorId: sampleTeacher.id,
-            title: "Welcome to CSE 311 & Midterm Syllabus",
-            content: "Welcome everyone! Midterm exam will cover ER Diagrams, Relational Algebra, and SQL queries (joins, aggregations, subqueries). Please check the notice board regularly.",
+            title: "Welcome to CSE 311: Course Syllabus & Lecture 01 Slides",
+            content: "Welcome everyone! Midterm exam will cover ER Diagrams, Relational Algebra, and SQL queries (joins, aggregations, subqueries). Please download the course outline PDF below.",
+            link: "https://drive.google.com/drive/folders/ulab-cse311-materials",
+            attachmentName: "CSE311_Course_Syllabus_Spring2026.pdf",
+            attachmentSize: "2.4 MB",
+            attachmentType: "application/pdf",
+            attachmentUrl: "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFsgNSAwIFIgXQovQ291bnQgMQo+PgplbmRvYmoKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDQgMCBSCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNzIgNzIwIFRECihoZWxsbyB3b3JsZCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoxIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA0IDAgUgo+PgplbmRvYmoKMiAwIG9iagooVVNBKSBlbmRvYmoKdHJhaWxlcgo8PAovUm9vdCAxIDAgUgo+PgolJUVPRg==",
             isPinned: true,
           },
         });

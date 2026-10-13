@@ -104,6 +104,10 @@ export default async function TeacherClassroomDetailPage({ params }: Props) {
   const initialMessages = classroom.messages.map((m) => ({
     id: m.id,
     body: m.body,
+    attachmentUrl: m.attachmentUrl,
+    attachmentName: m.attachmentName,
+    attachmentSize: m.attachmentSize,
+    attachmentType: m.attachmentType,
     mine: m.senderId === user.id,
     at: m.createdAt.toISOString(),
     sender: {

@@ -194,9 +194,18 @@ export async function removeMemberFromClassroom(classroomId: string, targetUserI
   return { success: true };
 }
 
-export async function sendClassroomMessage(classroomId: string, body: string) {
+export async function sendClassroomMessage(
+  classroomId: string,
+  body: string,
+  attachment?: {
+    url: string;
+    name: string;
+    size: string;
+    type: string;
+  } | null
+) {
   const user = await getCurrentUser();
-  if (!user || !body.trim()) return { error: "Message cannot be empty." };
+  if (!user || (!body.trim() && !attachment?.url)) return { error: "Message or attachment cannot be empty." };
 
   // Verify membership
   const member = await db.classroomMember.findUnique({
@@ -209,6 +218,10 @@ export async function sendClassroomMessage(classroomId: string, body: string) {
       classroomId,
       senderId: user.id,
       body: body.trim().slice(0, 3000),
+      attachmentUrl: attachment?.url || null,
+      attachmentName: attachment?.name || null,
+      attachmentSize: attachment?.size || null,
+      attachmentType: attachment?.type || null,
     },
     include: {
       sender: {
@@ -256,6 +269,10 @@ export async function fetchClassroomMessages(classroomId: string) {
   return msgs.map((m) => ({
     id: m.id,
     body: m.body,
+    attachmentUrl: m.attachmentUrl,
+    attachmentName: m.attachmentName,
+    attachmentSize: m.attachmentSize,
+    attachmentType: m.attachmentType,
     mine: m.senderId === user.id,
     at: m.createdAt.toISOString(),
     sender: {
@@ -273,7 +290,18 @@ export async function createClassroomNotice(
   classroomId: string,
   title: string,
   content: string,
-  isPinned: boolean = false
+  options?:
+    | {
+        isPinned?: boolean;
+        link?: string | null;
+        attachment?: {
+          url: string;
+          name: string;
+          size: string;
+          type: string;
+        } | null;
+      }
+    | boolean
 ) {
   const user = await requireUser();
   const member = await db.classroomMember.findFirst({
@@ -283,12 +311,16 @@ export async function createClassroomNotice(
   if (!classroom) return { error: "Classroom not found." };
 
   if (!member && classroom.createdById !== user.id && user.role !== "ADMIN") {
-    return { error: "Only teachers can post classroom notices." };
+    return { error: "Only teachers can post classroom notices and materials." };
   }
 
   if (!title.trim() || !content.trim()) {
     return { error: "Title and content are required." };
   }
+
+  const isPinned = typeof options === "boolean" ? options : Boolean(options?.isPinned);
+  const link = typeof options === "object" ? options?.link?.trim() || null : null;
+  const attachment = typeof options === "object" ? options?.attachment : null;
 
   await db.classroomNotice.create({
     data: {
@@ -296,7 +328,12 @@ export async function createClassroomNotice(
       authorId: user.id,
       title: title.trim(),
       content: content.trim(),
-      isPinned: Boolean(isPinned),
+      isPinned,
+      link,
+      attachmentUrl: attachment?.url || null,
+      attachmentName: attachment?.name || null,
+      attachmentSize: attachment?.size || null,
+      attachmentType: attachment?.type || null,
     },
   });
 
