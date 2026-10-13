@@ -43,6 +43,11 @@ model User {
   messages      Message[]
   posts         Post[]
   loginLogs     LoginLog[]
+
+  ownedClassrooms      Classroom[]        @relation("ClassroomOwner")
+  classroomMemberships ClassroomMember[]
+  classroomMessages    ClassroomMessage[]
+  classroomNotices     ClassroomNotice[]
 }
 
 model Job {
@@ -159,6 +164,63 @@ model VerificationCode {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+/** Google Classroom + WhatsApp style Groups for Teachers & Students */
+model Classroom {
+  id          String   @id @default(cuid())
+  name        String
+  section     String?
+  subject     String?
+  description String?
+  code        String   @unique
+  createdAt   DateTime @default(now())
+
+  createdById String
+  createdBy   User     @relation("ClassroomOwner", fields: [createdById], references: [id], onDelete: Cascade)
+
+  members     ClassroomMember[]
+  messages    ClassroomMessage[]
+  notices     ClassroomNotice[]
+}
+
+model ClassroomMember {
+  id          String    @id @default(cuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String    @default("STUDENT") // TEACHER | STUDENT
+  joinedAt    DateTime  @default(now())
+
+  @@unique([classroomId, userId])
+  @@index([userId])
+}
+
+model ClassroomMessage {
+  id          String    @id @default(cuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body        String
+  createdAt   DateTime  @default(now())
+
+  @@index([classroomId, createdAt])
+}
+
+model ClassroomNotice {
+  id          String    @id @default(cuid())
+  classroomId String
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  isPinned    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([classroomId])
 }
 
 
