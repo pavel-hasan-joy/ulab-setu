@@ -23,6 +23,16 @@ export async function startConversation(otherId: string) {
   return created.id;
 }
 
+function revalidateNetwork() {
+  revalidatePath("/student/people");
+  revalidatePath("/alumni/people");
+  revalidatePath("/teacher/people");
+  revalidatePath("/student/messages");
+  revalidatePath("/alumni/messages");
+  revalidatePath("/teacher/messages");
+  revalidatePath("/", "layout");
+}
+
 /** Sends a LinkedIn-style Connection Request with optional note */
 export async function sendConnectRequest(toId: string, note?: string) {
   const user = await requireUser();
@@ -50,7 +60,7 @@ export async function sendConnectRequest(toId: string, note?: string) {
     if (existing.toId === user.id && existing.status === "PENDING") {
       // Auto-accept if the other user already sent a request
       await db.connection.update({ where: { id: existing.id }, data: { status: "ACCEPTED" } });
-      revalidatePath("/", "layout");
+      revalidateNetwork();
       return { success: true, message: "Connected!" };
     }
     // If previously declined or anything else, reset to PENDING
@@ -58,7 +68,7 @@ export async function sendConnectRequest(toId: string, note?: string) {
       where: { id: existing.id },
       data: { fromId: user.id, toId, status: "PENDING", note: note?.trim() || null },
     });
-    revalidatePath("/", "layout");
+    revalidateNetwork();
     return { success: true, message: "Invitation sent." };
   }
 
@@ -71,7 +81,7 @@ export async function sendConnectRequest(toId: string, note?: string) {
     },
   });
 
-  revalidatePath("/", "layout");
+  revalidateNetwork();
   return { success: true, message: "Invitation sent." };
 }
 
@@ -88,7 +98,7 @@ export async function acceptConnectRequest(connectionId: string) {
     data: { status: "ACCEPTED" },
   });
 
-  revalidatePath("/", "layout");
+  revalidateNetwork();
   return { success: true };
 }
 
@@ -101,7 +111,7 @@ export async function declineConnectRequest(connectionId: string) {
   if (!conn) return { error: "Request not found." };
 
   await db.connection.delete({ where: { id: conn.id } });
-  revalidatePath("/", "layout");
+  revalidateNetwork();
   return { success: true };
 }
 
@@ -113,7 +123,7 @@ export async function cancelConnectRequest(toId: string) {
   });
   if (conn) {
     await db.connection.delete({ where: { id: conn.id } });
-    revalidatePath("/", "layout");
+    revalidateNetwork();
   }
   return { success: true };
 }

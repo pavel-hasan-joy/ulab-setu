@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   Check,
@@ -50,17 +51,24 @@ export function PeopleDirectoryClient({
   department?: string;
   q: string;
 }) {
+  const router = useRouter();
   const [selectedPerson, setSelectedPerson] = useState<SafePerson | null>(null);
   const [localInvitations, setLocalInvitations] = useState<PendingInvitation[]>(invitations);
+
+  useEffect(() => {
+    setLocalInvitations(invitations);
+  }, [invitations]);
 
   const handleAcceptInvite = async (invitationId: string) => {
     setLocalInvitations((prev) => prev.filter((i) => i.id !== invitationId));
     await acceptConnectRequest(invitationId);
+    router.refresh();
   };
 
   const handleDeclineInvite = async (invitationId: string) => {
     setLocalInvitations((prev) => prev.filter((i) => i.id !== invitationId));
     await declineConnectRequest(invitationId);
+    router.refresh();
   };
 
   // If in Invitations tab

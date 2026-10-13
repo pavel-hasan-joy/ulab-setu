@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Clock, UserCheck, UserPlus, X } from "lucide-react";
 import {
   acceptConnectRequest,
@@ -25,6 +26,7 @@ export function ConnectButton({
   connectionId?: string | null;
   className?: string;
 }) {
+  const router = useRouter();
   const [state, setState] = useState<ConnectionState>(initialState);
   const [connId, setConnId] = useState<string | null>(connectionId ?? null);
   const [isPending, startTransition] = useTransition();
@@ -36,6 +38,7 @@ export function ConnectButton({
       if (res.error) {
         setState("none");
       }
+      router.refresh();
     });
   };
 
@@ -43,6 +46,7 @@ export function ConnectButton({
     setState("none");
     startTransition(async () => {
       await cancelConnectRequest(targetUserId);
+      router.refresh();
     });
   };
 
@@ -51,6 +55,7 @@ export function ConnectButton({
     setState("connected");
     startTransition(async () => {
       await acceptConnectRequest(connId);
+      router.refresh();
     });
   };
 
@@ -59,6 +64,7 @@ export function ConnectButton({
     setState("none");
     startTransition(async () => {
       await declineConnectRequest(connId);
+      router.refresh();
     });
   };
 

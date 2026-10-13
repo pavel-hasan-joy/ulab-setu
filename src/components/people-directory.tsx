@@ -103,6 +103,30 @@ export async function PeopleDirectory({
         description="ULAB students, teachers and verified alumni on Setu. Connect and message anyone in the university network."
       />
 
+      {pendingInvitations.length > 0 && tab !== "invitations" && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ulab/30 bg-sky/35 p-4 shadow-soft">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-ulab text-xs font-bold text-white shadow-xs">
+              {pendingInvitations.length}
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-ink">
+                You have {pendingInvitations.length} pending connection invitation{pendingInvitations.length > 1 ? "s" : ""}
+              </p>
+              <p className="text-xs text-ink-soft">
+                {pendingInvitations[0].from.name}{pendingInvitations.length > 1 ? ` and ${pendingInvitations.length - 1} other` : ""} sent you a connection request.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={link("invitations")}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-ulab px-3.5 py-2 text-xs font-semibold text-white shadow-soft transition hover:bg-ulab-deep"
+          >
+            Review Invitations &rarr;
+          </Link>
+        </div>
+      )}
+
       <Tabs
         active={tab}
         tabs={[
