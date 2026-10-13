@@ -128,6 +128,24 @@ export async function cancelConnectRequest(toId: string) {
   return { success: true };
 }
 
+/** Removes / disconnects an established connection */
+export async function removeConnection(targetUserId: string) {
+  const user = await requireUser();
+  const conn = await db.connection.findFirst({
+    where: {
+      OR: [
+        { fromId: user.id, toId: targetUserId },
+        { fromId: targetUserId, toId: user.id },
+      ],
+    },
+  });
+  if (conn) {
+    await db.connection.delete({ where: { id: conn.id } });
+    revalidateNetwork();
+  }
+  return { success: true };
+}
+
 export async function sendMessage(connectionId: string, body: string) {
   const user = await getCurrentUser();
   if (!user || !body.trim()) return;
