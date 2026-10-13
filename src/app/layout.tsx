@@ -9,8 +9,8 @@ const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-br
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
 export const metadata: Metadata = {
-  title: { default: `${site.name} | ${site.universityShort} alumni network`, template: `%s | ${site.name}` },
-  description: site.tagline,
+  title: { default: `${site.name} | ${site.universityShort} — ${site.universityTagline}`, template: `%s | ${site.name}` },
+  description: `${site.tagline} Connecting students and alumni across ${site.universityShort} — ${site.universityTagline}.`,
   applicationName: site.name,
   // Home-screen app on iPhone: full screen, normal status bar, short title under the icon.
   appleWebApp: { capable: true, title: "Setu", statusBarStyle: "default" },

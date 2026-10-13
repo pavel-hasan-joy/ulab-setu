@@ -17,6 +17,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="relative">
           <BridgeHero />
           <p className="mx-auto mt-6 max-w-sm text-center font-display text-xl font-medium text-ink">{site.tagline}</p>
+          <p className="mt-2 text-center text-xs font-semibold uppercase tracking-wider text-ulab dark:text-gold">
+            {site.universityShort} — {site.universityTagline}
+          </p>
         </div>
       </aside>
     </div>

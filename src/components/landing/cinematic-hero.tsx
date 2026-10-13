@@ -100,7 +100,7 @@ export function CinematicHero() {
       <motion.div style={{ y: copyY, opacity: copyOpacity }} className="relative mx-auto w-full max-w-6xl px-4 pb-20 md:px-6 md:pb-0">
         <div className="max-w-xl">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
-            <Badge tone="gold" className="mb-5 shadow-soft"><Sparkles size={12} /> For {site.universityShort} students, alumni and teachers</Badge>
+            <Badge tone="gold" className="mb-5 shadow-soft"><Sparkles size={12} /> {site.universityShort} · {site.universityTagline}</Badge>
           </motion.div>
           <h1 className="text-[2.7rem] font-semibold leading-[1.04] text-ink sm:text-5xl md:text-[4.2rem]">
             {headline.split(" ").map((word, i) => (

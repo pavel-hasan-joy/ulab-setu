@@ -4,6 +4,7 @@ export const site = {
   tagline: "Where ULAB students meet the alumni who came before them.",
   university: "University of Liberal Arts Bangladesh",
   universityShort: "ULAB",
+  universityTagline: "University of the future",
   universityUrl: "https://ulab.edu.bd",
   logo: "/ulab-logo.svg",
   logoDark: "/ulab-logo-white.svg",

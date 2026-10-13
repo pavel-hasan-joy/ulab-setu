@@ -14,7 +14,7 @@
 
 <br/>
 
-**A unified academic and career platform connecting ULAB students, verified alumni, faculty members, and the alumni administration office.**
+**A unified academic and career platform connecting the ULAB ("University of the future") community: students, verified alumni, faculty members, and the alumni administration office.**
 
 <br/>
 
@@ -295,4 +295,4 @@ The project is structured for easy white-labeling and adaptation to other univer
 
 ## 📄 License & Credits
 
-Developed with ❤️ by **[Pavel Hasan Joy](https://github.com/pavel-hasan-joy)** for the **University of Liberal Arts Bangladesh (ULAB)** community.
+Developed with ❤️ by **[Pavel Hasan Joy](https://github.com/pavel-hasan-joy)** for the **University of Liberal Arts Bangladesh (ULAB — "University of the future")** community.

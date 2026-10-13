@@ -166,7 +166,7 @@ export default async function Home() {
             Illustration from <a href="https://commons.wikimedia.org/wiki/File:Girl_in_sailor_fuku_publicdomainq.png" className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">Public Domain Q</a> (CC0)
           </p>
           <p>
-            A community project for <a href={site.universityUrl} className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">{site.university}</a>.
+            A community project for <a href={site.universityUrl} className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">{site.university}</a> — {site.universityTagline}.
           </p>
         </div>
       </footer>

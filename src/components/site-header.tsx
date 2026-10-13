@@ -6,8 +6,8 @@ import { ThemeToggle } from "./theme";
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5">
-      <Image src={site.logo} alt={site.universityShort} width={72} height={26} priority className="h-7 w-auto dark:hidden" />
+    <Link href="/" className="flex items-center gap-2.5" title={`${site.name} | ${site.universityShort} — ${site.universityTagline}`}>
+      <Image src={site.logo} alt={`${site.universityShort} — ${site.universityTagline}`} width={72} height={26} priority className="h-7 w-auto dark:hidden" />
       <Image src={site.logoDark} alt="" width={72} height={26} priority className="hidden h-7 w-auto dark:block" />
       {!compact && (
         <span className="border-l border-mist pl-2.5 font-display text-lg font-semibold text-ink">Setu</span>

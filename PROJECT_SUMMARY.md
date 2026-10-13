@@ -2,7 +2,7 @@
 
 > **Project Name:** ULAB Setu  
 > **Tagline:** *Where ULAB students meet the alumni who came before them.*  
-> **Target Institution:** University of Liberal Arts Bangladesh (ULAB) *(Brand-configurable for any institution via `src/lib/site.ts`)*  
+> **Target Institution:** University of Liberal Arts Bangladesh (ULAB) — *"University of the future"* *(Brand-configurable for any institution via `src/lib/site.ts`)*  
 > **Technology Stack:** Next.js 16 (Turbopack, App Router), React 19, TypeScript 5, Tailwind CSS v4, Prisma ORM 6, PostgreSQL, Three.js, Playwright  
 > **Live Production:** [https://ulab-setu.vercel.app](https://ulab-setu.vercel.app)  
 > **Documentation Version:** 2.0 (Updated September 2026)  
