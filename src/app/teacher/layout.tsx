@@ -6,7 +6,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   return (
     <AppShell
       tone="teacher"
-      user={{ name: user.name, subtitle: user.designation ? `${user.designation}, ${user.department ?? ""}` : "Teacher" }}
+      user={{ name: user.name, subtitle: user.designation ? `${user.designation}, ${user.department ?? ""}` : "Teacher", image: user.image }}
       nav={[
         { href: "/teacher", label: "Home", icon: "Home" },
         { href: "/teacher/board", label: "Notices", icon: "Megaphone" },

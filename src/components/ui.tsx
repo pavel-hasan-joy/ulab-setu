@@ -73,7 +73,35 @@ export function Badge({ tone = "blue", children, className }: { tone?: keyof typ
 
 const avatarPalette = ["#dbe9f7", "#fdf0cf", "#dff0e6", "#ece8fb", "#fbe6e4", "#e2f1f6"];
 const avatarInk = ["#134f88", "#7a5a06", "#2f6e51", "#5b4fa8", "#9a4a45", "#236a80"];
-export function Avatar({ name, size = 40, className }: { name: string; size?: number; className?: string }) {
+export function Avatar({
+  name,
+  size = 40,
+  className,
+  src,
+}: {
+  name: string;
+  size?: number;
+  className?: string;
+  src?: string | null;
+}) {
+  if (src) {
+    return (
+      <span
+        className={cn(
+          "relative inline-grid shrink-0 place-items-center rounded-full overflow-hidden bg-mist/50 ring-1 ring-mist/60 shadow-xs",
+          className
+        )}
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={src}
+          alt={name}
+          className="size-full object-cover rounded-full"
+          loading="lazy"
+        />
+      </span>
+    );
+  }
   const initials = name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   const i = [...name].reduce((a, c) => a + c.charCodeAt(0), 0) % avatarPalette.length;
   return (

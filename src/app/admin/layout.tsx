@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <AppShell
       tone="admin"
-      user={{ name: user.name, subtitle: "Administrator" }}
+      user={{ name: user.name, subtitle: "Administrator", image: user.image }}
       nav={[
         { href: "/admin", label: "Approvals", icon: "ShieldCheck", badge: pendingCount || undefined },
         { href: "/admin/users", label: "Users Directory", icon: "Users" },

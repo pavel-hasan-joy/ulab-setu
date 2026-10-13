@@ -9,6 +9,7 @@ import { departments, teacherRanks } from "@/lib/site";
 import { ContactFields } from "./contact-fields";
 import { PageIn } from "./motion";
 import { Avatar, Badge, Button, Card, Field, FormError, Input, PageHeader, Select, Textarea } from "./ui";
+import { AvatarSelector } from "./avatar-selector";
 
 type SafeUser = Omit<User, "passwordHash" | "createdAt">;
 
@@ -40,10 +41,10 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
     return result;
   }, undefined);
   const [name, setName] = useState(user.name);
+  const [image, setImage] = useState<string | null>(user.image ?? null);
   const [isPrivate, setIsPrivate] = useState(user.isPrivate ?? false);
   const alumni = user.role === "ALUMNI";
   const teacher = user.role === "TEACHER";
-
 
   return (
     <PageIn>
@@ -51,7 +52,7 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <Card className="h-fit p-6 text-center lg:sticky lg:top-8">
-          <Avatar name={name || "?"} size={88} className="mx-auto" />
+          <Avatar name={name || "?"} size={88} src={image} className="mx-auto" />
           <p className="mt-4 font-display text-xl font-semibold">{name}</p>
           <p className="text-sm text-ink-soft">{user.email}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
@@ -65,6 +66,9 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
         <div className="space-y-6">
           <Card className="p-6">
             <form key={state?.at} action={action} className="space-y-5">
+              <input type="hidden" name="image" value={image ?? ""} />
+              <AvatarSelector name={name} currentImage={image} onChange={setImage} />
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Full name"><Input name="name" defaultValue={user.name} onChange={(e) => setName(e.target.value)} required /></Field>
                 <Field label="Department"><Select name="department" options={departments} defaultValue={user.department ?? ""} /></Field>

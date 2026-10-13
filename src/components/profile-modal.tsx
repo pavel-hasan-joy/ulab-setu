@@ -16,6 +16,7 @@ import { site } from "@/lib/site";
 import { publicContacts, whatsappLink } from "@/lib/contact";
 import { ContactLinks } from "./contact-fields";
 import { MessageButton } from "./message-button";
+import { ConnectButton, type ConnectionState } from "./connect-button";
 import { Avatar, Badge, Button, Card } from "./ui";
 
 type SafePerson = Omit<User, "passwordHash">;
@@ -24,12 +25,14 @@ export function ProfileModal({
   person,
   onClose,
   messagesHref,
-  hasChat,
+  connectionState = "none",
+  connectionId,
 }: {
   person: SafePerson | null;
   onClose: () => void;
   messagesHref: string;
-  hasChat: boolean;
+  connectionState?: ConnectionState;
+  connectionId?: string | null;
 }) {
   // Close on Escape key
   useEffect(() => {
@@ -84,7 +87,7 @@ export function ProfileModal({
 
           {/* Profile Header */}
           <div className="flex items-start gap-4 pr-8">
-            <Avatar name={person.name} size={64} className="ring-4 ring-mist/50" />
+            <Avatar name={person.name} size={64} src={person.image} className="ring-4 ring-mist/50" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-display text-xl font-bold text-ink">{person.name}</h3>
@@ -137,11 +140,17 @@ export function ProfileModal({
               <p className="mt-1 text-xs text-ink-soft leading-relaxed max-w-sm mx-auto">
                 This user has chosen to keep their profile details private. Bio, skills, work history, and contact details are not visible.
               </p>
-              <div className="mt-5 flex justify-center">
+              <div className="mt-5 flex items-center justify-center gap-3">
+                <ConnectButton
+                  targetUserId={person.id}
+                  targetUserName={person.name}
+                  initialState={connectionState}
+                  connectionId={connectionId}
+                />
                 <MessageButton
                   toId={person.id}
                   messagesHref={messagesHref}
-                  hasChat={hasChat}
+                  hasChat={connectionState === "connected"}
                 />
               </div>
             </div>
@@ -219,15 +228,23 @@ export function ProfileModal({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between gap-3 border-t border-mist pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-mist pt-5">
                 <Button variant="outline" onClick={onClose} className="text-xs">
                   Close
                 </Button>
-                <MessageButton
-                  toId={person.id}
-                  messagesHref={messagesHref}
-                  hasChat={hasChat}
-                />
+                <div className="flex items-center gap-2">
+                  <ConnectButton
+                    targetUserId={person.id}
+                    targetUserName={person.name}
+                    initialState={connectionState}
+                    connectionId={connectionId}
+                  />
+                  <MessageButton
+                    toId={person.id}
+                    messagesHref={messagesHref}
+                    hasChat={connectionState === "connected"}
+                  />
+                </div>
               </div>
             </div>
           )}

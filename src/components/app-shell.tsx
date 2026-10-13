@@ -18,7 +18,7 @@ export function AppShell({
   nav, user, children, tone,
 }: {
   nav: NavItem[];
-  user: { name: string; subtitle: string };
+  user: { name: string; subtitle: string; image?: string | null };
   tone: "student" | "alumni" | "teacher" | "admin";
   children: React.ReactNode;
 }) {
@@ -54,7 +54,7 @@ export function AppShell({
           })}
         </nav>
         <div className="mt-auto flex items-center gap-3 rounded-2xl border border-mist/70 bg-surface p-3">
-          <Avatar name={user.name} size={36} />
+          <Avatar name={user.name} size={36} src={user.image} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{user.name}</p>
             <p className="truncate text-xs text-ink-soft">{user.subtitle}</p>
@@ -72,7 +72,7 @@ export function AppShell({
           <ThemeToggle />
           {profileHref && (
             <Link href={profileHref} aria-label="Your profile" className="p-1.5">
-              <Avatar name={user.name} size={30} />
+              <Avatar name={user.name} size={30} src={user.image} />
             </Link>
           )}
           <form action={logout}>

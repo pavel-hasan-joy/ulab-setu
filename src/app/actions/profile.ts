@@ -7,7 +7,7 @@ import { deleteSession, requireUser } from "@/lib/auth";
 import type { FormState } from "./auth";
 import { cleanFacebook, cleanPhone } from "@/lib/contact";
 
-const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin"] as const;
+const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin", "image"] as const;
 
 export async function updateProfile(_: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();

@@ -6,7 +6,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   return (
     <AppShell
       tone="student"
-      user={{ name: user.name, subtitle: `${user.department ?? "Student"}` }}
+      user={{ name: user.name, subtitle: `${user.department ?? "Student"}`, image: user.image }}
       nav={[
         { href: "/student", label: "Home", icon: "Home" },
         { href: "/student/jobs", label: "Jobs", icon: "Briefcase" },

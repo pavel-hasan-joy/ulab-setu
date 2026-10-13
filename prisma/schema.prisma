@@ -24,6 +24,7 @@ model User {
   bio            String?
   skills         String? // comma separated
   linkedin       String?
+  image          String?
   // Contact details, each hidden unless the owner makes it public
   phone          String?
   phonePublic    Boolean  @default(false)

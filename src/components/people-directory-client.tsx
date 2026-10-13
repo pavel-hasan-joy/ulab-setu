@@ -1,42 +1,134 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, GraduationCap, Lock, MapPin, User as UserIcon } from "lucide-react";
+import {
+  Building2,
+  Check,
+  Clock,
+  GraduationCap,
+  Lock,
+  MapPin,
+  UserCheck,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react";
 import type { User } from "@prisma/client";
 import { site } from "@/lib/site";
 import { publicContacts, whatsappLink } from "@/lib/contact";
+import { acceptConnectRequest, declineConnectRequest } from "@/app/actions/network";
 import { ContactLinks } from "./contact-fields";
 import { MessageButton } from "./message-button";
+import { ConnectButton, type ConnectionState } from "./connect-button";
 import { ProfileModal } from "./profile-modal";
 import { HoverLift, Stagger, StaggerItem } from "./motion";
-import { Avatar, Badge, Card } from "./ui";
+import { Avatar, Badge, Button, Card, EmptyState, timeAgo } from "./ui";
 
 type SafePerson = Omit<User, "passwordHash">;
 
+export type PendingInvitation = {
+  id: string;
+  from: SafePerson;
+  note: string | null;
+  createdAt: Date | string;
+};
+
 export function PeopleDirectoryClient({
   people,
-  talkedToIds,
+  connectionMap,
+  invitations = [],
   messagesHref,
   tab,
   department,
   q,
 }: {
   people: SafePerson[];
-  talkedToIds: string[];
+  connectionMap: Record<string, { state: ConnectionState; connectionId?: string }>;
+  invitations?: PendingInvitation[];
   messagesHref: string;
   tab: string;
   department?: string;
   q: string;
 }) {
   const [selectedPerson, setSelectedPerson] = useState<SafePerson | null>(null);
-  const talkedToSet = new Set(talkedToIds);
+  const [localInvitations, setLocalInvitations] = useState<PendingInvitation[]>(invitations);
+
+  const handleAcceptInvite = async (invitationId: string) => {
+    setLocalInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+    await acceptConnectRequest(invitationId);
+  };
+
+  const handleDeclineInvite = async (invitationId: string) => {
+    setLocalInvitations((prev) => prev.filter((i) => i.id !== invitationId));
+    await declineConnectRequest(invitationId);
+  };
+
+  // If in Invitations tab
+  if (tab === "invitations") {
+    if (localInvitations.length === 0) {
+      return (
+        <EmptyState
+          title="No pending invitations"
+          body="When alumni, teachers, or students send you connection requests, they'll appear here."
+        />
+      );
+    }
+
+    return (
+      <Stagger className="space-y-3">
+        {localInvitations.map((inv) => (
+          <StaggerItem key={inv.id}>
+            <Card className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 shadow-soft">
+              <div className="flex items-start gap-4">
+                <Avatar name={inv.from.name} size={52} src={inv.from.image} />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-display text-base font-semibold text-ink">{inv.from.name}</p>
+                    <Badge tone={inv.from.role === "ALUMNI" ? "gold" : inv.from.role === "TEACHER" ? "lilac" : "blue"}>
+                      {inv.from.role}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-ink-soft">
+                    {inv.from.department} {inv.from.designation ? `• ${inv.from.designation}` : ""}
+                  </p>
+                  {inv.note && (
+                    <p className="mt-2 text-xs italic text-ink rounded-lg bg-paper px-3 py-1.5 border border-mist/50">
+                      &ldquo;{inv.note}&rdquo;
+                    </p>
+                  )}
+                  <p className="mt-1 text-[11px] text-ink-soft">{timeAgo(inv.createdAt)}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end sm:self-center">
+                <Button
+                  variant="outline"
+                  onClick={() => handleDeclineInvite(inv.id)}
+                  className="px-3 py-1.5 text-xs text-ink-soft hover:text-rose"
+                >
+                  <X size={13} /> Ignore
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => handleAcceptInvite(inv.id)}
+                  className="px-3 py-1.5 text-xs"
+                >
+                  <Check size={13} /> Accept
+                </Button>
+              </div>
+            </Card>
+          </StaggerItem>
+        ))}
+      </Stagger>
+    );
+  }
 
   return (
     <>
       <Stagger key={`${tab}-${department ?? ""}-${q}`} className="grid gap-4 md:grid-cols-2">
         {people.map((p) => {
           const isPrivate = Boolean(p.isPrivate);
-          const hasChat = talkedToSet.has(p.id);
+          const connInfo = connectionMap[p.id] ?? { state: "none" };
 
           return (
             <StaggerItem key={p.id}>
@@ -55,7 +147,12 @@ export function PeopleDirectoryClient({
                   aria-label={`View ${p.name}'s profile`}
                 >
                   <div className="flex items-start gap-4">
-                    <Avatar name={p.name} size={52} className="group-hover:scale-105 transition-transform" />
+                    <Avatar
+                      name={p.name}
+                      size={52}
+                      src={p.image}
+                      className="group-hover:scale-105 transition-transform"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="font-display text-lg font-semibold text-ink group-hover:text-ulab transition-colors">
@@ -133,7 +230,7 @@ export function PeopleDirectoryClient({
                     </>
                   )}
 
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-5 border-t border-mist/40">
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-mist/40">
                     <span className="text-xs text-ink-soft">{p.department}</span>
                     <div
                       onClick={(e) => e.stopPropagation()}
@@ -146,10 +243,16 @@ export function PeopleDirectoryClient({
                       >
                         View Profile
                       </button>
+                      <ConnectButton
+                        targetUserId={p.id}
+                        targetUserName={p.name}
+                        initialState={connInfo.state}
+                        connectionId={connInfo.connectionId}
+                      />
                       <MessageButton
                         toId={p.id}
                         messagesHref={messagesHref}
-                        hasChat={hasChat}
+                        hasChat={connInfo.state === "connected"}
                       />
                     </div>
                   </div>
@@ -165,7 +268,8 @@ export function PeopleDirectoryClient({
         person={selectedPerson}
         onClose={() => setSelectedPerson(null)}
         messagesHref={messagesHref}
-        hasChat={selectedPerson ? talkedToSet.has(selectedPerson.id) : false}
+        connectionState={selectedPerson ? connectionMap[selectedPerson.id]?.state ?? "none" : "none"}
+        connectionId={selectedPerson ? connectionMap[selectedPerson.id]?.connectionId : null}
       />
     </>
   );
