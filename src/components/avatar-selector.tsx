@@ -5,6 +5,55 @@ import { Camera, Check, RefreshCw, Sparkles, Upload, X } from "lucide-react";
 import { AVATAR_PRESETS } from "@/lib/avatars";
 import { Avatar, Button } from "./ui";
 
+/** Resizes and compresses photo to a lightweight 256x256 square (typically ~20KB) */
+function processAvatarFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.type.includes("svg")) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 256;
+
+        const minSide = Math.min(img.width, img.height);
+        const startX = (img.width - minSide) / 2;
+        const startY = (img.height - minSide) / 2;
+
+        canvas.width = maxDim;
+        canvas.height = maxDim;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context unavailable"));
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, startX, startY, minSide, minSide, 0, 0, maxDim, maxDim);
+
+        // Convert to high-quality compressed JPEG (lightweight ~20KB)
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => {
+        reject(new Error("Could not decode image"));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function AvatarSelector({
   name,
   currentImage,
@@ -17,6 +66,7 @@ export function AvatarSelector({
   const [selectedImage, setSelectedImage] = useState<string | null>(currentImage ?? null);
   const [mode, setMode] = useState<"presets" | "upload">("presets");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelect = (src: string | null) => {
@@ -24,27 +74,21 @@ export function AvatarSelector({
     onChange(src);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);
+    setIsProcessing(true);
 
-    // Max 3MB for avatar images
-    if (file.size > 3 * 1024 * 1024) {
-      setUploadError("Image must be smaller than 3MB.");
-      return;
+    try {
+      const compressedUri = await processAvatarFile(file);
+      setSelectedImage(compressedUri);
+      onChange(compressedUri);
+    } catch {
+      setUploadError("Failed to process image. Please try another photo.");
+    } finally {
+      setIsProcessing(false);
     }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUri = reader.result as string;
-      setSelectedImage(dataUri);
-      onChange(dataUri);
-    };
-    reader.onerror = () => {
-      setUploadError("Failed to read image.");
-    };
-    reader.readAsDataURL(file);
   };
 
   return (
@@ -137,7 +181,7 @@ export function AvatarSelector({
               <input
                 type="file"
                 ref={fileInputRef}
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="avatar-photo-input"
@@ -147,7 +191,9 @@ export function AvatarSelector({
                 className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-mist bg-paper/50 px-4 py-3 text-center transition hover:border-ulab hover:bg-sky/20"
               >
                 <Upload size={16} className="text-ulab" />
-                <span className="text-xs font-semibold text-ink">Choose image from your computer / phone</span>
+                <span className="text-xs font-semibold text-ink">
+                  {isProcessing ? "Optimizing image…" : "Choose image from your computer / phone"}
+                </span>
               </label>
               {uploadError && <p className="text-[11px] text-rose">{uploadError}</p>}
             </div>
