@@ -91,7 +91,9 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
               <Field label="Skills" hint="Separate with commas, e.g. Python, Public speaking, Figma">
                 <Input name="skills" defaultValue={user.skills ?? ""} />
               </Field>
-              <Field label="LinkedIn"><Input name="linkedin" type="url" defaultValue={user.linkedin ?? ""} placeholder="https://linkedin.com/in/…" /></Field>
+              <Field label="LinkedIn">
+                <Input name="linkedin" type="text" defaultValue={user.linkedin ?? ""} placeholder="Username or link (e.g. username or https://…)" />
+              </Field>
               <ContactFields user={user} />
 
               {/* Account Privacy (Public vs Private) */}

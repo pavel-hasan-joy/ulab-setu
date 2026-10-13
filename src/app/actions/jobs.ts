@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requirePoster, requireUser } from "@/lib/auth";
 import { cleanExpiredJobs } from "@/lib/jobs";
+import { cleanLinkedIn } from "@/lib/contact";
 import { fail, type FormState } from "./auth";
 
 const jobSchema = z.object({
@@ -63,12 +64,30 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
   const jobId = String(formData.get("jobId"));
   const coverNote = String(formData.get("note") ?? formData.get("coverNote") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
-  const linkedin = String(formData.get("linkedin") ?? "").trim();
-  const portfolio = String(formData.get("portfolio") ?? "").trim();
+  let linkedin = String(formData.get("linkedin") ?? "").trim();
+  let portfolio = String(formData.get("portfolio") ?? "").trim();
   const availability = String(formData.get("availability") ?? "").trim();
   const cvFileName = String(formData.get("cvFileName") ?? "").trim();
-  const cvUrl = String(formData.get("cvUrl") ?? "").trim();
+  let cvUrl = String(formData.get("cvUrl") ?? "").trim();
   const cvData = String(formData.get("cvData") ?? "").trim();
+
+  if (linkedin) {
+    linkedin = cleanLinkedIn(linkedin) ?? linkedin;
+  }
+  if (portfolio) {
+    if (!portfolio.startsWith("http://") && !portfolio.startsWith("https://")) {
+      if (portfolio.startsWith("github.com/")) {
+        portfolio = `https://${portfolio}`;
+      } else if (!portfolio.includes(".") && !portfolio.includes("/")) {
+        portfolio = `https://github.com/${portfolio.replace(/^@/, "")}`;
+      } else {
+        portfolio = `https://${portfolio}`;
+      }
+    }
+  }
+  if (cvUrl && !cvUrl.startsWith("http://") && !cvUrl.startsWith("https://")) {
+    cvUrl = `https://${cvUrl}`;
+  }
 
   await cleanExpiredJobs();
   const job = await db.job.findFirst({

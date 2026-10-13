@@ -97,7 +97,7 @@ export function ForgotPasswordForm() {
                 <span>Verification code sent to your email. Check your inbox!</span>
               </div>
               {otpInfo?.isDemo && otpInfo.code && (
-                <div className="mt-2 flex items-center justify-between rounded-lg bg-white/80 p-2 font-mono text-ink shadow-xs">
+                <div className="mt-2 flex items-center justify-between rounded-lg border border-mist bg-surface p-2 font-mono text-ink shadow-xs">
                   <span>Demo Code: <strong>{otpInfo.code}</strong></span>
                   <button
                     type="button"

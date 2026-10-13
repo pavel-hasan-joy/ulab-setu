@@ -25,6 +25,16 @@ export function cleanFacebook(input: string) {
   return `https://facebook.com/${path}`;
 }
 
+/** Accepts a LinkedIn profile URL or just a username/handle and returns a full linkedin.com URL, or null. */
+export function cleanLinkedIn(input: string) {
+  const v = input.trim();
+  if (!v) return null;
+  const m = v.match(/^(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in\/)?(.+)$/i);
+  const path = (m ? m[1] : v).replace(/^\/+|\/+$/g, "").replace(/^@/, "");
+  if (!/^[\w.\-/?=&%]+$/.test(path)) return null;
+  return `https://linkedin.com/in/${path}`;
+}
+
 type Contactable = {
   phone: string | null; phonePublic: boolean;
   whatsapp: string | null; whatsappPublic: boolean;

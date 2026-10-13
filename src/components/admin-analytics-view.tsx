@@ -409,12 +409,12 @@ export function AdminAnalyticsView({
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-ink">Activity & Member Logs</h2>
-              <div className="inline-flex rounded-xl bg-slate-100 p-1">
+              <div className="inline-flex rounded-xl border border-mist bg-paper/60 p-1">
                 <button
                   type="button"
                   onClick={() => setActiveTab("logins")}
                   className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    activeTab === "logins" ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+                    activeTab === "logins" ? "bg-surface text-ink shadow-soft" : "text-ink-soft hover:text-ink"
                   }`}
                 >
                   Recent Logins ({recentLogins.length})
@@ -423,7 +423,7 @@ export function AdminAnalyticsView({
                   type="button"
                   onClick={() => setActiveTab("users")}
                   className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    activeTab === "users" ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+                    activeTab === "users" ? "bg-surface text-ink shadow-soft" : "text-ink-soft hover:text-ink"
                   }`}
                 >
                   All Users ({allUsers.length})

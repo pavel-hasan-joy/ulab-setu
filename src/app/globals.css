@@ -150,6 +150,52 @@ h1, h2, h3, .font-display {
   border-radius: 6px;
 }
 
+/* Cross-browser contrast for native select, options, and inputs */
+select {
+  color-scheme: light;
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea {
+  color-scheme: dark;
+}
+
+[data-theme="light"] select,
+[data-theme="light"] input,
+[data-theme="light"] textarea {
+  color-scheme: light;
+}
+
+select option,
+select optgroup {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+
+[data-theme="dark"] select option,
+[data-theme="dark"] select optgroup {
+  background-color: #142236 !important;
+  color: #e4ecf7 !important;
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] select optgroup {
+  background-color: #ffffff !important;
+  color: #16294a !important;
+}
+
+/* Chrome autofill background fix for dark mode */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill {
+  -webkit-text-fill-color: #e4ecf7 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #142236 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .skeleton {
   background: linear-gradient(90deg, var(--color-mist) 0, var(--color-sky) 40%, var(--color-mist) 80%);
   background-size: 800px 100%;

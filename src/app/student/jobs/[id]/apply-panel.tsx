@@ -169,17 +169,17 @@ export function ApplyPanel({
                 <Field label="LinkedIn">
                   <Input
                     name="linkedin"
-                    type="url"
+                    type="text"
                     defaultValue={student?.linkedin ?? ""}
-                    placeholder="https://linkedin.com/in/…"
+                    placeholder="Username or link (e.g. oy-ulab or https://…)"
                     className="text-xs"
                   />
                 </Field>
                 <Field label="Portfolio / GitHub">
                   <Input
                     name="portfolio"
-                    type="url"
-                    placeholder="https://github.com/…"
+                    type="text"
+                    placeholder="Username or link (e.g. username or https://…)"
                     className="text-xs"
                   />
                 </Field>
@@ -191,10 +191,10 @@ export function ApplyPanel({
                   defaultValue="Immediately"
                   className="w-full rounded-xl border border-mist bg-surface px-3 py-2 text-xs text-ink focus:border-ulab-light focus:outline-none"
                 >
-                  <option value="Immediately">Immediately</option>
-                  <option value="Within 2 Weeks">Within 2 Weeks</option>
-                  <option value="Within 1 Month">Within 1 Month</option>
-                  <option value="Flexible / Negotiable">Flexible / Negotiable</option>
+                  <option value="Immediately" className="bg-surface text-ink">Immediately</option>
+                  <option value="Within 2 Weeks" className="bg-surface text-ink">Within 2 Weeks</option>
+                  <option value="Within 1 Month" className="bg-surface text-ink">Within 1 Month</option>
+                  <option value="Flexible / Negotiable" className="bg-surface text-ink">Flexible / Negotiable</option>
                 </select>
               </Field>
             </div>
@@ -272,10 +272,10 @@ export function ApplyPanel({
                   <div className="relative">
                     <LinkIcon size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
                     <Input
-                      type="url"
+                      type="text"
                       value={cvUrl}
                       onChange={(e) => setCvUrl(e.target.value)}
-                      placeholder="Google Drive, Dropbox, or Portfolio CV URL"
+                      placeholder="Google Drive, Dropbox, or Portfolio link"
                       className="pl-8 text-xs"
                     />
                   </div>

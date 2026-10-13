@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { deleteSession, requireUser } from "@/lib/auth";
 import type { FormState } from "./auth";
-import { cleanFacebook, cleanPhone } from "@/lib/contact";
+import { cleanFacebook, cleanLinkedIn, cleanPhone } from "@/lib/contact";
 
 const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin", "image"] as const;
 
@@ -18,8 +18,8 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
       if (v !== null) data[key] = String(v).trim() || null;
     }
     if (!data.name) return { error: "Name can't be empty." };
-    if (data.linkedin && !/^https?:\/\//.test(data.linkedin)) {
-      return { error: "LinkedIn link should start with https://" };
+    if (data.linkedin) {
+      data.linkedin = cleanLinkedIn(data.linkedin) ?? data.linkedin;
     }
     // Prevent oversized image payload if bypassed
     if (data.image && data.image.length > 3 * 1024 * 1024) {

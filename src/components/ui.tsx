@@ -40,10 +40,23 @@ export function Textarea(props: ComponentProps<"textarea">) {
 }
 export function Select({ options, placeholder, ...props }: ComponentProps<"select"> & { options: readonly string[]; placeholder?: string }) {
   return (
-    <select {...props} className={cn(fieldBase, "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235a6b85%22 stroke-width=%222.5%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[right_14px_center] bg-no-repeat pr-10", props.className)}>
-      {placeholder && <option value="">{placeholder}</option>}
+    <select
+      {...props}
+      className={cn(
+        fieldBase,
+        "appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235a6b85%22 stroke-width=%222.5%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[right_14px_center] bg-no-repeat pr-10",
+        props.className
+      )}
+    >
+      {placeholder && (
+        <option value="" className="bg-surface text-ink">
+          {placeholder}
+        </option>
+      )}
       {options.map((o) => (
-        <option key={o}>{o}</option>
+        <option key={o} value={o} className="bg-surface text-ink">
+          {o}
+        </option>
       ))}
     </select>
   );
