@@ -12,7 +12,6 @@ export default async function StudentLayout({ children }: { children: React.Reac
       user={{ name: user.name, subtitle: `${user.department ?? "Student"}`, image: user.image }}
       nav={[
         { href: "/student", label: "Home", icon: "Home" },
-        { href: "/student/classroom", label: "Classroom", icon: "GraduationCap" },
         { href: "/student/jobs", label: "Jobs", icon: "Briefcase" },
         { href: "/student/board", label: "Notices", icon: "Megaphone" },
         { href: "/student/people", label: "People", icon: "Users", badge: pendingInvites > 0 ? pendingInvites : undefined },

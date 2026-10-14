@@ -12,7 +12,6 @@ export default async function TeacherLayout({ children }: { children: React.Reac
       user={{ name: user.name, subtitle: user.designation ? `${user.designation}, ${user.department ?? ""}` : "Teacher", image: user.image }}
       nav={[
         { href: "/teacher", label: "Home", icon: "Home" },
-        { href: "/teacher/classroom", label: "Classroom", icon: "GraduationCap" },
         { href: "/teacher/board", label: "Notices", icon: "Megaphone" },
         { href: "/teacher/jobs", label: "My jobs", icon: "Briefcase" },
         { href: "/teacher/messages", label: "Messages", icon: "MessageCircle" },

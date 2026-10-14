@@ -41,18 +41,19 @@ The platform enables students to connect with alumni mentors, apply for curated 
 
 ULAB Setu has been significantly upgraded with enterprise-grade collaborative and networking features:
 
-- 🏫 **Google Classroom + WhatsApp Group Chat System:**
-  - **Faculty & Student Portals:** A dedicated Classroom space accessible only to Students and Teachers.
-  - **1-Click Class Codes:** Course instructors generate unique 6-character alphanumeric codes (e.g., `ULAB31`) with a copy button for instant student enrollment.
-  - **Educational Materials & PDF Uploads:**
-    - Full support for uploading **Lecture Slides, Course Syllabus PDFs, Word documents (.docx), Presentations (.pptx), datasets, and ZIP files** (up to 15MB).
-    - One-click **PDF Preview & Direct File Download** for students.
-    - Integration for **Google Drive folders, YouTube lectures, and GitHub repository links**.
-  - **WhatsApp-Style Group Discussion & File Sharing:**
-    - Real-time group messaging with role distinction (Faculty badge vs. Student ID), auto-scrolling, and fast message dispatch.
-    - **In-Chat File Attachments:** Share study notes, screenshots, and PDFs directly inside the group chat via paperclip button.
-  - **Pinned Course Announcements:** Teachers can post exam schedules, syllabi, and assignment updates with a **Pin to Top** toggle.
-  - **Roster & Member Controls:** Detailed member lists with instructor and student categorization.
+- 💬 **Messenger-Style Unified Group & Direct Messaging System:**
+  - **Open to All Roles:** Anyone (Students, Faculty, and Alumni) can create collaborative group chats directly from the Messages section.
+  - **Dynamic Group Creation:** Set group name, optional description/topics, and invite peers, teachers, or alumni mentors with live search and selection.
+  - **Rich File & Media Attachments:**
+    - Share **photos, PDF documents, lecture notes, syllabus files, and archives** directly in chat via the paperclip button.
+    - Inline preview for photos and one-click download card with file size indicator for documents/PDFs.
+  - **Messenger & WhatsApp-Style Group Feed:**
+    - Real-time polling with sender avatars, names, and distinctive role badges (Faculty, Student, Alumni, Admin).
+    - Auto-scrolling and fast message dispatch.
+  - **Group Management & Roles:**
+    - Dedicated Group Info drawer with member roster and role badges (Owner, Admin, Member).
+    - Admins can add members or remove users; members can leave groups at any time.
+  - **Unified Conversations Sidebar:** Filter tabs for **All**, **Direct (1-on-1)**, and **Groups** with unread/last activity snippets and relative timestamps.
 - 🤝 **Interactive Networking & Disconnect Controls:**
   - LinkedIn-style Connection Requests (Send, Pending with withdrawal, Accept, Decline).
   - **Disconnect / Remove Connection:** Once connected, users can remove connections with a safe confirmation modal preventing accidental removal.
@@ -61,7 +62,7 @@ ULAB Setu has been significantly upgraded with enterprise-grade collaborative an
   - Interactive applicant cards displaying full profile information, skills badges, student ID, batch, and CV preview.
   - Global **Profile Modal** allowing one-click profile inspection from any directory card or job applicant listing.
 - 🔐 **Pre-configured Testing & Demonstration Accounts:**
-  - Seeded ready-to-use accounts for Faculty, Student, and Alumni with sample classroom `ULAB31`.
+  - Seeded ready-to-use accounts for Faculty, Student, and Alumni with pre-populated sample group `ULAB CSE Tech & Project Hub`.
 
 ---
 
@@ -70,7 +71,7 @@ ULAB Setu has been significantly upgraded with enterprise-grade collaborative an
 ### 🎓 1. Student Portal
 - **Smart Job Search & Filters:** Browse direct alumni job postings, Bangladeshi jobs via Careerjet API, and global remote opportunities via Himalayas API.
 - **Application Tracking:** Apply directly to alumni/teacher postings and track application statuses.
-- **Google Classroom & Group Chat:** Join classrooms using teacher-provided codes, participate in WhatsApp-style discussions, and read pinned announcements.
+- **Messenger-Style Group Chats:** Create or join group chats with peers, faculty, and alumni with full media and document sharing.
 - **Alumni Mentorship Directory:** Discover alumni filtered by department, batch, company, and location with Connect/Disconnect options.
 - **Community Notice Board:** Stay updated with official announcements, career seminars, and campus events.
 - **1-on-1 Direct Messaging:** Private messaging with alumni mentors and faculty members.
@@ -80,13 +81,12 @@ ULAB Setu has been significantly upgraded with enterprise-grade collaborative an
 - **Job & Internship Posting:** Post job openings directly with custom application requirements, deadlines, and salary details.
 - **Applicant Review & Candidate Dossier:** View comprehensive applicant details (Avatar, Student ID, batch, department, skills, and CV preview) with full profile modals.
 - **Talent Discovery & Networking:** Connect with students and peer alumni with connect and disconnect options.
+- **Group Collaborations:** Form project or alumni chapter groups with students and faculty.
 - **Community Engagement:** Publish career advice, opportunities, and discussions on the notice board.
 - **Approval Workflow:** Verified status granted by the Alumni Office ensures authentic alumni representation.
 
 ### 👨‍🏫 3. Faculty / Teacher Portal
-- **Classroom Management:** Create and manage course classrooms with unique join codes.
-- **WhatsApp-Style Course Group Chat:** Chat with enrolled students in real time with distinctive Faculty badges.
-- **Course Announcements:** Publish important notices and pin key updates (exams, deadlines, syllabus).
+- **Interactive Group Discussions:** Create study groups, course groups, and research project groups with rich attachment sharing.
 - **Research & TA Opportunities:** Post openings for Teaching Assistants (TA), Research Assistants (RA), and lab projects.
 - **Direct Mentorship & Networking:** Connect with current students and alumni with full connection management.
 
@@ -264,10 +264,10 @@ For local and staging testing, ready-to-use profiles across all roles are provis
 | **Alumni** | Tanvir Hasan | `alumni@ulab.edu.bd` | `password123` | Approved |
 | **Admin** | Alumni Office | `admin@ulab.edu.bd` | `password123` | Administrator |
 
-#### 🏫 Demonstration Classroom:
-- **Course Name:** `CSE 311: Database Management Systems`
-- **Class Code:** `ULAB31`
-- **Features:** WhatsApp group discussion feed, pinned syllabus notice, and dual-enrolled teacher/student.
+#### 💬 Demonstration Messenger Group:
+- **Group Name:** `ULAB CSE Tech & Project Hub`
+- **Members:** Dual-enrolled with Teacher (Dr. Kamrul Karim), Student (Farhana Akter), and Alumni (Tanvir Hasan).
+- **Features:** Real-time discussion feed, role badges, attachment sharing, and group info controls.
 
 > 🔒 **Security Notice:** Default seed passwords are strictly meant for local evaluation and feature verification. For production deployments, always create unique credentials with strong passwords.
 

@@ -121,83 +121,70 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres"))
 
       console.log("Sample accounts (student, teacher, alumni) synced successfully.");
 
-      // 4. Upsert a Sample Classroom for instant testing
-      const sampleClassroom = await db.classroom.upsert({
-        where: { code: "ULAB31" },
+      // 4. Upsert a Sample Messenger Group for instant testing
+      const sampleGroup = await db.group.upsert({
+        where: { id: "sample-ulab-cse-hub" },
         update: {},
         create: {
-          name: "CSE 311: Database Management Systems",
-          section: "Section 1 • Spring 2026",
-          subject: "CSE",
-          description: "Welcome to CSE 311! Here we share course announcements, assignments, and real-time class discussions.",
-          code: "ULAB31",
+          id: "sample-ulab-cse-hub",
+          name: "ULAB CSE Tech & Project Hub",
+          description: "General discussion, tech announcements, academic queries, and project collaboration for ULAB CSE students, faculty, and alumni.",
           createdById: sampleTeacher.id,
         },
       });
 
-      // Ensure teacher and student are enrolled in this classroom
-      await db.classroomMember.upsert({
-        where: { classroomId_userId: { classroomId: sampleClassroom.id, userId: sampleTeacher.id } },
+      // Ensure teacher, student, and alumni are members of this group
+      await db.groupMember.upsert({
+        where: { groupId_userId: { groupId: sampleGroup.id, userId: sampleTeacher.id } },
         update: {},
         create: {
-          classroomId: sampleClassroom.id,
+          groupId: sampleGroup.id,
           userId: sampleTeacher.id,
-          role: "TEACHER",
+          role: "ADMIN",
         },
       });
 
-      await db.classroomMember.upsert({
-        where: { classroomId_userId: { classroomId: sampleClassroom.id, userId: sampleStudent.id } },
+      await db.groupMember.upsert({
+        where: { groupId_userId: { groupId: sampleGroup.id, userId: sampleStudent.id } },
         update: {},
         create: {
-          classroomId: sampleClassroom.id,
+          groupId: sampleGroup.id,
           userId: sampleStudent.id,
-          role: "STUDENT",
+          role: "MEMBER",
         },
       });
 
-      // Sample Pinned Notice with Attached PDF & Google Drive link
-      const existingNotice = await db.classroomNotice.findFirst({
-        where: { classroomId: sampleClassroom.id },
+      await db.groupMember.upsert({
+        where: { groupId_userId: { groupId: sampleGroup.id, userId: sampleAlumni.id } },
+        update: {},
+        create: {
+          groupId: sampleGroup.id,
+          userId: sampleAlumni.id,
+          role: "MEMBER",
+        },
       });
-      if (!existingNotice) {
-        await db.classroomNotice.create({
-          data: {
-            classroomId: sampleClassroom.id,
-            authorId: sampleTeacher.id,
-            title: "Welcome to CSE 311: Course Syllabus & Lecture 01 Slides",
-            content: "Welcome everyone! Midterm exam will cover ER Diagrams, Relational Algebra, and SQL queries (joins, aggregations, subqueries). Please download the course outline PDF below.",
-            link: "https://drive.google.com/drive/folders/ulab-cse311-materials",
-            attachmentName: "CSE311_Course_Syllabus_Spring2026.pdf",
-            attachmentSize: "2.4 MB",
-            attachmentType: "application/pdf",
-            attachmentUrl: "data:application/pdf;base64,JVBERi0xLjQKJcTl8uXrp/Og0MTGCjQgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFsgNSAwIFIgXQovQ291bnQgMQo+PgplbmRvYmoKNSAwIG9iago8PAovVHlwZSAvUGFnZQovUGFyZW50IDQgMCBSCi9NZWRpYUJveCBbMCAwIDYxMiA3OTJdCi9Db250ZW50cyA2IDAgUgo+PgplbmRvYmoKNiAwIG9iago8PAovTGVuZ3RoIDQ0Cj4+CnN0cmVhbQpCVAovRjEgMjQgVGYKNzIgNzIwIFRECihoZWxsbyB3b3JsZCkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iagoxIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyA0IDAgUgo+PgplbmRvYmoKMiAwIG9iagooVVNBKSBlbmRvYmoKdHJhaWxlcgo8PAovUm9vdCAxIDAgUgo+PgolJUVPRg==",
-            isPinned: true,
-          },
-        });
-      }
 
-      // Sample WhatsApp-style Messages
-      const existingMsgCount = await db.classroomMessage.count({
-        where: { classroomId: sampleClassroom.id },
+      // Sample Group Messages
+      const existingMsgCount = await db.groupMessage.count({
+        where: { groupId: sampleGroup.id },
       });
       if (existingMsgCount === 0) {
-        await db.classroomMessage.createMany({
+        await db.groupMessage.createMany({
           data: [
             {
-              classroomId: sampleClassroom.id,
+              groupId: sampleGroup.id,
               senderId: sampleTeacher.id,
-              body: "Assalamu alaikum everyone! Welcome to the CSE 311 Classroom group chat. You can ask questions and discuss course topics here anytime.",
+              body: "Assalamu alaikum everyone! Welcome to the ULAB CSE Tech Hub. Anyone can share ideas, ask questions, or initiate tech discussions here.",
             },
             {
-              classroomId: sampleClassroom.id,
+              groupId: sampleGroup.id,
               senderId: sampleStudent.id,
-              body: "Walaikum assalam Sir! Thank you. Could you please share when the project topic selection deadline is?",
+              body: "Walaikum assalam Sir! Great to have faculty and seniors together here in this group.",
             },
             {
-              classroomId: sampleClassroom.id,
-              senderId: sampleTeacher.id,
-              body: "The project topic submission deadline is next Sunday. I have pinned the syllabus details in the Notices tab above.",
+              groupId: sampleGroup.id,
+              senderId: sampleAlumni.id,
+              body: "Hello everyone! Happy to connect and help out with industry insights and mock interview preps.",
             },
           ],
         });
