@@ -6,6 +6,11 @@ const db = new PrismaClient();
 const days = (n: number) => new Date(Date.now() + n * 864e5);
 
 async function main() {
+  try { await db.tuitionApplication.deleteMany(); } catch {}
+  try { await db.tuition.deleteMany(); } catch {}
+  try { await db.groupMessage.deleteMany(); } catch {}
+  try { await db.groupMember.deleteMany(); } catch {}
+  try { await db.group.deleteMany(); } catch {}
   await db.post.deleteMany();
   await db.message.deleteMany();
   await db.connection.deleteMany();
