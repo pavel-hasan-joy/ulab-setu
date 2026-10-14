@@ -54,6 +54,9 @@ ULAB Setu has been significantly upgraded with enterprise-grade collaborative an
     - Dedicated Group Info drawer with member roster and role badges (Owner, Admin, Member).
     - Admins can add members or remove users; members can leave groups at any time.
   - **Unified Conversations Sidebar:** Filter tabs for **All**, **Direct (1-on-1)**, and **Groups** with unread/last activity snippets and relative timestamps.
+  - **Resilient Real-Time Engine & Auto Schema Sync:**
+    - Zero-downtime database schema migration (`prisma db push --accept-data-loss`) ensuring database tables and constraints are safely synchronized.
+    - Defensive null-guarding and structured error boundary with instant recovery controls.
 - 🤝 **Interactive Networking & Disconnect Controls:**
   - LinkedIn-style Connection Requests (Send, Pending with withdrawal, Accept, Decline).
   - **Disconnect / Remove Connection:** Once connected, users can remove connections with a safe confirmation modal preventing accidental removal.

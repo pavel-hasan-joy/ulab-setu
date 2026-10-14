@@ -63,9 +63,9 @@ type TabType = "all" | "direct" | "groups";
 export function MessagesClient({
   currentUserId,
   basePath,
-  connections,
-  groups,
-  availablePeople,
+  connections = [],
+  groups = [],
+  availablePeople = [],
   selectedConnectionId,
   selectedGroupId,
 }: MessagesClientProps) {
@@ -73,10 +73,16 @@ export function MessagesClient({
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
   // Active items
-  const activeConnection = connections.find((c) => c.id === selectedConnectionId);
-  const activeGroup = groups.find((g) => g.id === selectedGroupId);
+  const activeConnection = (connections || []).find((c) => c.id === selectedConnectionId);
+  const activeGroup = (groups || []).find((g) => g.id === selectedGroupId);
 
   const hasSelection = Boolean(activeConnection || activeGroup);
+
+  const getTime = (dateStr?: string) => {
+    if (!dateStr) return 0;
+    const t = new Date(dateStr).getTime();
+    return isNaN(t) ? 0 : t;
+  };
 
   // Unified items list sorted by last activity
   type ConversationItem =
@@ -84,15 +90,15 @@ export function MessagesClient({
     | { type: "group"; data: SerializedGroup; lastTime: number };
 
   const allItems: ConversationItem[] = [
-    ...connections.map((c) => ({
+    ...(connections || []).map((c) => ({
       type: "direct" as const,
       data: c,
-      lastTime: new Date(c.lastMessage?.createdAt ?? c.createdAt).getTime(),
+      lastTime: getTime(c.lastMessage?.createdAt) || getTime(c.createdAt),
     })),
-    ...groups.map((g) => ({
+    ...(groups || []).map((g) => ({
       type: "group" as const,
       data: g,
-      lastTime: new Date(g.lastMessage?.createdAt ?? g.createdAt).getTime(),
+      lastTime: getTime(g.lastMessage?.createdAt) || getTime(g.createdAt),
     })),
   ].sort((a, b) => b.lastTime - a.lastTime);
 

@@ -73,150 +73,165 @@ export async function sendGroupMessage(
   body: string,
   attachment?: GroupAttachment
 ) {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Unauthorized" };
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { error: "Unauthorized" };
 
-  const trimmed = body.trim();
-  if (!trimmed && !attachment) return { error: "Message or attachment is required" };
+    const trimmed = body.trim();
+    if (!trimmed && !attachment) return { error: "Message or attachment is required" };
 
-  // Verify membership
-  const member = await db.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: user.id } },
-  });
-  if (!member) return { error: "You are not a member of this group" };
+    // Verify membership
+    const member = await db.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: user.id } },
+    });
+    if (!member) return { error: "You are not a member of this group" };
 
-  const msg = await db.groupMessage.create({
-    data: {
-      groupId,
-      senderId: user.id,
-      body: trimmed ? trimmed.slice(0, 3000) : (attachment ? `Sent an attachment: ${attachment.name}` : ""),
-      attachmentUrl: attachment?.url || null,
-      attachmentName: attachment?.name || null,
-      attachmentSize: attachment?.size || null,
-      attachmentType: attachment?.type || null,
-    },
-  });
+    const msg = await db.groupMessage.create({
+      data: {
+        groupId,
+        senderId: user.id,
+        body: trimmed ? trimmed.slice(0, 3000) : (attachment ? `Sent an attachment: ${attachment.name}` : ""),
+        attachmentUrl: attachment?.url || null,
+        attachmentName: attachment?.name || null,
+        attachmentSize: attachment?.size || null,
+        attachmentType: attachment?.type || null,
+      },
+    });
 
-  return { success: true, messageId: msg.id };
+    return { success: true, messageId: msg.id };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to send message";
+    return { error: msg };
+  }
 }
 
 /**
  * Fetch group messages for polling or initial load.
  */
 export async function fetchGroupMessages(groupId: string) {
-  const user = await getCurrentUser();
-  if (!user) return [];
+  try {
+    const user = await getCurrentUser();
+    if (!user) return [];
 
-  // Verify membership
-  const member = await db.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: user.id } },
-  });
-  if (!member) return [];
+    // Verify membership
+    const member = await db.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: user.id } },
+    });
+    if (!member) return [];
 
-  const msgs = await db.groupMessage.findMany({
-    where: { groupId },
-    orderBy: { createdAt: "asc" },
-    include: {
-      sender: {
-        select: {
-          id: true,
-          name: true,
-          role: true,
-          department: true,
-          designation: true,
-          company: true,
+    const msgs = await db.groupMessage.findMany({
+      where: { groupId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            department: true,
+            designation: true,
+            company: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  return msgs.map((m) => ({
-    id: m.id,
-    body: m.body,
-    senderId: m.senderId,
-    senderName: m.sender.name,
-    senderRole: m.sender.role,
-    senderSubtitle: m.sender.company
-      ? `${m.sender.designation} at ${m.sender.company}`
-      : m.sender.department || "",
-    mine: m.senderId === user.id,
-    attachmentUrl: m.attachmentUrl,
-    attachmentName: m.attachmentName,
-    attachmentSize: m.attachmentSize,
-    attachmentType: m.attachmentType,
-    at: m.createdAt.toISOString(),
-  }));
+    return msgs.map((m) => ({
+      id: m.id,
+      body: m.body,
+      senderId: m.senderId,
+      senderName: m.sender?.name || "Member",
+      senderRole: m.sender?.role || "STUDENT",
+      senderSubtitle: m.sender?.company
+        ? `${m.sender.designation} at ${m.sender.company}`
+        : m.sender?.department || "",
+      mine: m.senderId === user.id,
+      attachmentUrl: m.attachmentUrl,
+      attachmentName: m.attachmentName,
+      attachmentSize: m.attachmentSize,
+      attachmentType: m.attachmentType,
+      at: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.error("fetchGroupMessages error:", err);
+    return [];
+  }
 }
 
 /**
  * Fetch group details, members, and permissions.
  */
 export async function getGroupDetails(groupId: string) {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  try {
+    const user = await getCurrentUser();
+    if (!user) return null;
 
-  const group = await db.group.findUnique({
-    where: { id: groupId },
-    include: {
-      createdBy: {
-        select: { id: true, name: true, role: true, department: true },
-      },
-      members: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              role: true,
-              department: true,
-              designation: true,
-              company: true,
+    const group = await db.group.findUnique({
+      where: { id: groupId },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, role: true, department: true },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+                department: true,
+                designation: true,
+                company: true,
+              },
             },
           },
+          orderBy: { joinedAt: "asc" },
         },
-        orderBy: { joinedAt: "asc" },
       },
-    },
-  });
+    });
 
-  if (!group) return null;
+    if (!group) return null;
 
-  const currentMember = group.members.find((m) => m.userId === user.id);
-  if (!currentMember) return null;
+    const currentMember = group.members.find((m) => m.userId === user.id);
+    if (!currentMember) return null;
 
-  return {
-    id: group.id,
-    name: group.name,
-    description: group.description,
-    createdAt: group.createdAt.toISOString(),
-    createdById: group.createdById,
-    createdByName: group.createdBy.name,
-    isAdmin: currentMember.role === "ADMIN" || group.createdById === user.id,
-    members: group.members.map((m) => ({
-      id: m.id,
-      userId: m.userId,
-      name: m.user.name,
-      role: m.role,
-      userRole: m.user.role,
-      subtitle: m.user.company
-        ? `${m.user.designation} at ${m.user.company}`
-        : m.user.department || "",
-      joinedAt: m.joinedAt.toISOString(),
-    })),
-  };
+    return {
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      createdAt: group.createdAt ? new Date(group.createdAt).toISOString() : new Date().toISOString(),
+      createdById: group.createdById,
+      createdByName: group.createdBy?.name || "Admin",
+      isAdmin: currentMember.role === "ADMIN" || group.createdById === user.id,
+      members: group.members.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        name: m.user?.name || "Member",
+        role: m.role,
+        userRole: m.user?.role || "STUDENT",
+        subtitle: m.user?.company
+          ? `${m.user.designation} at ${m.user.company}`
+          : m.user?.department || "",
+        joinedAt: m.joinedAt ? new Date(m.joinedAt).toISOString() : new Date().toISOString(),
+      })),
+    };
+  } catch (err) {
+    console.error("getGroupDetails error:", err);
+    return null;
+  }
 }
 
 /**
  * Add members to a group.
  */
 export async function addGroupMembers(groupId: string, userIds: string[]) {
-  const user = await requireUser();
-  const member = await db.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: user.id } },
-  });
-  if (!member) return { error: "You are not a member of this group" };
-
   try {
+    const user = await requireUser();
+    const member = await db.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: user.id } },
+    });
+    if (!member) return { error: "You are not a member of this group" };
+
     const existing = await db.groupMember.findMany({
       where: { groupId },
       select: { userId: true },
@@ -263,15 +278,15 @@ export async function addGroupMembers(groupId: string, userIds: string[]) {
  * Remove a member from a group (Admin only).
  */
 export async function removeGroupMember(groupId: string, targetUserId: string) {
-  const user = await requireUser();
-  const currentMember = await db.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: user.id } },
-  });
-  if (!currentMember || currentMember.role !== "ADMIN") {
-    return { error: "Only group admins can remove members" };
-  }
-
   try {
+    const user = await requireUser();
+    const currentMember = await db.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: user.id } },
+    });
+    if (!currentMember || currentMember.role !== "ADMIN") {
+      return { error: "Only group admins can remove members" };
+    }
+
     const targetUser = await db.user.findUnique({
       where: { id: targetUserId },
       select: { name: true },
@@ -304,13 +319,13 @@ export async function removeGroupMember(groupId: string, targetUserId: string) {
  * Leave a group.
  */
 export async function leaveGroup(groupId: string) {
-  const user = await requireUser();
-  const currentMember = await db.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: user.id } },
-  });
-  if (!currentMember) return { error: "You are not a member of this group" };
-
   try {
+    const user = await requireUser();
+    const currentMember = await db.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: user.id } },
+    });
+    if (!currentMember) return { error: "You are not a member of this group" };
+
     await db.groupMember.delete({
       where: { groupId_userId: { groupId, userId: user.id } },
     });
@@ -364,19 +379,19 @@ export async function leaveGroup(groupId: string) {
  * Delete a group entirely (Creator/Admin only).
  */
 export async function deleteGroup(groupId: string) {
-  const user = await requireUser();
-  const group = await db.group.findUnique({ where: { id: groupId } });
-  if (!group) return { error: "Group not found" };
-
-  const currentMember = await db.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: user.id } },
-  });
-
-  if (group.createdById !== user.id && currentMember?.role !== "ADMIN") {
-    return { error: "Only the group creator or admin can delete this group" };
-  }
-
   try {
+    const user = await requireUser();
+    const group = await db.group.findUnique({ where: { id: groupId } });
+    if (!group) return { error: "Group not found" };
+
+    const currentMember = await db.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId: user.id } },
+    });
+
+    if (group.createdById !== user.id && currentMember?.role !== "ADMIN") {
+      return { error: "Only the group creator or admin can delete this group" };
+    }
+
     await db.group.delete({ where: { id: groupId } });
 
     revalidatePath("/student/messages");
@@ -394,40 +409,45 @@ export async function deleteGroup(groupId: string) {
  * Get potential members to invite into a group (approved non-admin users).
  */
 export async function getPeopleForGroup(excludeGroupId?: string) {
-  const user = await getCurrentUser();
-  if (!user) return [];
+  try {
+    const user = await getCurrentUser();
+    if (!user) return [];
 
-  let excludedUserIds: string[] = [user.id];
-  if (excludeGroupId) {
-    const members = await db.groupMember.findMany({
-      where: { groupId: excludeGroupId },
-      select: { userId: true },
+    let excludedUserIds: string[] = [user.id];
+    if (excludeGroupId) {
+      const members = await db.groupMember.findMany({
+        where: { groupId: excludeGroupId },
+        select: { userId: true },
+      });
+      excludedUserIds = [...excludedUserIds, ...members.map((m) => m.userId)];
+    }
+
+    const people = await db.user.findMany({
+      where: {
+        status: "APPROVED",
+        role: { not: "ADMIN" },
+        id: { notIn: excludedUserIds },
+      },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        department: true,
+        designation: true,
+        company: true,
+      },
+      orderBy: { name: "asc" },
+      take: 50,
     });
-    excludedUserIds = [...excludedUserIds, ...members.map((m) => m.userId)];
+
+    return people.map((p) => ({
+      id: p.id,
+      name: p.name || "User",
+      role: p.role || "STUDENT",
+      subtitle: p.company ? `${p.designation} at ${p.company}` : p.department || "",
+    }));
+  } catch (err) {
+    console.error("getPeopleForGroup error:", err);
+    return [];
   }
-
-  const people = await db.user.findMany({
-    where: {
-      status: "APPROVED",
-      role: { not: "ADMIN" },
-      id: { notIn: excludedUserIds },
-    },
-    select: {
-      id: true,
-      name: true,
-      role: true,
-      department: true,
-      designation: true,
-      company: true,
-    },
-    orderBy: { name: "asc" },
-    take: 50,
-  });
-
-  return people.map((p) => ({
-    id: p.id,
-    name: p.name,
-    role: p.role,
-    subtitle: p.company ? `${p.designation} at ${p.company}` : p.department || "",
-  }));
 }

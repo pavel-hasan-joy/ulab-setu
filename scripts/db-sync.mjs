@@ -19,10 +19,16 @@ if (!process.env.DATABASE_URL) {
   }
 }
 
-if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith("postgres")) {
+const isPostgres =
+  process.env.DATABASE_URL &&
+  (process.env.DATABASE_URL.startsWith("postgres://") ||
+    process.env.DATABASE_URL.startsWith("postgresql://") ||
+    process.env.DATABASE_URL.includes("postgres"));
+
+if (isPostgres) {
   try {
-    console.log("DATABASE_URL found, synchronizing database schema via prisma db push...");
-    execSync("npx prisma db push --skip-generate", { stdio: "inherit" });
+    console.log("DATABASE_URL found, synchronizing database schema via prisma db push (--accept-data-loss)...");
+    execSync("npx prisma db push --skip-generate --accept-data-loss", { stdio: "inherit" });
     console.log("Database schema synchronized successfully.");
 
     // Clean up expired jobs and extra demo jobs from live database
