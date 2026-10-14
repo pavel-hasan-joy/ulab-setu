@@ -27,7 +27,7 @@ const statusText: Record<string, string> = {
 
 type SafeStudent = Pick<
   User,
-  "id" | "name" | "email" | "department" | "batch" | "studentId" | "phone" | "linkedin" | "bio" | "skills"
+  "id" | "name" | "email" | "department" | "batch" | "studentId" | "phone" | "linkedin" | "github" | "bio" | "skills"
 >;
 
 export function ApplyPanel({
@@ -179,6 +179,7 @@ export function ApplyPanel({
                   <Input
                     name="portfolio"
                     type="text"
+                    defaultValue={student?.github ?? ""}
                     placeholder="Username or link (e.g. username or https://…)"
                     className="text-xs"
                   />

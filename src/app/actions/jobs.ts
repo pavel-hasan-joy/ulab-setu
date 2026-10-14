@@ -103,13 +103,15 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     return { error: "Please write why you're a good fit or attach your CV before submitting." };
   }
 
-  // Auto-sync phone or linkedin to user profile if newly provided
-  if ((phone && !user.phone) || (linkedin && !user.linkedin)) {
+  // Auto-sync phone, linkedin, or github to user profile if newly provided
+  const isGithubPortfolio = portfolio && portfolio.includes("github.com");
+  if ((phone && !user.phone) || (linkedin && !user.linkedin) || (isGithubPortfolio && !user.github)) {
     await db.user.update({
       where: { id: user.id },
       data: {
         ...(phone && !user.phone ? { phone } : {}),
         ...(linkedin && !user.linkedin ? { linkedin } : {}),
+        ...(isGithubPortfolio && !user.github ? { github: portfolio } : {}),
       },
     }).catch(() => {});
   }
@@ -123,7 +125,7 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     batch: user.batch,
     studentId: user.studentId,
     linkedin: linkedin || user.linkedin || null,
-    portfolio: portfolio || null,
+    portfolio: portfolio || user.github || null,
     availability: availability || null,
     cvFileName: cvFileName || null,
     cvUrl: cvUrl || null,

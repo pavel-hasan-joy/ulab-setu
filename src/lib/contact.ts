@@ -35,6 +35,16 @@ export function cleanLinkedIn(input: string) {
   return `https://linkedin.com/in/${path}`;
 }
 
+/** Accepts a GitHub profile URL or just a username/handle and returns a full github.com URL, or null. */
+export function cleanGitHub(input: string) {
+  const v = input.trim();
+  if (!v) return null;
+  const m = v.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/(.+)$/i);
+  const path = (m ? m[1] : v).replace(/^\/+|\/+$/g, "").replace(/^@/, "");
+  if (!/^[\w.\-]+$/.test(path)) return null;
+  return `https://github.com/${path}`;
+}
+
 type Contactable = {
   phone: string | null; phonePublic: boolean;
   whatsapp: string | null; whatsappPublic: boolean;

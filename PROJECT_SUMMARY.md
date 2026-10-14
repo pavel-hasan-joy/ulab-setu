@@ -278,7 +278,7 @@ Managed via **Prisma ORM** (`prisma/schema.prisma`):
 ```
 
 ### Models & Field Reference:
-1. **User:** `id`, `name`, `email`, `passwordHash`, `role` (STUDENT | ALUMNI | TEACHER | ADMIN), `status` (PENDING | APPROVED | REJECTED), `department`, `studentId`, `batch`, `graduationYear`, `company`, `designation`, `location`, `bio`, `skills`, `linkedin`, `image`, `phone`, `phonePublic`, `whatsapp`, `whatsappPublic`, `facebook`, `facebookPublic`, `isPrivate`, `createdAt`, `lastLoginAt`.
+1. **User:** `id`, `name`, `email`, `passwordHash`, `role` (STUDENT | ALUMNI | TEACHER | ADMIN), `status` (PENDING | APPROVED | REJECTED), `department`, `studentId`, `batch`, `graduationYear`, `company`, `designation`, `location`, `bio`, `skills`, `linkedin`, `github`, `image`, `phone`, `phonePublic`, `whatsapp`, `whatsappPublic`, `facebook`, `facebookPublic`, `isPrivate`, `createdAt`, `lastLoginAt`.
 2. **Job:** `id`, `title`, `company`, `location`, `type` (Full-time | Part-time | Internship | Contract), `category`, `description`, `requirements`, `salary`, `deadline`, `referral` (boolean), `active` (boolean), `createdAt`, `postedById`.
 3. **Application:** `id`, `note`, `status` (APPLIED | SHORTLISTED | REJECTED), `createdAt`, `jobId`, `studentId`. Unique on `[jobId, studentId]`.
 4. **Connection:** `id`, `note`, `status` (PENDING | ACCEPTED | DECLINED), `createdAt`, `fromId`, `toId`.

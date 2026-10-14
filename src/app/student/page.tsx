@@ -19,7 +19,7 @@ export default async function StudentHome() {
   ]);
   // Jobs posted by alumni from the student's own department come first.
   const picks = [...jobs].sort((a, b) => Number(b.postedBy.department === user.department) - Number(a.postedBy.department === user.department)).slice(0, 4);
-  const profileDone = [user.bio, user.skills, user.linkedin].filter(Boolean).length;
+  const profileDone = [user.bio, user.skills, user.linkedin, user.github].filter(Boolean).length;
   const firstName = user.name.split(" ")[0];
 
   return (

@@ -5,9 +5,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { deleteSession, requireUser } from "@/lib/auth";
 import type { FormState } from "./auth";
-import { cleanFacebook, cleanLinkedIn, cleanPhone } from "@/lib/contact";
+import { cleanFacebook, cleanGitHub, cleanLinkedIn, cleanPhone } from "@/lib/contact";
 
-const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin", "image"] as const;
+const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin", "github", "image"] as const;
 
 export async function updateProfile(_: FormState, formData: FormData): Promise<FormState> {
   try {
@@ -20,6 +20,9 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
     if (!data.name) return { error: "Name can't be empty." };
     if (data.linkedin) {
       data.linkedin = cleanLinkedIn(data.linkedin) ?? data.linkedin;
+    }
+    if (data.github) {
+      data.github = cleanGitHub(data.github) ?? data.github;
     }
     // Prevent oversized image payload if bypassed
     if (data.image && data.image.length > 3 * 1024 * 1024) {

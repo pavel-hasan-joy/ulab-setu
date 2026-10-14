@@ -195,18 +195,32 @@ export function ProfileModal({
                 </div>
               )}
 
-              {/* LinkedIn */}
-              {person.linkedin && (
+              {/* Professional Links (LinkedIn & GitHub) */}
+              {(person.linkedin || person.github) && (
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-1.5">Professional Link</h4>
-                  <a
-                    href={person.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-ulab hover:underline"
-                  >
-                    View LinkedIn Profile <ExternalLink size={12} />
-                  </a>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-1.5">Professional Links</h4>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {person.linkedin && (
+                      <a
+                        href={person.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ulab hover:border-ulab transition"
+                      >
+                        LinkedIn <ExternalLink size={12} />
+                      </a>
+                    )}
+                    {person.github && (
+                      <a
+                        href={person.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ink hover:border-ink transition"
+                      >
+                        GitHub <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
 
