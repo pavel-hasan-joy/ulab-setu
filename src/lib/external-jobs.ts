@@ -134,25 +134,41 @@ export async function getRemoteJobs(keywords = ""): Promise<{ jobs: ExternalJob[
   if (keywords) params.set("q", keywords);
   try {
     const res = await fetch(`https://himalayas.app/jobs/api/search?${params}`, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(8000),
       next: { revalidate: 3600 },
     });
     if (!res.ok) throw new Error(`Himalayas responded ${res.status}`);
     const data = await res.json();
-    const jobs: ExternalJob[] = (data.jobs ?? []).map((j: HimalayasJob) => ({
-      id: j.guid,
-      title: j.title,
-      company: j.companyName,
-      location: j.locationRestrictions?.length ? j.locationRestrictions.join(", ") : "Anywhere",
-      category: j.parentCategories?.[0] ?? "Remote",
-      excerpt: j.excerpt,
-      posted: j.pubDate ? new Date(Number(j.pubDate) * 1000).toISOString() : null,
-      salary:
-        j.minSalary && j.currency
-          ? `${j.currency} ${Number(j.minSalary).toLocaleString()}${j.maxSalary ? `–${Number(j.maxSalary).toLocaleString()}` : ""} / ${j.salaryPeriod ?? "year"}`
-          : null,
-      url: j.applicationLink,
-      source: "Himalayas",
-    }));
+    const rawJobs = Array.isArray(data.jobs) ? data.jobs : [];
+    const jobs: ExternalJob[] = rawJobs.map((j: HimalayasJob) => {
+      const loc = j.locationRestrictions?.length ? j.locationRestrictions.join(", ") : "Worldwide (Remote)";
+      const rawExcerpt = j.excerpt || "";
+      const excerpt = stripTags(rawExcerpt).slice(0, 220);
+      const min = j.minSalary ? Number(j.minSalary).toLocaleString() : null;
+      const max = j.maxSalary ? Number(j.maxSalary).toLocaleString() : null;
+      let salary: string | null = null;
+      if ((min || max) && j.currency) {
+        const range = min && max ? `${min}–${max}` : min || max;
+        salary = `${j.currency} ${range} / ${j.salaryPeriod ?? "year"}`;
+      }
+
+      return {
+        id: j.guid || `him-${j.companySlug || "job"}-${Date.now()}`,
+        title: j.title || "Remote Role",
+        company: j.companyName || "Global Tech",
+        location: loc,
+        category: j.parentCategories?.[0] ?? "Remote",
+        excerpt,
+        posted: j.pubDate ? new Date(Number(j.pubDate) * 1000).toISOString() : null,
+        salary,
+        url: j.applicationLink || "https://himalayas.app/jobs",
+        source: "Himalayas",
+      };
+    });
     return { jobs };
   } catch (e) {
     return { jobs: [], error: (e as Error).message };
@@ -163,12 +179,13 @@ type HimalayasJob = {
   guid: string;
   title: string;
   companyName: string;
+  companySlug?: string;
   excerpt: string;
   locationRestrictions?: string[];
   parentCategories?: string[];
-  pubDate?: string;
-  minSalary?: string | null;
-  maxSalary?: string | null;
+  pubDate?: string | number;
+  minSalary?: string | number | null;
+  maxSalary?: string | number | null;
   currency?: string | null;
   salaryPeriod?: string | null;
   applicationLink: string;
