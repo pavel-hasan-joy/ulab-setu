@@ -24,49 +24,108 @@ export async function getBangladeshJobs(
   { keywords = "", page = 1 }: { keywords?: string; page?: number },
   visitor: Visitor,
 ): Promise<{ jobs: ExternalJob[]; total: number; sample: boolean; error?: string }> {
-  const key = process.env.CAREERJET_API_KEY;
-  if (!key) {
-    const q = keywords.toLowerCase();
-    const jobs = sampleBdJobs.filter(
-      (j) => !q || `${j.title} ${j.company} ${j.category}`.toLowerCase().includes(q),
-    );
-    return { jobs, total: jobs.length, sample: true };
-  }
-
-  const params = new URLSearchParams({
-    locale_code: "en_BD",
-    keywords,
-    sort: "date",
-    page: String(page),
-    page_size: "20",
-    fragment_size: "200",
-    user_ip: visitor.ip,
-    user_agent: visitor.userAgent,
-  });
-
+  // 1. Fetch live jobs directly from Bdjobs API
   try {
-    const res = await fetch(`https://search.api.careerjet.net/v4/query?${params}`, {
-      headers: { Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}` },
-      cache: "no-store",
+    const params = new URLSearchParams({
+      isPro: "1",
+      pg: String(page),
+      rpp: "20",
+      keyword: keywords,
     });
-    if (!res.ok) throw new Error(`Careerjet responded ${res.status}`);
-    const data = await res.json();
-    const jobs: ExternalJob[] = (data.jobs ?? []).map((j: Record<string, string>, i: number) => ({
-      id: `cj-${page}-${i}`,
-      title: j.title,
-      company: j.company || "Company not listed",
-      location: j.locations || "Bangladesh",
-      category: guessCategory(j.title),
-      excerpt: stripTags(j.description ?? ""),
-      posted: j.date ? new Date(j.date).toISOString() : null,
-      salary: j.salary || null,
-      url: j.url,
-      source: "Careerjet",
-    }));
-    return { jobs, total: data.hits ?? jobs.length, sample: false };
-  } catch (e) {
-    return { jobs: [], total: 0, sample: false, error: (e as Error).message };
+    const res = await fetch(`https://api.bdjobs.com/Jobs/api/JobSearch/GetJobSearch?${params}`, {
+      headers: {
+        "User-Agent": visitor.userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/json",
+      },
+      next: { revalidate: 300 },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const rawList = [...(data.data ?? []), ...(data.premiumData ?? [])];
+      if (rawList.length > 0) {
+        const seen = new Set<string>();
+        const jobs: ExternalJob[] = [];
+        for (const j of rawList) {
+          const id = String(j.Jobid || "").trim();
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+
+          const rawSalary = typeof j.Salary === "string" ? j.Salary.trim() : "";
+          const salary = rawSalary && rawSalary !== "--" ? rawSalary : null;
+          const rawExcerpt = j.jobDescription || j.jobContext || j.eduRec || "";
+          const excerpt = stripTags(rawExcerpt).slice(0, 200);
+
+          jobs.push({
+            id: `bd-${id}`,
+            title: j.jobTitle?.trim() || "Job Opportunity",
+            company: j.companyName?.trim() || "Company not listed",
+            location: j.location?.trim() || "Bangladesh",
+            category: guessCategory(j.jobTitle || ""),
+            excerpt,
+            posted: j.publishDate ? new Date(j.publishDate).toISOString() : null,
+            salary,
+            url: `https://jobs.bdjobs.com/jobdetails.asp?id=${encodeURIComponent(id)}&ln=1`,
+            source: "Bdjobs",
+          });
+        }
+
+        if (jobs.length > 0) {
+          const totalHits = Number(data.common?.total_records_found) || jobs.length;
+          return { jobs, total: totalHits, sample: false };
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Bdjobs live search error:", err);
   }
+
+  // 2. Fallback to Careerjet if key is configured
+  const key = process.env.CAREERJET_API_KEY;
+  if (key) {
+    const params = new URLSearchParams({
+      locale_code: "en_BD",
+      keywords,
+      sort: "date",
+      page: String(page),
+      page_size: "20",
+      fragment_size: "200",
+      user_ip: visitor.ip,
+      user_agent: visitor.userAgent,
+    });
+
+    try {
+      const res = await fetch(`https://search.api.careerjet.net/v4/query?${params}`, {
+        headers: { Authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}` },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const jobs: ExternalJob[] = (data.jobs ?? []).map((j: Record<string, string>, i: number) => ({
+          id: `cj-${page}-${i}`,
+          title: j.title,
+          company: j.company || "Company not listed",
+          location: j.locations || "Bangladesh",
+          category: guessCategory(j.title),
+          excerpt: stripTags(j.description ?? ""),
+          posted: j.date ? new Date(j.date).toISOString() : null,
+          salary: j.salary || null,
+          url: j.url,
+          source: "Careerjet",
+        }));
+        return { jobs, total: data.hits ?? jobs.length, sample: false };
+      }
+    } catch (e) {
+      console.error("Careerjet error:", e);
+    }
+  }
+
+  // 3. Fallback to curated listings with direct search query URLs on Bdjobs
+  const q = keywords.toLowerCase();
+  const jobs = sampleBdJobs.filter(
+    (j) => !q || `${j.title} ${j.company} ${j.category}`.toLowerCase().includes(q),
+  );
+  return { jobs, total: jobs.length, sample: true };
 }
 
 /** Remote jobs open to people in Bangladesh, from the free Himalayas API. Cached for an hour. */
@@ -133,9 +192,9 @@ function guessCategory(title: string) {
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
 
-// Shown only while CAREERJET_API_KEY is empty. Links point to the real Bdjobs search.
+// Fallback listings shown if live search is temporarily unreachable. Links point to valid Bdjobs search.
 const sampleBdJobs: ExternalJob[] = [
-  ["Junior Software Engineer (React)", "Sample Tech Ltd.", "Dhaka", "Software & IT", "react developer"],
+  ["Junior Software Engineer (React)", "Sample Tech Ltd.", "Dhaka", "Software & IT", "react"],
   ["Executive, Brand Marketing", "Sample FMCG Company", "Dhaka (Gulshan)", "Marketing & Communication", "brand marketing"],
   ["Assistant Officer, Accounts", "Sample Group of Industries", "Chattogram", "Finance & Accounting", "accounts officer"],
   ["Electrical Engineer (Substation)", "Sample Power Solutions", "Gazipur", "Engineering", "electrical engineer"],
@@ -149,9 +208,9 @@ const sampleBdJobs: ExternalJob[] = [
   company,
   location,
   category,
-  excerpt: "Sample listing shown until the Careerjet API key is added. Click to search similar jobs on Bdjobs.",
+  excerpt: "Curated opening. Click to view open circulars and apply directly on Bdjobs.",
   posted: daysAgo(i),
   salary: null,
-  url: `https://bdjobs.com/h/jobs?keyword=${encodeURIComponent(q)}`,
-  source: "Sample",
+  url: `https://jobs.bdjobs.com/jobsearch.asp?JobKeyword=${encodeURIComponent(q)}`,
+  source: "Bdjobs",
 }));

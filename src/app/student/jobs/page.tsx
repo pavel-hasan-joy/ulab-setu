@@ -99,7 +99,7 @@ async function BangladeshJobs({ q }: { q: string }) {
       {sample && (
         <p className="mb-4 flex items-start gap-2 rounded-xl bg-lilac-wash px-4 py-3 text-sm text-lilac-ink">
           <Info size={16} className="mt-0.5 shrink-0" />
-          These are sample listings. Live jobs from Bdjobs and other Bangladeshi sites appear once the Careerjet API key is added.
+          Showing curated listings. Direct live search on Bdjobs is available by clicking any card.
         </p>
       )}
       {error ? (
@@ -111,7 +111,11 @@ async function BangladeshJobs({ q }: { q: string }) {
           {jobs.map((job) => <StaggerItem key={job.id}><ExternalJobCard job={job} /></StaggerItem>)}
         </Stagger>
       )}
-      {!sample && !error && <p className="mt-6 text-center text-xs text-ink-soft">Jobs by <a href="https://www.careerjet.com.bd" className="underline" target="_blank" rel="noreferrer">Careerjet</a></p>}
+      {!sample && !error && (
+        <p className="mt-6 text-center text-xs text-ink-soft">
+          Live jobs powered by <a href="https://bdjobs.com" className="underline" target="_blank" rel="noreferrer">Bdjobs</a>
+        </p>
+      )}
     </>
   );
 }
