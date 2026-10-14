@@ -195,6 +195,61 @@ if (isPostgres) {
           ],
         });
       }
+
+      // Sample Tuitions (if none exist)
+      const existingTuitionCount = await db.tuition.count();
+      if (existingTuitionCount === 0) {
+        await db.tuition.createMany({
+          data: [
+            {
+              title: "Need HSC 2026 Higher Math & Physics Home Tutor",
+              classGrade: "Class 11-12 (HSC)",
+              curriculum: "English Version",
+              subjects: "Higher Math, Physics",
+              tutoringType: "Home Tutoring",
+              location: "Dhanmondi (Near ULAB Campus), Dhaka",
+              daysPerWeek: "3 Days / Week",
+              salary: "8,000 BDT/Month",
+              studentGender: "Male",
+              preferredTutorGender: "Male Preferred",
+              requirements: "Must be strong in Higher Mathematics and calculus. CSE or EEE background preferred.",
+              status: "OPEN",
+              postedById: sampleTeacher.id,
+            },
+            {
+              title: "Need Class 8 All Subjects (Math & Science Focus) Home Tutor",
+              classGrade: "Class 6-8",
+              curriculum: "Bangla Medium",
+              subjects: "General Math, General Science, English",
+              tutoringType: "Home Tutoring",
+              location: "Mohammadpur, Dhaka",
+              daysPerWeek: "4 Days / Week",
+              salary: "6,000 BDT/Month",
+              studentGender: "Female",
+              preferredTutorGender: "Female Preferred",
+              requirements: "Patience with middle school mathematics and homework guidance. Punctual tutor needed.",
+              status: "OPEN",
+              postedById: sampleStudent.id,
+            },
+            {
+              title: "Need O-Level Pure Math & Physics Online Tutor",
+              classGrade: "O-Level",
+              curriculum: "English Medium",
+              subjects: "Pure Mathematics, Physics",
+              tutoringType: "Online Tutoring",
+              location: "Online (Google Meet / Zoom)",
+              daysPerWeek: "3 Days / Week",
+              salary: "10,000 BDT/Month",
+              studentGender: "Male",
+              preferredTutorGender: "Any",
+              requirements: "Familiar with Cambridge / Edexcel past papers and exam solving techniques.",
+              status: "OPEN",
+              postedById: sampleAlumni.id,
+            },
+          ],
+        });
+        console.log("Seeded sample tuitions successfully.");
+      }
     } catch (cleanupErr) {
       console.warn("Live DB sync warning:", cleanupErr?.message || cleanupErr);
     } finally {

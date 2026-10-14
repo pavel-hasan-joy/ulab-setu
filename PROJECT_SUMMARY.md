@@ -100,6 +100,9 @@ The platform implements four distinct user roles with clear permission boundarie
 | **Apply to Jobs with Dossier** | ✅ (Profile Required) | ❌ | ❌ | ❌ |
 | **Post Job Circulars** | ❌ | ✅ (With Referral Tag) | ✅ (TA/RA Openings) | ❌ |
 | **Review Applicants & CVs** | ❌ | ✅ (Own Postings) | ✅ (Own Postings) | ❌ |
+| **Post Tuition Requirements** | ✅ Open to All | ✅ Open to All | ✅ Open to All | ✅ Open to All |
+| **Apply for Tuitions as Tutor**| ✅ Full Access | ✅ Full Access | ❌ | ❌ |
+| **Manage Tuition Applicants**  | ✅ (Own Postings) | ✅ (Own Postings) | ✅ (Own Postings) | ✅ (All Postings) |
 | **1-on-1 Direct Messaging** | ✅ Any User | ✅ Any User | ✅ Any User | ✅ Any User |
 | **Create Messenger Groups** | ✅ Open to All | ✅ Open to All | ✅ Open to All | ✅ Open to All |
 | **Attach Files/PDFs in Chat** | ✅ | ✅ | ✅ | ✅ |
@@ -123,7 +126,20 @@ The platform implements four distinct user roles with clear permission boundarie
 3. **Global Remote Careers:** Integrated feed from **Himalayas API** for worldwide software, engineering, product, and content roles.
 4. **Candidate Dossiers:** Employers inspect full applicant credentials (Student ID, Batch, Department, CGPA, verified skills tags, and embedded CV preview) with one-click status transitions (*Applied*, *Shortlisted*, *Rejected*).
 
-### 4.2. Messenger-Style Unified Group & Direct Messaging System
+### 4.2. Community Tuition Portal (`/tuitions`)
+A dedicated home & online tutoring marketplace designed specifically for the ULAB community:
+- **Universal Posting Rights:** Students, alumni, and faculty can all publish tuition requirements for their siblings, children, or neighborhood students.
+- **Bangladesh Standard Tutoring Specifications:**
+  - **Class & Grade:** Class 1-5, Class 6-8, Class 9-10 (SSC), Class 11-12 (HSC), O-Level, A-Level, University/Coding, Admission Prep, Spoken English/IELTS.
+  - **Medium & Curriculum:** Bangla Medium, English Version (National Curriculum), English Medium (Cambridge/Edexcel), Madrasah.
+  - **Tutoring Modes:** Home Tutoring (in-person), Online Tutoring (Google Meet/Zoom), Tutor's Place.
+  - **Location & Schedule:** Precise area (e.g. Dhanmondi, Mohammadpur, Mirpur), days per week (2/3/4/5 days or weekend only), and monthly salary budget.
+  - **Gender Preferences:** Student gender and preferred tutor gender (*Male Preferred*, *Female Preferred*, *Any*).
+- **Application & Candidate Management:**
+  - Students apply with their expected monthly remuneration, past tutoring experience, weekly availability, and a cover note.
+  - Posters review applicants, inspect student profiles, initiate direct in-app messaging, and manage statuses (*Shortlisted*, *Selected / Hired*, *Rejected*).
+
+### 4.3. Messenger-Style Unified Group & Direct Messaging System
 - **Unified Sidebar Interface:** Filter tabs for **All**, **Direct (1-on-1)**, and **Groups** with real-time last message previews, member counters, and relative timestamps.
 - **Group Creation:** Set group name, optional topic/description, and select members from students, alumni, and faculty with live search.
 - **Real-Time Group Chat Feed:** WhatsApp/Messenger style bubbles with sender avatars, names, and distinctive role badges (*Faculty*, *Student*, *Alumni*, *Admin*).
@@ -135,12 +151,12 @@ The platform implements four distinct user roles with clear permission boundarie
   - Admin controls to remove members or delete the group.
   - Member control to leave group at any time.
 
-### 4.3. Interactive Networking & Disconnect Management
+### 4.4. Interactive Networking & Disconnect Management
 - Full connection request workflow (Send Request, Pending with withdraw button, Accept, Decline).
 - Disconnect option with confirmation modal to manage professional boundaries.
 - Live badge counters displaying pending connection invitations in the sidebar.
 
-### 4.4. Campus Notice Board & Broadcasts
+### 4.5. Campus Notice Board & Broadcasts
 Categorized announcements allow students to filter precisely what they need:
 - 📢 **Notice:** General university administrative and departmental announcements.
 - 📅 **Event:** Seminars, tech fests, alumni reunions, and career fairs.
@@ -148,7 +164,7 @@ Categorized announcements allow students to filter precisely what they need:
 - 🔬 **Research:** Academic calls for papers, research assistant openings, and lab projects.
 - 💡 **Opportunity:** Competitions, workshops, and student development programs.
 
-### 4.5. Student Profiles & Granular Privacy Protection
+### 4.6. Student Profiles & Granular Privacy Protection
 - Students maintain profiles showcasing their bio, batch, department, skills, and resume notes.
 - Users have full control over their contact information with independent toggles for:
   - Phone Number (`phonePublic: true/false`)

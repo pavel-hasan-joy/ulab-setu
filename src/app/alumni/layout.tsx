@@ -14,6 +14,7 @@ export default async function AlumniLayout({ children }: { children: React.React
         { href: "/alumni", label: "Home", icon: "Home" },
         { href: "/alumni/board", label: "Notices", icon: "Megaphone" },
         { href: "/alumni/jobs", label: "My jobs", icon: "Briefcase" },
+        { href: "/alumni/tuitions", label: "Tuitions", icon: "BookOpen" },
         { href: "/alumni/people", label: "People", icon: "Users", badge: pendingInvites > 0 ? pendingInvites : undefined },
         { href: "/alumni/messages", label: "Messages", icon: "MessageCircle" },
         { href: "/alumni/profile", label: "Profile", icon: "User" },

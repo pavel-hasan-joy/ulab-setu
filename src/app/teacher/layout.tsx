@@ -14,6 +14,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
         { href: "/teacher", label: "Home", icon: "Home" },
         { href: "/teacher/board", label: "Notices", icon: "Megaphone" },
         { href: "/teacher/jobs", label: "My jobs", icon: "Briefcase" },
+        { href: "/teacher/tuitions", label: "Tuitions", icon: "BookOpen" },
         { href: "/teacher/messages", label: "Messages", icon: "MessageCircle" },
         { href: "/teacher/people", label: "People", icon: "Users", badge: pendingInvites > 0 ? pendingInvites : undefined },
         { href: "/teacher/profile", label: "Profile", icon: "User" },

@@ -48,6 +48,9 @@ model User {
   createdGroups Group[]        @relation("GroupCreator")
   groupMembers  GroupMember[]
   groupMessages GroupMessage[]
+
+  postedTuitions      Tuition[]            @relation("PostedTuitions")
+  tuitionApplications TuitionApplication[] @relation("TuitionApplications")
 }
 
 model Job {
@@ -208,6 +211,46 @@ model GroupMessage {
   createdAt      DateTime @default(now())
 
   @@index([groupId, createdAt])
+}
+
+model Tuition {
+  id                   String               @id @default(cuid())
+  title                String
+  classGrade           String               // e.g. "Class 9-10 (SSC)", "Class 11-12 (HSC)", "O-Level", "A-Level"
+  curriculum           String               // e.g. "Bangla Medium", "English Version", "English Medium"
+  subjects             String               // e.g. "Higher Math, Physics"
+  tutoringType         String               // "Home Tutoring" | "Online Tutoring" | "Tutor's Place"
+  location             String               // e.g. "Dhanmondi, Dhaka"
+  daysPerWeek          String               // e.g. "3 Days / Week"
+  salary               String               // e.g. "6,000 BDT/Month" or "Negotiable"
+  studentGender        String?              // "Male" | "Female" | "Any"
+  preferredTutorGender String?              // "Male Preferred" | "Female Preferred" | "Any"
+  requirements         String?              // Specific tutor requirements or background
+  status               String               @default("OPEN") // OPEN | CLOSED
+  createdAt            DateTime             @default(now())
+
+  postedById           String
+  postedBy             User                 @relation("PostedTuitions", fields: [postedById], references: [id], onDelete: Cascade)
+  applications         TuitionApplication[]
+
+  @@index([postedById])
+}
+
+model TuitionApplication {
+  id             String   @id @default(cuid())
+  tuitionId      String
+  tuition        Tuition  @relation(fields: [tuitionId], references: [id], onDelete: Cascade)
+  applicantId    String
+  applicant      User     @relation("TuitionApplications", fields: [applicantId], references: [id], onDelete: Cascade)
+  expectedSalary String?
+  experience     String?  // e.g. "2 years teaching SSC Physics & Math"
+  availability   String?  // e.g. "After 4:30 PM, 3 days/week"
+  note           String?  // cover note / pitch
+  status         String   @default("APPLIED") // APPLIED | SHORTLISTED | SELECTED | REJECTED
+  createdAt      DateTime @default(now())
+
+  @@unique([tuitionId, applicantId])
+  @@index([applicantId])
 }
 
 
