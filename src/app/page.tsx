@@ -66,7 +66,7 @@ export default async function Home() {
           </Reveal>
           <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
             {[
-              { icon: UserPlus, title: "Join with your role", body: `Students, alumni, and faculty sign up with their official @${site.studentEmailDomain} email for instant access and verification.` },
+              { icon: UserPlus, title: "Join with your role", body: `Students, alumni, and faculty sign up and connect using their official @${site.studentEmailDomain} email.` },
               { icon: MessageCircle, title: "Reach out to a senior", body: "Find alumni by department, company or batch, and message anyone directly." },
               { icon: BadgeCheck, title: "Apply with a referral", body: "Apply to jobs alumni post here. Many come with an offer to refer you internally." },
             ].map((s, i) => (

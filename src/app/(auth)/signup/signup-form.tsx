@@ -177,9 +177,6 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
                 <Field label="Current company"><Input name="company" required defaultValue={f.company} /></Field>
                 <Field label="Job title"><Input name="designation" required defaultValue={f.designation} /></Field>
               </div>
-              <p className="rounded-xl bg-gold-wash px-3.5 py-2.5 text-xs text-gold-ink">
-                Signing up with your verified @{site.studentEmailDomain} email automatically approves your account. You can immediately post jobs and connect with students.
-              </p>
             </motion.div>
           )}
           {role === "TEACHER" && (
@@ -187,9 +184,6 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
               <Field label="Designation">
                 <Select name="designation" options={teacherRanks} placeholder="Choose designation" required defaultValue={f.designation} />
               </Field>
-              <p className="rounded-xl bg-lilac-wash px-3.5 py-2.5 text-xs text-lilac-ink">
-                Signing up with your verified @{site.studentEmailDomain} email automatically approves your faculty account. You can immediately post notices and mentor students.
-              </p>
             </motion.div>
           )}
         </AnimatePresence>
