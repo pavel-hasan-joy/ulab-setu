@@ -8,123 +8,178 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  name           String
-  email          String   @unique
-  passwordHash   String
-  role           String // STUDENT | ALUMNI | TEACHER | ADMIN
-  status         String   @default("APPROVED") // PENDING | APPROVED | REJECTED
-  department     String?
-  studentId      String?
-  batch          String? // admission year for students
-  graduationYear String?
-  company        String?
-  designation    String? // job title; for teachers, academic rank
-  location       String?
-  bio            String?
-  skills         String? // comma separated
-  linkedin       String?
-  github         String?
-  image          String?
+  id                 String    @id @default(cuid())
+  name               String
+  email              String    @unique
+  passwordHash       String
+  role               String    // STUDENT | ALUMNI | TEACHER | ADMIN
+  status             String    @default("APPROVED") // PENDING | APPROVED | REJECTED
+  emailVerified      Boolean   @default(true)
+  alumniVerified     Boolean   @default(false)
+  verificationMethod String?   @default("ulab_email")
+  verifiedAt         DateTime?
+  department         String?
+  studentId          String?
+  batch              String?   // admission year for students
+  graduationYear     String?
+  company            String?
+  designation        String?   // job title; for teachers, academic rank
+  location           String?
+  bio                String?
+  skills             String?   // comma separated
+  linkedin           String?
+  github             String?
+  image              String?
   // Contact details, each hidden unless the owner makes it public
-  phone          String?
-  phonePublic    Boolean  @default(false)
-  whatsapp       String?
-  whatsappPublic Boolean  @default(false)
-  facebook       String?
-  facebookPublic Boolean  @default(false)
-  isPrivate      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  lastLoginAt    DateTime?
+  phone              String?
+  phonePublic        Boolean   @default(false)
+  whatsapp           String?
+  whatsappPublic     Boolean   @default(false)
+  facebook           String?
+  facebookPublic     Boolean   @default(false)
+  isPrivate          Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt @default(now())
+  deletedAt          DateTime?
+  lastLoginAt        DateTime?
 
-  jobs          Job[]
-  applications  Application[]
-  sentRequests  Connection[]  @relation("sent")
-  gotRequests   Connection[]  @relation("received")
-  messages      Message[]
-  posts         Post[]
-  loginLogs     LoginLog[]
+  jobs                   Job[]
+  applications           Application[]
+  sentRequests           Connection[]          @relation("sent")
+  gotRequests            Connection[]          @relation("received")
+  messages               Message[]
+  posts                  Post[]
+  loginLogs              LoginLog[]
 
-  createdGroups Group[]        @relation("GroupCreator")
-  groupMembers  GroupMember[]
-  groupMessages GroupMessage[]
+  createdGroups          Group[]               @relation("GroupCreator")
+  groupMembers           GroupMember[]
+  groupMessages          GroupMessage[]
 
-  postedTuitions      Tuition[]            @relation("PostedTuitions")
-  tuitionApplications TuitionApplication[] @relation("TuitionApplications")
+  postedTuitions         Tuition[]             @relation("PostedTuitions")
+  tuitionApplications    TuitionApplication[]  @relation("TuitionApplications")
+
+  // Governance, Mentorship & Collaboration Relations
+  notifications          Notification[]        @relation("UserNotifications")
+  triggeredNotifications Notification[]        @relation("TriggeredNotifications")
+  studentMentorships     MentorshipRequest[]   @relation("StudentMentorships")
+  mentorRequests         MentorshipRequest[]   @relation("MentorRequests")
+  supportTickets         SupportTicket[]       @relation("UserTickets")
+  assignedTickets        SupportTicket[]       @relation("AssignedTickets")
+  submittedReports       UserReport[]          @relation("SubmittedReports")
+  receivedReports        UserReport[]          @relation("ReportedUser")
+  resolvedReports        UserReport[]          @relation("ResolvedReports")
+  adminAuditLogs         AdminAuditLog[]       @relation("AdminAuditActions")
+
+  @@index([role])
+  @@index([status])
+  @@index([department])
+  @@index([studentId])
+  @@index([alumniVerified])
+  @@index([deletedAt])
 }
 
 model Job {
-  id           String   @id @default(cuid())
-  title        String
-  company      String
-  location     String
-  type         String // Full-time | Part-time | Internship | Contract
-  category     String
-  description  String
-  requirements String?
-  salary       String?
-  deadline     DateTime?
-  referral     Boolean  @default(false)
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id              String        @id @default(cuid())
+  title           String
+  company         String
+  location        String
+  type            String        // Full-time | Part-time | Internship | Contract
+  category        String
+  description     String
+  requirements    String?
+  salary          String?
+  deadline        DateTime?
+  referral        Boolean       @default(false)
+  active          Boolean       @default(true)
+  experienceLevel String?       // Entry | Mid-level | Senior
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt @default(now())
+  deletedAt       DateTime?
 
-  postedById   String
-  postedBy     User          @relation(fields: [postedById], references: [id], onDelete: Cascade)
-  applications Application[]
+  postedById      String
+  postedBy        User          @relation(fields: [postedById], references: [id], onDelete: Cascade)
+  applications    Application[]
+
+  @@index([postedById])
+  @@index([active])
+  @@index([category])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model Application {
   id        String   @id @default(cuid())
   note      String?
+  resumeUrl String?
   status    String   @default("APPLIED") // APPLIED | SHORTLISTED | REJECTED
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 
   jobId     String
-  job       Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   studentId String
-  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, studentId])
+  @@index([studentId])
+  @@index([jobId])
+  @@index([status])
 }
 
 model Connection {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   note      String?
-  status    String   @default("PENDING") // PENDING | ACCEPTED | DECLINED
-  createdAt DateTime @default(now())
+  status    String    @default("PENDING") // PENDING | ACCEPTED | DECLINED
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt @default(now())
 
-  fromId   String
-  from     User      @relation("sent", fields: [fromId], references: [id], onDelete: Cascade)
-  toId     String
-  to       User      @relation("received", fields: [toId], references: [id], onDelete: Cascade)
-  messages Message[]
+  fromId    String
+  from      User      @relation("sent", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String
+  to        User      @relation("received", fields: [toId], references: [id], onDelete: Cascade)
+  messages  Message[]
 
   @@unique([fromId, toId])
+  @@index([fromId])
+  @@index([toId])
+  @@index([status])
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  body      String
-  createdAt DateTime @default(now())
+  id           String     @id @default(cuid())
+  body         String
+  isRead       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
 
   connectionId String
   connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   senderId     String
   sender       User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, createdAt])
+  @@index([senderId])
+  @@index([isRead])
 }
 
 /** Notice board: announcements, events, scholarships and research calls from teachers and alumni. */
 model Post {
   id        String    @id @default(cuid())
-  kind      String // Notice | Event | Scholarship | Research | Opportunity
+  kind      String    // Notice | Event | Scholarship | Research | Opportunity
   title     String
   body      String
   link      String?
   eventDate DateTime?
   createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt @default(now())
+  deletedAt DateTime?
 
-  authorId String
-  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([kind])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 /** Login activity audit logs for admin analytics */
@@ -137,6 +192,9 @@ model LoginLog {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 /** Pre-approved faculty and alumni directory for instant auto-approval */
@@ -182,6 +240,8 @@ model Group {
 
   members     GroupMember[]
   messages    GroupMessage[]
+
+  @@index([createdById])
 }
 
 model GroupMember {
@@ -253,4 +313,124 @@ model TuitionApplication {
   @@index([applicantId])
 }
 
+/** Dynamic Role & Permission management */
+model RolePermission {
+  id          String   @id @default(cuid())
+  role        String   // STUDENT | ALUMNI | TEACHER | ADMIN
+  permission  String   // e.g. "jobs:create", "posts:create", "tuition:create", "mentorship:request", "users:verify", "reports:resolve"
+  description String?
+  granted     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt @default(now())
 
+  @@unique([role, permission])
+  @@index([role])
+}
+
+/** User in-app notifications */
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String?  // Who triggered the action (optional)
+  actor     User?    @relation("TriggeredNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+  title     String
+  body      String
+  type      String   // SYSTEM | CONNECTION | MESSAGE | APPLICATION | MENTORSHIP | TICKET | REPORT
+  link      String?  // Action URL
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+/** Student to Alumni / Teacher mentorship connections */
+model MentorshipRequest {
+  id          String    @id @default(cuid())
+  studentId   String
+  student     User      @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
+  mentorId    String
+  mentor      User      @relation("MentorRequests", fields: [mentorId], references: [id], onDelete: Cascade)
+  topic       String    // Career Guidance | Resume Review | Technical Interview | Industry Transition | Research
+  message     String
+  status      String    @default("PENDING") // PENDING | ACCEPTED | DECLINED | COMPLETED | CANCELLED
+  mentorNotes String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt @default(now())
+
+  @@index([studentId])
+  @@index([mentorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/** Support and Helpdesk ticketing system */
+model SupportTicket {
+  id           String    @id @default(cuid())
+  ticketNumber String    @unique // Sequential human-readable ticket reference e.g. "TICK-1001"
+  userId       String
+  user         User      @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  subject      String
+  description  String
+  category     String    // ACCOUNT | VERIFICATION | JOB_PORTAL | MESSAGING | TECHNICAL | OTHER
+  priority     String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status       String    @default("OPEN")   // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  assignedToId String?
+  assignedTo   User?     @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([assignedToId])
+}
+
+/** Trust, safety and moderation reports */
+model UserReport {
+  id              String    @id @default(cuid())
+  reporterId      String
+  reporter        User      @relation("SubmittedReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId  String?
+  reportedUser    User?     @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  targetType      String    // USER | JOB | POST | MESSAGE | TUITION
+  targetId        String?
+  reason          String    // SPAM | HARASSMENT | FAKE_IDENTITY | FRAUD | INAPPROPRIATE | OTHER
+  details         String?
+  status          String    @default("PENDING") // PENDING | INVESTIGATING | RESOLVED | DISMISSED
+  resolvedById    String?
+  resolvedBy      User?     @relation("ResolvedReports", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolutionNotes String?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt @default(now())
+
+  @@index([reporterId])
+  @@index([reportedUserId])
+  @@index([status])
+  @@index([targetType])
+}
+
+/** Comprehensive Admin & Security audit logging */
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation("AdminAuditActions", fields: [adminId], references: [id], onDelete: Cascade)
+  action     String   // USER_STATUS_CHANGE | ROLE_CHANGE | USER_DELETE | JOB_TOGGLE | REPORT_RESOLVE | TICKET_UPDATE | PERMISSION_CHANGE
+  targetType String   // USER | JOB | APPLICATION | SUPPORT_TICKET | USER_REPORT | POST | TUITION | PERMISSION
+  targetId   String?
+  details    String?  // JSON context or summary
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([targetType])
+  @@index([createdAt])
+}

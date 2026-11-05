@@ -86,13 +86,23 @@ if (isPostgres) {
       // 1 Single Institutional Super Admin
       await db.user.upsert({
         where: { email: "admin@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "ADMIN", passwordHash: adminPasswordHash },
+        update: {
+          status: "APPROVED",
+          role: "ADMIN",
+          passwordHash: adminPasswordHash,
+          emailVerified: true,
+          alumniVerified: false,
+          verificationMethod: "institutional_admin",
+        },
         create: {
           name: "ULAB Admin Office",
           email: "admin@ulab.edu.bd",
           passwordHash: adminPasswordHash,
           role: "ADMIN",
           status: "APPROVED",
+          emailVerified: true,
+          alumniVerified: false,
+          verificationMethod: "institutional_admin",
           department: "Alumni Affairs & Career Services",
           designation: "Head of Administration",
           bio: "Official administrator account for ULAB Setu platform management.",
@@ -102,13 +112,24 @@ if (isPostgres) {
       // Demo Student
       const sampleStudent = await db.user.upsert({
         where: { email: "student@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "STUDENT", passwordHash },
+        update: {
+          status: "APPROVED",
+          role: "STUDENT",
+          passwordHash,
+          emailVerified: true,
+          alumniVerified: false,
+          verificationMethod: "ulab_email",
+        },
         create: {
           name: "Farhana Akter",
           email: "student@ulab.edu.bd",
           passwordHash,
           role: "STUDENT",
           status: "APPROVED",
+          emailVerified: true,
+          alumniVerified: false,
+          verificationMethod: "ulab_email",
+          verifiedAt: new Date(),
           department: "Computer Science and Engineering",
           studentId: "221014012",
           batch: "2022",
@@ -120,13 +141,24 @@ if (isPostgres) {
       // Demo Teacher
       const sampleTeacher = await db.user.upsert({
         where: { email: "teacher@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "TEACHER", passwordHash },
+        update: {
+          status: "APPROVED",
+          role: "TEACHER",
+          passwordHash,
+          emailVerified: true,
+          alumniVerified: false,
+          verificationMethod: "ulab_email",
+        },
         create: {
           name: "Dr. Kamrul Karim",
           email: "teacher@ulab.edu.bd",
           passwordHash,
           role: "TEACHER",
           status: "APPROVED",
+          emailVerified: true,
+          alumniVerified: false,
+          verificationMethod: "ulab_email",
+          verifiedAt: new Date(),
           department: "Computer Science and Engineering",
           designation: "Associate Professor",
           bio: "Teaches Software Engineering and Database Systems. Passionate about student mentorship.",
@@ -137,13 +169,24 @@ if (isPostgres) {
       // Demo Alumni
       const sampleAlumni = await db.user.upsert({
         where: { email: "alumni@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "ALUMNI", passwordHash },
+        update: {
+          status: "APPROVED",
+          role: "ALUMNI",
+          passwordHash,
+          emailVerified: true,
+          alumniVerified: true,
+          verificationMethod: "ulab_email",
+        },
         create: {
           name: "Tanvir Hasan",
           email: "alumni@ulab.edu.bd",
           passwordHash,
           role: "ALUMNI",
           status: "APPROVED",
+          emailVerified: true,
+          alumniVerified: true,
+          verificationMethod: "ulab_email",
+          verifiedAt: new Date(),
           department: "Computer Science and Engineering",
           graduationYear: "2018",
           studentId: "141014001",
@@ -160,6 +203,37 @@ if (isPostgres) {
       });
 
       console.log("Sample accounts (student, teacher, alumni) synced successfully.");
+
+      // Seed Default Role Permissions
+      const defaultPermissions = [
+        { role: "STUDENT", permission: "jobs:view", description: "Browse open jobs and internships" },
+        { role: "STUDENT", permission: "jobs:apply", description: "Submit job and internship applications" },
+        { role: "STUDENT", permission: "mentorship:request", description: "Request mentorship from alumni/teachers" },
+        { role: "STUDENT", permission: "messages:send", description: "Send direct messages to connections" },
+        { role: "STUDENT", permission: "tickets:create", description: "Open helpdesk support tickets" },
+        { role: "STUDENT", permission: "reports:create", description: "Report inappropriate content or users" },
+        { role: "ALUMNI", permission: "jobs:view", description: "Browse all job listings" },
+        { role: "ALUMNI", permission: "jobs:create", description: "Post job and referral opportunities" },
+        { role: "ALUMNI", permission: "posts:create", description: "Publish notices, events, and scholarships" },
+        { role: "ALUMNI", permission: "mentorship:provide", description: "Accept mentorship and review student requests" },
+        { role: "TEACHER", permission: "jobs:create", description: "Post research assistantships and jobs" },
+        { role: "TEACHER", permission: "posts:create", description: "Publish academic notices and events" },
+        { role: "TEACHER", permission: "mentorship:provide", description: "Guide students through academic mentorship" },
+        { role: "ADMIN", permission: "admin:access", description: "Full access to administrative dashboard" },
+        { role: "ADMIN", permission: "users:manage", description: "Manage user accounts, roles and status" },
+        { role: "ADMIN", permission: "reports:resolve", description: "Investigate and resolve trust & safety reports" },
+        { role: "ADMIN", permission: "tickets:manage", description: "Assign, respond, and close support tickets" },
+        { role: "ADMIN", permission: "audit:view", description: "View security audit and login logs" },
+      ];
+
+      for (const perm of defaultPermissions) {
+        await db.rolePermission.upsert({
+          where: { role_permission: { role: perm.role, permission: perm.permission } },
+          update: { description: perm.description },
+          create: perm,
+        });
+      }
+      console.log("Default role permissions initialized.");
 
       // 4. Upsert a Sample Messenger Group for instant testing
       const sampleGroup = await db.group.upsert({
@@ -283,6 +357,85 @@ if (isPostgres) {
           ],
         });
         console.log("Seeded sample tuitions successfully.");
+      }
+
+      // Sample Notifications
+      const existingNotifCount = await db.notification.count();
+      if (existingNotifCount === 0) {
+        await db.notification.createMany({
+          data: [
+            {
+              userId: sampleStudent.id,
+              actorId: sampleAlumni.id,
+              title: "Connection Accepted",
+              body: "Tanvir Hasan accepted your connection request.",
+              type: "CONNECTION",
+              link: "/student/messages",
+              read: true,
+            },
+            {
+              userId: sampleStudent.id,
+              actorId: sampleTeacher.id,
+              title: "New Research Opportunity",
+              body: "Dr. Kamrul Karim posted a new research assistant position.",
+              type: "SYSTEM",
+              link: "/student/notices",
+              read: false,
+            },
+          ],
+        });
+      }
+
+      // Sample Mentorship Request
+      const existingMentorReqCount = await db.mentorshipRequest.count();
+      if (existingMentorReqCount === 0) {
+        await db.mentorshipRequest.create({
+          data: {
+            studentId: sampleStudent.id,
+            mentorId: sampleAlumni.id,
+            topic: "Resume Review & Frontend Roadmap",
+            message: "Hello Tanvir bhaiya, I would love some feedback on my portfolio and advice on applying for junior React roles.",
+            status: "ACCEPTED",
+            mentorNotes: "Scheduled a 30-min call next Saturday at 4 PM.",
+          },
+        });
+      }
+
+      // Sample Support Ticket
+      const existingTicketCount = await db.supportTicket.count();
+      if (existingTicketCount === 0) {
+        const adminUser = await db.user.findUnique({ where: { email: "admin@ulab.edu.bd" } });
+        await db.supportTicket.create({
+          data: {
+            ticketNumber: "TICK-1001",
+            userId: sampleStudent.id,
+            subject: "Update Student ID on Record",
+            description: "I need to ensure my student ID reflects my latest semester registration card.",
+            category: "ACCOUNT",
+            priority: "LOW",
+            status: "RESOLVED",
+            assignedToId: adminUser?.id,
+            resolution: "Verified against institutional registry and updated profile.",
+            resolvedAt: new Date(),
+          },
+        });
+      }
+
+      // Sample Admin Audit Log
+      const existingAuditCount = await db.adminAuditLog.count();
+      if (existingAuditCount === 0) {
+        const adminUser = await db.user.findUnique({ where: { email: "admin@ulab.edu.bd" } });
+        if (adminUser) {
+          await db.adminAuditLog.create({
+            data: {
+              adminId: adminUser.id,
+              action: "SYSTEM_INITIALIZATION",
+              targetType: "DATABASE",
+              targetId: "ulab_setu_prod",
+              details: "Enterprise schema initialized with RBAC, Mentorship, Support & Audit tables.",
+            },
+          });
+        }
       }
     } catch (cleanupErr) {
       console.warn("Live DB sync warning:", cleanupErr?.message || cleanupErr);

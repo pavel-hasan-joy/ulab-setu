@@ -263,12 +263,18 @@ export async function signup(_: FormState, formData: FormData): Promise<FormStat
 
   // Auto-approval: all university members signing up with verified @ulab.edu.bd emails are auto-approved
   const initialStatus = "APPROVED" as const;
+  const isAlumni = role === "ALUMNI";
+  const now = new Date();
 
   const user = await db.user.create({
     data: {
       ...data,
       role,
       status: initialStatus,
+      emailVerified: true,
+      alumniVerified: isAlumni,
+      verificationMethod: "ulab_email",
+      verifiedAt: now,
       passwordHash: await bcrypt.hash(password, 10),
     },
   });
@@ -301,11 +307,17 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
     return { error: "Your account request was declined. Contact the administration.", fields: { email } };
   }
 
-  // Auto-verify user if status is PENDING upon login with valid @ulab.edu.bd email
-  if (user.status === "PENDING") {
+  // Auto-verify user if status is PENDING or alumni verification pending upon login with valid @ulab.edu.bd email
+  if (user.status === "PENDING" || (user.role === "ALUMNI" && !user.alumniVerified)) {
     await db.user.update({
       where: { id: user.id },
-      data: { status: "APPROVED" },
+      data: {
+        status: "APPROVED",
+        emailVerified: true,
+        alumniVerified: user.role === "ALUMNI" ? true : user.alumniVerified,
+        verificationMethod: "ulab_email",
+        verifiedAt: user.verifiedAt ?? new Date(),
+      },
     });
     user.status = "APPROVED";
   }
