@@ -24,9 +24,6 @@ async function main() {
   await db.user.create({
     data: { name: "Alumni Office", email: "admin@ulab.edu.bd", passwordHash: adminPasswordHash, role: "ADMIN" },
   });
-  await db.user.create({
-    data: { name: "Pavel Hasan Joy", email: "pavel.admin@ulab.edu.bd", passwordHash: adminPasswordHash, role: "ADMIN" },
-  });
 
   const alumni = await Promise.all(
     [

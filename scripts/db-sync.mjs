@@ -2,6 +2,7 @@ import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 if (!process.env.DATABASE_URL) {
   const envPath = path.resolve(process.cwd(), ".env.local");
@@ -65,11 +66,24 @@ if (isPostgres) {
         console.log(`Removed ${deletedDemo.count} extra demo jobs.`);
       }
 
-      // 3. Upsert Admin accounts and Sample Student, Teacher, Alumni accounts
-      const passwordHash = "$2b$10$AgIjAyYWMcxsBDQZL23QWe7wojunHnaGMmVTQcqpMKlX83c/VxxQe"; // hash for "password123"
-      const adminPasswordHash = "$2b$10$e9EjS.xHo9D1FJFuhrX84eXjkQHzCqx4g3Wem37M9i0f8t/TgPkw2"; // hash for "Admin@ulab2026"
+      // 3. Dynamic bcrypt password hashes
+      const passwordHash = bcrypt.hashSync("password123", 10);
+      const adminPasswordHash = bcrypt.hashSync("Admin@ulab2026", 10);
 
-      // Institutional Super Admin
+      // Clean up any test personal accounts so Pavel can test registration/login from scratch
+      await db.user.deleteMany({
+        where: {
+          email: {
+            in: [
+              "pavel.admin@ulab.edu.bd",
+              "pavel.hasan.cse@ulab.edu.bd",
+              "pavel.hasan.joy@ulab.edu.bd",
+            ],
+          },
+        },
+      });
+
+      // 1 Single Institutional Super Admin
       await db.user.upsert({
         where: { email: "admin@ulab.edu.bd" },
         update: { status: "APPROVED", role: "ADMIN", passwordHash: adminPasswordHash },
@@ -85,25 +99,10 @@ if (isPostgres) {
         },
       });
 
-      // Personal Admin for developer / handover
-      await db.user.upsert({
-        where: { email: "pavel.admin@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "ADMIN", passwordHash: adminPasswordHash },
-        create: {
-          name: "Pavel Hasan Joy",
-          email: "pavel.admin@ulab.edu.bd",
-          passwordHash: adminPasswordHash,
-          role: "ADMIN",
-          status: "APPROVED",
-          department: "Computer Science and Engineering",
-          designation: "System Administrator",
-          bio: "Platform developer and administrator.",
-        },
-      });
-
+      // Demo Student
       const sampleStudent = await db.user.upsert({
         where: { email: "student@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "STUDENT" },
+        update: { status: "APPROVED", role: "STUDENT", passwordHash },
         create: {
           name: "Farhana Akter",
           email: "student@ulab.edu.bd",
@@ -118,9 +117,10 @@ if (isPostgres) {
         },
       });
 
+      // Demo Teacher
       const sampleTeacher = await db.user.upsert({
         where: { email: "teacher@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "TEACHER" },
+        update: { status: "APPROVED", role: "TEACHER", passwordHash },
         create: {
           name: "Dr. Kamrul Karim",
           email: "teacher@ulab.edu.bd",
@@ -134,9 +134,10 @@ if (isPostgres) {
         },
       });
 
+      // Demo Alumni
       const sampleAlumni = await db.user.upsert({
         where: { email: "alumni@ulab.edu.bd" },
-        update: { status: "APPROVED", role: "ALUMNI" },
+        update: { status: "APPROVED", role: "ALUMNI", passwordHash },
         create: {
           name: "Tanvir Hasan",
           email: "alumni@ulab.edu.bd",
