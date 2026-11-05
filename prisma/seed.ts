@@ -19,9 +19,13 @@ async function main() {
   await db.user.deleteMany();
 
   const passwordHash = await bcrypt.hash("password123", 10);
+  const adminPasswordHash = await bcrypt.hash("Admin@ulab2026", 10);
 
   await db.user.create({
-    data: { name: "Alumni Office", email: "admin@ulab.edu.bd", passwordHash, role: "ADMIN" },
+    data: { name: "Alumni Office", email: "admin@ulab.edu.bd", passwordHash: adminPasswordHash, role: "ADMIN" },
+  });
+  await db.user.create({
+    data: { name: "Pavel Hasan Joy", email: "pavel.admin@ulab.edu.bd", passwordHash: adminPasswordHash, role: "ADMIN" },
   });
 
   const alumni = await Promise.all(

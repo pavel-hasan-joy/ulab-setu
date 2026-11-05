@@ -24,10 +24,10 @@ async function newPage(viewport = { width: 1440, height: 900 }) {
   page.on("response", (r) => r.status() >= 400 && errors.push(`http ${r.status()}: ${r.url()}`));
   return page;
 }
-async function login(page, email) {
+async function login(page, email, password = "password123") {
   await page.goto(`${BASE}/login`);
   await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', "password123");
+  await page.fill('input[name="password"]', password);
   await page.click('button:has-text("Log in")');
   await page.waitForURL((u) => !u.pathname.startsWith("/login"));
 }
@@ -439,7 +439,7 @@ await step("non-ulab email is rejected on login", async () => {
 
 await step("admin page renders", async () => {
   const ad = await newPage();
-  await login(ad, "admin@ulab.edu.bd");
+  await login(ad, "admin@ulab.edu.bd", "Admin@ulab2026");
   expect(new URL(ad.url()).pathname === "/admin", "admin login failed");
   await shot(ad, "18-admin");
 });

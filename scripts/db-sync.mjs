@@ -65,8 +65,41 @@ if (isPostgres) {
         console.log(`Removed ${deletedDemo.count} extra demo jobs.`);
       }
 
-      // 3. Upsert Sample Student, Teacher, Alumni accounts for user testing
-      const passwordHash = "$2a$10$3zR6zIoxK5W0O.8YqQJk9ezl0uKqN3M/F9bNn4p7K.2Gg8Uu.QW6a"; // hash for "password123"
+      // 3. Upsert Admin accounts and Sample Student, Teacher, Alumni accounts
+      const passwordHash = "$2b$10$AgIjAyYWMcxsBDQZL23QWe7wojunHnaGMmVTQcqpMKlX83c/VxxQe"; // hash for "password123"
+      const adminPasswordHash = "$2b$10$e9EjS.xHo9D1FJFuhrX84eXjkQHzCqx4g3Wem37M9i0f8t/TgPkw2"; // hash for "Admin@ulab2026"
+
+      // Institutional Super Admin
+      await db.user.upsert({
+        where: { email: "admin@ulab.edu.bd" },
+        update: { status: "APPROVED", role: "ADMIN", passwordHash: adminPasswordHash },
+        create: {
+          name: "ULAB Admin Office",
+          email: "admin@ulab.edu.bd",
+          passwordHash: adminPasswordHash,
+          role: "ADMIN",
+          status: "APPROVED",
+          department: "Alumni Affairs & Career Services",
+          designation: "Head of Administration",
+          bio: "Official administrator account for ULAB Setu platform management.",
+        },
+      });
+
+      // Personal Admin for developer / handover
+      await db.user.upsert({
+        where: { email: "pavel.admin@ulab.edu.bd" },
+        update: { status: "APPROVED", role: "ADMIN", passwordHash: adminPasswordHash },
+        create: {
+          name: "Pavel Hasan Joy",
+          email: "pavel.admin@ulab.edu.bd",
+          passwordHash: adminPasswordHash,
+          role: "ADMIN",
+          status: "APPROVED",
+          department: "Computer Science and Engineering",
+          designation: "System Administrator",
+          bio: "Platform developer and administrator.",
+        },
+      });
 
       const sampleStudent = await db.user.upsert({
         where: { email: "student@ulab.edu.bd" },
