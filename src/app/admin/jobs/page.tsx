@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { cleanExpiredJobs } from "@/lib/jobs";
 import { PageIn } from "@/components/motion";
@@ -11,7 +11,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminJobsPage() {
-  await requireUser("ADMIN");
+  await requireAdminPermission("jobs:manage");
   await cleanExpiredJobs();
 
   const rawJobs = await db.job.findMany({

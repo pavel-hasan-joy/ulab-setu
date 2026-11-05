@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { PageIn } from "@/components/motion";
 import { PageHeader } from "@/components/ui";
@@ -13,7 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminAnalyticsPage() {
-  await requireUser("ADMIN");
+  await requireAdminPermission("analytics:view");
 
   const now = new Date();
   const sevenDaysAgo = new Date();

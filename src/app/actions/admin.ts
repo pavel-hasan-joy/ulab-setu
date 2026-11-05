@@ -328,3 +328,139 @@ export async function clearPreApprovedDirectory() {
   revalidatePath("/admin/users");
 }
 
+/** Resolve or dismiss a trust & safety User Report */
+export async function resolveUserReport(
+  reportId: string,
+  status: "INVESTIGATING" | "RESOLVED" | "DISMISSED",
+  resolutionNotes?: string
+) {
+  const admin = await requireUser("ADMIN");
+  const report = await db.userReport.update({
+    where: { id: reportId },
+    data: {
+      status,
+      resolvedById: admin.id,
+      resolutionNotes: resolutionNotes || null,
+      resolvedAt: new Date(),
+    },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "RESOLVE_USER_REPORT",
+      targetType: "USER_REPORT",
+      targetId: reportId,
+      details: `Report status updated to ${status}. Reason: ${report.reason}`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/reports");
+}
+
+/** Update Helpdesk Support Ticket status, priority, or assignment */
+export async function updateSupportTicket(
+  ticketId: string,
+  data: {
+    status?: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
+    priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    resolution?: string;
+    assignedToId?: string;
+  }
+) {
+  const admin = await requireUser("ADMIN");
+  await db.supportTicket.update({
+    where: { id: ticketId },
+    data: {
+      ...(data.status ? { status: data.status } : {}),
+      ...(data.priority ? { priority: data.priority } : {}),
+      ...(data.resolution ? { resolution: data.resolution } : {}),
+      ...(data.assignedToId ? { assignedToId: data.assignedToId } : {}),
+      ...(data.status === "RESOLVED" || data.status === "CLOSED" ? { resolvedAt: new Date() } : {}),
+    },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "UPDATE_SUPPORT_TICKET",
+      targetType: "SUPPORT_TICKET",
+      targetId: ticketId,
+      details: `Ticket status set to ${data.status || "unchanged"}, priority: ${data.priority || "unchanged"}`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/tickets");
+}
+
+/** Assign sub-role to an administrator (Super Admin only) */
+export async function assignAdminSubRole(
+  targetAdminId: string,
+  subRoleTitle: string
+) {
+  const currentAdmin = await requireUser("ADMIN");
+  if (currentAdmin.id === targetAdminId && subRoleTitle !== "Super Admin") {
+    throw new Error("You cannot downgrade your own Super Admin privileges.");
+  }
+
+  await db.user.update({
+    where: { id: targetAdminId },
+    data: { designation: subRoleTitle },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: currentAdmin.id,
+      action: "ASSIGN_ADMIN_SUB_ROLE",
+      targetType: "USER",
+      targetId: targetAdminId,
+      details: `Admin assigned sub-role: ${subRoleTitle}`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin/admins");
+}
+
+/** Broadcast notification to specific role or all members */
+export async function dispatchSystemNotification(
+  title: string,
+  body: string,
+  targetRole: "ALL" | "STUDENT" | "ALUMNI" | "TEACHER",
+  link?: string
+) {
+  const admin = await requireUser("ADMIN");
+  const recipients = await db.user.findMany({
+    where: targetRole === "ALL" ? {} : { role: targetRole },
+    select: { id: true },
+  });
+
+  if (recipients.length > 0) {
+    await db.notification.createMany({
+      data: recipients.map((r) => ({
+        userId: r.id,
+        actorId: admin.id,
+        title,
+        body,
+        type: "SYSTEM",
+        link: link || null,
+        read: false,
+      })),
+    });
+  }
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "BROADCAST_NOTIFICATION",
+      targetType: "NOTIFICATION",
+      targetId: `role:${targetRole}`,
+      details: `Dispatched notification "${title}" to ${recipients.length} users.`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin/notifications");
+}
+
+

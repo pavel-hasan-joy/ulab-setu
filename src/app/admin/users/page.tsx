@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { PageIn } from "@/components/motion";
 import { PageHeader } from "@/components/ui";
@@ -10,7 +10,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("users:manage");
 
   const [rawUsers, preApprovedCount] = await Promise.all([
     db.user.findMany({
@@ -55,8 +55,8 @@ export default async function AdminUsersPage() {
   return (
     <PageIn>
       <PageHeader
-        title="Users Directory & Access Control"
-        description="Search, manage roles, audit student IDs, verify accounts, or import/export university membership records."
+        title="User Management & Role Governance"
+        description="Search, manage roles, audit student IDs, verify accounts, and export university membership records."
       />
       <AdminUsersView
         users={users}

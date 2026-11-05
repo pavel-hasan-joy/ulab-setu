@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { PageIn } from "@/components/motion";
 import { PageHeader } from "@/components/ui";
@@ -10,7 +10,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminNoticesPage() {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("notifications:manage");
 
   const rawNotices = await db.post.findMany({
     orderBy: { createdAt: "desc" },

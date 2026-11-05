@@ -118,3 +118,4 @@ export function sanitizeAndValidatePublicRole(roleRaw: unknown): {
     error: "Invalid role selected. Allowed roles are Student, Alumni, or Faculty.",
   };
 }
+
