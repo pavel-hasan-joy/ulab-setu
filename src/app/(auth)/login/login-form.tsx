@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
 import { PageIn } from "@/components/motion";
 import { Button, Field, FormError, Input } from "@/components/ui";
+import { site } from "@/lib/site";
 
 export function LoginForm({
   next,
@@ -34,8 +35,15 @@ export function LoginForm({
 
       <form key={state?.at} action={action} className="mt-8 space-y-4">
         <input type="hidden" name="next" value={next} />
-        <Field label="Email">
-          <Input name="email" type="email" autoComplete="email" required defaultValue={state?.fields?.email} />
+        <Field label={`${site.universityShort} Institutional Email`} hint={`Must be your @${site.studentEmailDomain} address.`}>
+          <Input
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder={`you@${site.studentEmailDomain}`}
+            defaultValue={state?.fields?.email}
+          />
         </Field>
         <div>
           <div className="mb-1.5 flex items-center justify-between">

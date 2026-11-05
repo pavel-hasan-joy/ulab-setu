@@ -23,7 +23,6 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
   const [role, setRole] = useState<SignupRole>(initialRole);
   const [state, action, pending] = useActionState(signup, undefined);
   const f = state?.fields ?? {};
-  const needsUniEmail = role !== "ALUMNI";
 
   const [emailValue, setEmailValue] = useState(f.email || "");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
@@ -96,8 +95,8 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
 
         <div className="space-y-3">
           <Field
-            label={needsUniEmail ? `${site.universityShort} email` : "Email"}
-            hint={needsUniEmail ? `Use your @${site.studentEmailDomain} address.` : "Use the email you check most."}
+            label={`${site.universityShort} institutional email`}
+            hint={`Must be your official @${site.studentEmailDomain} address.`}
           >
             <div className="flex gap-2">
               <Input
@@ -107,7 +106,7 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
                 required
                 value={emailValue}
                 onChange={(e) => setEmailValue(e.target.value)}
-                placeholder={needsUniEmail ? `you@${site.studentEmailDomain}` : ""}
+                placeholder={`you@${site.studentEmailDomain}`}
                 className="flex-1"
               />
               <button
@@ -179,7 +178,7 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
                 <Field label="Job title"><Input name="designation" required defaultValue={f.designation} /></Field>
               </div>
               <p className="rounded-xl bg-gold-wash px-3.5 py-2.5 text-xs text-gold-ink">
-                The alumni office will check your student ID before you can post jobs. This usually takes a day or two.
+                Signing up with your verified @{site.studentEmailDomain} email automatically approves your account. You can immediately post jobs and connect with students.
               </p>
             </motion.div>
           )}
@@ -189,7 +188,7 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
                 <Select name="designation" options={teacherRanks} placeholder="Choose designation" required defaultValue={f.designation} />
               </Field>
               <p className="rounded-xl bg-lilac-wash px-3.5 py-2.5 text-xs text-lilac-ink">
-                The alumni office confirms faculty accounts before you can post notices and jobs. You can message students right away.
+                Signing up with your verified @{site.studentEmailDomain} email automatically approves your faculty account. You can immediately post notices and mentor students.
               </p>
             </motion.div>
           )}

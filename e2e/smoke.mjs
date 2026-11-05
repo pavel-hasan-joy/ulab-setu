@@ -289,7 +289,7 @@ await step("mobile student dashboard", async () => {
 // Alumni: review applicants, accept request, chat
 const a = await newPage();
 await step("alumni sees applicant and shortlists", async () => {
-  await login(a, "alumni1@example.com");
+  await login(a, "alumni1@ulab.edu.bd");
   expect(new URL(a.url()).pathname === "/alumni", "not on alumni home");
   await a.waitForTimeout(1200);
   await shot(a, "12-alumni-home");
@@ -307,7 +307,7 @@ await step("student sees shortlisted status", async () => {
 });
 await step("alumnus replies without accepting anything", async () => {
   const b = await newPage();
-  await login(b, "alumni3@example.com");
+  await login(b, "alumni3@ulab.edu.bd");
   await b.goto(`${BASE}/alumni/messages`);
   await b.click("text=Test Student");
   await b.waitForSelector("text=power sector jobs");
@@ -405,15 +405,15 @@ await step("teacher signup waits for approval", async () => {
   await n.fill('input[name="password"]', "password123");
   await n.click('button:has-text("Create account")');
   await n.waitForURL(`${BASE}/teacher`);
-  expect(await n.locator("text=being verified").count() === 1, "no pending banner");
+  expect(await n.locator("text=being verified").count() === 0, "teacher still has pending banner");
 });
 
-// Alumni signup + admin approval
-await step("alumni signup is pending, admin approves", async () => {
+// Alumni signup with auto-approval and login restrictions
+await step("alumni signs up with @ulab.edu.bd and is auto-approved", async () => {
   const n = await newPage();
   await n.goto(`${BASE}/signup?role=alumni`);
   await n.fill('input[name="name"]', "New Alumnus");
-  await n.fill('input[name="email"]', `alum${stamp}@gmail.com`);
+  await n.fill('input[name="email"]', `alum${stamp}@ulab.edu.bd`);
   await n.selectOption('select[name="department"]', "Business Administration");
   await n.fill('input[name="studentId"]', "151021001");
   await n.fill('input[name="graduationYear"]', "2019");
@@ -423,18 +423,25 @@ await step("alumni signup is pending, admin approves", async () => {
   await shot(n, "17-signup-alumni");
   await n.click('button:has-text("Create account")');
   await n.waitForURL(`${BASE}/alumni`);
-  expect(await n.locator("text=being verified").count() === 1, "no pending banner");
-  await n.goto(`${BASE}/alumni/jobs/new`);
-  expect(new URL(n.url()).pathname === "/alumni", "pending alumni reached job form");
-
-  const ad = await newPage();
-  await login(ad, "admin@ulab.edu.bd");
-  await ad.waitForSelector("text=New Alumnus");
-  await shot(ad, "18-admin");
-  await ad.locator("div.rounded-2xl", { hasText: "New Alumnus" }).last().locator('button:has-text("Approve")').click();
-  await ad.waitForSelector("text=New Alumnus", { state: "detached" });
+  expect(await n.locator("text=being verified").count() === 0, "alumni still has pending banner");
   await n.goto(`${BASE}/alumni/jobs/new`);
   expect(new URL(n.url()).pathname === "/alumni/jobs/new", "approved alumni can't post");
+});
+
+await step("non-ulab email is rejected on login", async () => {
+  const p = await newPage();
+  await p.goto(`${BASE}/login`);
+  await p.fill('input[name="email"]', "outsider@gmail.com");
+  await p.fill('input[name="password"]', "password123");
+  await p.click('button:has-text("Log in")');
+  await p.waitForSelector("text=@ulab.edu.bd");
+});
+
+await step("admin page renders", async () => {
+  const ad = await newPage();
+  await login(ad, "admin@ulab.edu.bd");
+  expect(new URL(ad.url()).pathname === "/admin", "admin login failed");
+  await shot(ad, "18-admin");
 });
 
 await browser.close();

@@ -62,11 +62,11 @@ export default async function Home() {
         <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 md:px-6 md:py-28">
           <Reveal className="max-w-xl">
             <h2 className="text-3xl font-semibold md:text-4xl">From first message to first offer</h2>
-            <p className="mt-3 text-ink-soft">Alumni are verified by the {site.universityShort} alumni office, so every name you see here really walked the same campus.</p>
+            <p className="mt-3 text-ink-soft">All students, alumni, and faculty connect through verified @{site.studentEmailDomain} accounts, so every member you see here really walked the same campus.</p>
           </Reveal>
           <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
             {[
-              { icon: UserPlus, title: "Join with your role", body: `Students sign up with their @${site.studentEmailDomain} email. Alumni are checked against their student ID.` },
+              { icon: UserPlus, title: "Join with your role", body: `Students, alumni, and faculty sign up with their official @${site.studentEmailDomain} email for instant access and verification.` },
               { icon: MessageCircle, title: "Reach out to a senior", body: "Find alumni by department, company or batch, and message anyone directly." },
               { icon: BadgeCheck, title: "Apply with a referral", body: "Apply to jobs alumni post here. Many come with an offer to refer you internally." },
             ].map((s, i) => (
