@@ -144,3 +144,4 @@ export default async function AdminAuditLogsPage({
     </PageIn>
   );
 }
+

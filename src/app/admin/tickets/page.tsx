@@ -116,3 +116,4 @@ export default async function AdminTicketsPage({
     </PageIn>
   );
 }
+

@@ -33,3 +33,4 @@ export default async function AccessDeniedPage({
     </div>
   );
 }
+

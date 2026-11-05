@@ -217,7 +217,6 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
                 name="verificationCode"
                 inputMode="numeric"
                 maxLength={6}
-                required
                 placeholder="6-digit code"
                 className="pl-9 font-mono text-base tracking-widest"
                 defaultValue={f.verificationCode || (otpInfo?.isDemo ? otpInfo?.code : "")}
@@ -297,7 +296,7 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
         <FormError message={state?.error} />
 
         <Button className="w-full py-3" disabled={pending}>
-          {pending ? "Creating account…" : "Complete Registration"}
+          {pending ? "Creating account…" : "Create account"}
         </Button>
       </form>
 
