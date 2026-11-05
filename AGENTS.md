@@ -112,3 +112,9 @@ The platform strictly recognizes **four user roles**:
 - **Mobile-First Responsiveness:** Optimize touch targets (>= 44x44px), thumb-friendly navigation, sticky bottom-bars on mobile, and zero horizontal scrolling bugs.
 - **Concise & Direct Forms:** Keep forms focused, pre-fill known user profile data wherever possible, and provide clear field-level validation feedback.
 - **Consistent Navigation Shell:** All authenticated areas must render through `<AppShell />` with unified sidebar/drawer navigation, role badges, and invitation counters.
+
+---
+
+## 8. Communication & Language Policy (বাংলা / Bengali Mandatory)
+- **Always Speak & Write in Bengali:** All future communications, status updates, problem explanations, and responses to the project owner MUST be in clear, natural, and respectful Bengali (বাংলা).
+- **Code & Syntax Integrity:** Code snippets, terminal commands, schema identifiers, and technical terms remain in their standard English syntax. All explanatory prose, questions, and summaries must be entirely in Bengali.
