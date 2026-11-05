@@ -7,22 +7,149 @@ import { requireUser } from "@/lib/auth";
 import { postKinds } from "@/lib/site";
 import { fail, type FormState } from "./auth";
 
-/** Admin verifies or changes status of any user */
+/** Admin verifies, suspends or reactivates account status of any user */
 export async function setAdminUserStatus(
   userId: string,
-  status: "APPROVED" | "PENDING" | "REJECTED"
+  status: "APPROVED" | "PENDING" | "REJECTED" | "SUSPENDED"
 ) {
   const currentAdmin = await requireUser("ADMIN");
   if (currentAdmin.id === userId && status !== "APPROVED") {
     throw new Error("You cannot change your own admin account status.");
   }
-  await db.user.update({
+  const user = await db.user.update({
     where: { id: userId },
     data: { status },
   });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: currentAdmin.id,
+      action: "USER_STATUS_CHANGE",
+      targetType: "USER",
+      targetId: userId,
+      details: `Account status updated to ${status} for user: ${user.name} (${user.email})`,
+    },
+  }).catch(() => {});
+
   revalidatePath("/admin");
   revalidatePath("/admin/users");
   revalidatePath("/admin/analytics");
+}
+
+/** Admin soft-deletes a user account */
+export async function softDeleteUserByAdmin(userId: string) {
+  const currentAdmin = await requireUser("ADMIN");
+  if (currentAdmin.id === userId) {
+    throw new Error("You cannot delete your own admin account.");
+  }
+  const user = await db.user.update({
+    where: { id: userId },
+    data: {
+      deletedAt: new Date(),
+      status: "SUSPENDED",
+    },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: currentAdmin.id,
+      action: "USER_SOFT_DELETE",
+      targetType: "USER",
+      targetId: userId,
+      details: `Soft-deleted user account: ${user.name} (${user.email})`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/analytics");
+}
+
+/** Admin restores a soft-deleted user account */
+export async function restoreUserByAdmin(userId: string) {
+  const currentAdmin = await requireUser("ADMIN");
+  const user = await db.user.update({
+    where: { id: userId },
+    data: {
+      deletedAt: null,
+      status: "APPROVED",
+    },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: currentAdmin.id,
+      action: "USER_RESTORE",
+      targetType: "USER",
+      targetId: userId,
+      details: `Restored soft-deleted user account: ${user.name} (${user.email})`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/analytics");
+}
+
+/** Admin performs bulk status changes (e.g. bulk suspend, bulk reactivate) */
+export async function bulkSetUserStatus(
+  userIds: string[],
+  status: "APPROVED" | "SUSPENDED" | "REJECTED"
+) {
+  const currentAdmin = await requireUser("ADMIN");
+  // Prevent operating on oneself
+  const targetIds = userIds.filter((id) => id !== currentAdmin.id);
+  if (targetIds.length === 0) return 0;
+
+  const res = await db.user.updateMany({
+    where: { id: { in: targetIds } },
+    data: { status },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: currentAdmin.id,
+      action: "BULK_USER_STATUS_CHANGE",
+      targetType: "USER",
+      targetId: "BULK",
+      details: `Bulk updated ${res.count} user accounts to ${status}`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/analytics");
+  return res.count;
+}
+
+/** Admin performs bulk soft-delete */
+export async function bulkSoftDeleteUsers(userIds: string[]) {
+  const currentAdmin = await requireUser("ADMIN");
+  const targetIds = userIds.filter((id) => id !== currentAdmin.id);
+  if (targetIds.length === 0) return 0;
+
+  const res = await db.user.updateMany({
+    where: { id: { in: targetIds } },
+    data: {
+      deletedAt: new Date(),
+      status: "SUSPENDED",
+    },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: currentAdmin.id,
+      action: "BULK_USER_SOFT_DELETE",
+      targetType: "USER",
+      targetId: "BULK",
+      details: `Bulk soft-deleted ${res.count} user accounts`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/analytics");
+  return res.count;
 }
 
 /** Admin changes user role (e.g. promote to Admin, make Teacher, Alumni, Student) */

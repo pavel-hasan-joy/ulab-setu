@@ -73,6 +73,10 @@ export const SUB_ROLE_LABELS: Record<AdminSubRole, { label: string; tone: "gold"
  * Derives the administrative sub-role from user records.
  * Institutional super admins and root accounts resolve to SUPER_ADMIN.
  */
+export function hasPermission(subRole: AdminSubRole, permission: AdminPermission): boolean {
+  return ROLE_PERMISSIONS[subRole]?.includes(permission) ?? false;
+}
+
 export function getAdminSubRole(user: { email: string; designation?: string | null }): AdminSubRole {
   if (user.email === "admin@ulab.edu.bd") {
     return "SUPER_ADMIN";
