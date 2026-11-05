@@ -9,7 +9,13 @@ import { Button, EmptyState, Input, PageHeader, Select } from "./ui";
 import { PeopleDirectoryClient, type PendingInvitation } from "./people-directory-client";
 import type { ConnectionState } from "./connect-button";
 
-type Params = { tab?: string; q?: string; department?: string };
+type Params = {
+  tab?: string;
+  q?: string;
+  department?: string;
+  gradYear?: string;
+  batch?: string;
+};
 
 /** Everyone on Setu, split into alumni, teachers, and students. With LinkedIn-style Connect actions. */
 export async function PeopleDirectory({
@@ -34,6 +40,8 @@ export async function PeopleDirectory({
   const role = tab === "students" ? "STUDENT" : tab === "teachers" ? "TEACHER" : "ALUMNI";
   const q = params.q?.trim() ?? "";
   const department = params.department || undefined;
+  const gradYear = params.gradYear?.trim() || undefined;
+  const batch = params.batch?.trim() || undefined;
 
   const [people, connections, counts, rawInvitations] = await Promise.all([
     tab === "invitations"
@@ -44,12 +52,17 @@ export async function PeopleDirectory({
             role,
             status: "APPROVED",
             ...(department && { department }),
+            ...(gradYear && { graduationYear: gradYear }),
+            ...(batch && { batch: { contains: batch, mode: "insensitive" } }),
             ...(q && {
               OR: [
-                { name: { contains: q } },
-                { company: { contains: q } },
-                { designation: { contains: q } },
-                { skills: { contains: q } },
+                { name: { contains: q, mode: "insensitive" } },
+                { company: { contains: q, mode: "insensitive" } },
+                { designation: { contains: q, mode: "insensitive" } },
+                { skills: { contains: q, mode: "insensitive" } },
+                { batch: { contains: q, mode: "insensitive" } },
+                { graduationYear: { contains: q, mode: "insensitive" } },
+                { department: { contains: q, mode: "insensitive" } },
               ],
             }),
           },
@@ -93,7 +106,13 @@ export async function PeopleDirectory({
   });
 
   const count = (role: string) => counts.find((c) => c.role === role)?._count ?? 0;
-  const link = (t: string) => `${basePath}?tab=${t}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const link = (t: string) => {
+    const qParams: string[] = [`tab=${t}`];
+    if (q) qParams.push(`q=${encodeURIComponent(q)}`);
+    if (department) qParams.push(`department=${encodeURIComponent(department)}`);
+    if (gradYear && t === "alumni") qParams.push(`gradYear=${encodeURIComponent(gradYear)}`);
+    return `${basePath}?${qParams.join("&")}`;
+  };
   const invitationsCount = pendingInvitations.length;
 
   return (
@@ -143,7 +162,7 @@ export async function PeopleDirectory({
       />
 
       {tab !== "invitations" && (
-        <form className="mb-6 mt-5 flex flex-col gap-3 sm:flex-row">
+        <form className="mb-6 mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <input type="hidden" name="tab" value={tab} />
           <div className="relative flex-1">
             <Search size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" />
@@ -152,10 +171,10 @@ export async function PeopleDirectory({
               defaultValue={q}
               placeholder={
                 tab === "alumni"
-                  ? "Name, company, role or skill"
+                  ? "Search by name, company, position, skills, batch, or graduation year..."
                   : tab === "teachers"
-                  ? "Name, designation or subject"
-                  : "Name or skill"
+                  ? "Search by name, department, designation, or subject..."
+                  : "Search students by name, department, batch, or skills..."
               }
               className="pl-10"
             />
@@ -165,16 +184,36 @@ export async function PeopleDirectory({
             options={departments}
             placeholder="All departments"
             defaultValue={department ?? ""}
-            className="sm:w-64"
+            className="sm:w-56"
           />
-          <Button variant="soft">Search</Button>
+          {tab === "alumni" && (
+            <Select
+              name="gradYear"
+              options={[
+                "2026", "2025", "2024", "2023", "2022", "2021",
+                "2020", "2019", "2018", "2017", "2016", "2015", "2014", "2013"
+              ]}
+              placeholder="Graduation Year"
+              defaultValue={gradYear ?? ""}
+              className="sm:w-44"
+            />
+          )}
+          <Button variant="soft" className="shrink-0">Search</Button>
+          {(q || department || gradYear || batch) && (
+            <Link
+              href={`${basePath}?tab=${tab}`}
+              className="inline-flex items-center justify-center rounded-xl border border-mist px-3.5 py-2.5 text-xs font-semibold text-ink-soft hover:bg-paper hover:text-ink transition shrink-0"
+            >
+              Clear
+            </Link>
+          )}
         </form>
       )}
 
       {tab !== "invitations" && people.length === 0 ? (
         <EmptyState
           title="Nobody matches that search"
-          body="Try a shorter keyword or clear the department filter."
+          body="Try a different keyword or clear the active filters."
           action={
             <Link href={`${basePath}?tab=${tab}`} className="text-sm font-semibold text-ulab hover:underline">
               Clear search

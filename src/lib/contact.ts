@@ -35,12 +35,25 @@ export function cleanLinkedIn(input: string) {
   return `https://linkedin.com/in/${path}`;
 }
 
-/** Accepts a GitHub profile URL or just a username/handle and returns a full github.com URL, or null. */
+/** Accepts a GitHub profile URL, personal website, portfolio URL, or username/handle and returns a clean URL, or null. */
 export function cleanGitHub(input: string) {
   const v = input.trim();
   if (!v) return null;
-  const m = v.match(/^(?:https?:\/\/)?(?:www\.)?github\.com\/(.+)$/i);
-  const path = (m ? m[1] : v).replace(/^\/+|\/+$/g, "").replace(/^@/, "");
+  // If it's already an http or https URL (portfolio or personal website), validate and return
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const url = new URL(v);
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+  // If it's a domain without protocol (e.g. portfolio.dev, myname.me, github.com/user)
+  if (/^[\w-]+(\.[\w-]+)+([/?#].*)?$/i.test(v)) {
+    return `https://${v}`;
+  }
+  // Otherwise treat as github username
+  const path = v.replace(/^\/+|\/+$/g, "").replace(/^@/, "");
   if (!/^[\w.\-]+$/.test(path)) return null;
   return `https://github.com/${path}`;
 }

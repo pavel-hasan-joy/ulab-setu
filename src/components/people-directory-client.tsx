@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Lock,
   MapPin,
+  ShieldCheck,
   UserCheck,
   UserPlus,
   Users,
@@ -174,19 +175,45 @@ export function PeopleDirectoryClient({
                       </div>
 
                       {p.role === "ALUMNI" ? (
-                        <p className="text-sm text-ink">{p.designation || "Alumnus"}</p>
+                        <div>
+                          <p className="text-sm font-medium text-ink">
+                            {p.designation || "Alumnus"}
+                            {p.company ? ` at ${p.company}` : ""}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-soft">
+                            <span className="font-medium text-ink">{p.department}</span>
+                            {p.batch && (
+                              <>
+                                <span>•</span>
+                                <span>Batch {p.batch}</span>
+                              </>
+                            )}
+                            {p.graduationYear && (
+                              <>
+                                <span>•</span>
+                                <span>Class of {p.graduationYear}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       ) : p.role === "TEACHER" ? (
-                        <p className="text-sm text-ink">
-                          {p.designation || "Faculty"}, {site.universityShort}
-                        </p>
+                        <div>
+                          <p className="text-sm font-medium text-ink">
+                            {p.designation || "Faculty"}, {site.universityShort}
+                          </p>
+                          <p className="mt-0.5 text-xs text-ink-soft">{p.department}</p>
+                        </div>
                       ) : (
-                        <p className="inline-flex items-center gap-1 text-sm text-ink">
-                          <GraduationCap size={14} /> Student, admitted {p.batch}
-                        </p>
+                        <div>
+                          <p className="inline-flex items-center gap-1 text-sm font-medium text-ink">
+                            <GraduationCap size={14} /> Student {p.batch ? `• Admitted ${p.batch}` : ""}
+                          </p>
+                          <p className="mt-0.5 text-xs text-ink-soft">{p.department}</p>
+                        </div>
                       )}
 
                       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-soft">
-                        {p.company && (
+                        {p.company && p.role !== "ALUMNI" && (
                           <span className="inline-flex items-center gap-1">
                             <Building2 size={12} />
                             {p.company}
@@ -202,7 +229,21 @@ export function PeopleDirectoryClient({
                     </div>
 
                     {p.role === "ALUMNI" && (
-                      <Badge tone="gold" className="shrink-0">{p.graduationYear}</Badge>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        {p.alumniVerified ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 shadow-xs dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                            <ShieldCheck size={12} className="text-emerald-600 dark:text-emerald-400" />
+                            Verified via ULAB Email
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-mist bg-paper px-2 py-0.5 text-[11px] font-medium text-ink-soft">
+                            Unverified
+                          </span>
+                        )}
+                        {p.graduationYear && (
+                          <Badge tone="gold" className="text-[11px]">Class of {p.graduationYear}</Badge>
+                        )}
+                      </div>
                     )}
                     {p.role === "TEACHER" && (
                       <Badge tone="lilac" className="shrink-0">Faculty</Badge>
@@ -244,13 +285,14 @@ export function PeopleDirectoryClient({
                       onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2"
                     >
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => setSelectedPerson(p)}
-                        className="text-xs font-semibold text-ulab hover:underline mr-1"
+                        className="px-3 py-1.5 text-xs font-semibold hover:border-ulab hover:text-ulab"
                       >
                         View Profile
-                      </button>
+                      </Button>
                       <ConnectButton
                         targetUserId={p.id}
                         targetUserName={p.name}

@@ -74,29 +74,39 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
                 <Field label="Department"><Select name="department" options={departments} defaultValue={user.department ?? ""} /></Field>
                 {alumni ? (
                   <>
-                    <Field label="Company"><Input name="company" defaultValue={user.company ?? ""} /></Field>
-                    <Field label="Job title"><Input name="designation" defaultValue={user.designation ?? ""} /></Field>
-                    <Field label="Graduation year"><Input name="graduationYear" defaultValue={user.graduationYear ?? ""} /></Field>
+                    <Field label="Batch" hint="e.g. Batch 15 or 151"><Input name="batch" defaultValue={user.batch ?? ""} placeholder="e.g. Batch 15" /></Field>
+                    <Field label="Graduation year" hint="Year of graduation"><Input name="graduationYear" defaultValue={user.graduationYear ?? ""} placeholder="e.g. 2022" /></Field>
+                    <Field label="Current Company"><Input name="company" defaultValue={user.company ?? ""} placeholder="e.g. Google, Brain Station 23" /></Field>
+                    <Field label="Current Position / Title"><Input name="designation" defaultValue={user.designation ?? ""} placeholder="e.g. Software Engineer, Team Lead" /></Field>
                   </>
                 ) : teacher ? (
-                  <Field label="Designation"><Select name="designation" options={teacherRanks} defaultValue={user.designation ?? ""} /></Field>
+                  <>
+                    <Field label="Designation / Academic Rank"><Select name="designation" options={teacherRanks} defaultValue={user.designation ?? ""} /></Field>
+                    <Field label="Campus / Room Office"><Input name="location" defaultValue={user.location ?? ""} placeholder="e.g. Permanent Campus, Room 402" /></Field>
+                  </>
                 ) : (
-                  <Field label="Admission year"><Input name="batch" defaultValue={user.batch ?? ""} /></Field>
+                  <>
+                    <Field label="Batch / Admission Year"><Input name="batch" defaultValue={user.batch ?? ""} placeholder="e.g. 211 or Batch 21" /></Field>
+                    <Field label="Current Company / Internship"><Input name="company" defaultValue={user.company ?? ""} placeholder="e.g. Tech Corp (Optional)" /></Field>
+                    <Field label="Current Role / Position"><Input name="designation" defaultValue={user.designation ?? ""} placeholder="e.g. Intern, Junior Developer (Optional)" /></Field>
+                  </>
                 )}
-                <Field label="City"><Input name="location" defaultValue={user.location ?? ""} placeholder="Dhaka" /></Field>
+                {!teacher && (
+                  <Field label="City / Location"><Input name="location" defaultValue={user.location ?? ""} placeholder="Dhaka, Bangladesh" /></Field>
+                )}
               </div>
-              <Field label="Bio" hint={alumni ? "What you do, and what students can ask you about." : teacher ? "What you teach and research, and how students can work with you." : "Two or three sentences about what you're looking for."}>
-                <Textarea name="bio" defaultValue={user.bio ?? ""} maxLength={500} />
+              <Field label="Biography & Professional Experience" hint={alumni ? "What you do, your career journey, and what students or peers can ask you about." : teacher ? "What you teach and research, and how students can work with you." : "Two or three sentences about your studies, interests, and what you're looking for."}>
+                <Textarea name="bio" defaultValue={user.bio ?? ""} maxLength={600} rows={4} />
               </Field>
-              <Field label="Skills" hint="Separate with commas, e.g. Python, Public speaking, Figma">
+              <Field label="Skills & Expertise" hint="Separate with commas, e.g. Python, Public speaking, React, Financial Analysis">
                 <Input name="skills" defaultValue={user.skills ?? ""} />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="LinkedIn">
-                  <Input name="linkedin" type="text" defaultValue={user.linkedin ?? ""} placeholder="Username or link (e.g. username or https://…)" />
+                <Field label="LinkedIn Profile">
+                  <Input name="linkedin" type="text" defaultValue={user.linkedin ?? ""} placeholder="Username or link (e.g. username or https://linkedin.com/in/...)" />
                 </Field>
-                <Field label="GitHub">
-                  <Input name="github" type="text" defaultValue={user.github ?? ""} placeholder="Username or link (e.g. username or https://…)" />
+                <Field label="Portfolio or Personal Website">
+                  <Input name="github" type="text" defaultValue={user.github ?? ""} placeholder="Personal portfolio, website, or GitHub URL (e.g. https://...)" />
                 </Field>
               </div>
               <ContactFields user={user} />

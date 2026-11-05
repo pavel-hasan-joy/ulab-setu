@@ -4,7 +4,11 @@ import { PeopleDirectory } from "@/components/people-directory";
 
 export const metadata: Metadata = { title: "People" };
 
-export default async function People({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string; department?: string }> }) {
+export default async function People({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; q?: string; department?: string; gradYear?: string; batch?: string }>;
+}) {
   const user = await requireUser("ALUMNI");
   return <PeopleDirectory viewer={user} basePath="/alumni/people" messagesHref="/alumni/messages" params={await searchParams} />;
 }

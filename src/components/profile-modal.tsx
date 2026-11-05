@@ -118,16 +118,25 @@ export function ProfileModal({
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {person.role === "ALUMNI" && (
               <>
+                {person.batch && <Badge tone="gray">Batch {person.batch}</Badge>}
                 <Badge tone="gold">Class of {person.graduationYear || "Alumni"}</Badge>
-                {person.alumniVerified && (
-                  <Badge tone="sage" className="inline-flex items-center gap-1 font-medium">
-                    <ShieldCheck size={12} /> Verified via ULAB Email
-                  </Badge>
+                {person.alumniVerified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 shadow-xs dark:border-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                    <ShieldCheck size={13} className="text-emerald-600 dark:text-emerald-400" />
+                    Verified via ULAB Email
+                  </span>
+                ) : (
+                  <Badge tone="gray">Unverified Alumni</Badge>
                 )}
               </>
             )}
             {person.role === "TEACHER" && <Badge tone="lilac">ULAB Faculty</Badge>}
-            {person.role === "STUDENT" && <Badge tone="blue">ULAB Student</Badge>}
+            {person.role === "STUDENT" && (
+              <>
+                <Badge tone="blue">ULAB Student</Badge>
+                {person.batch && <Badge tone="gray">Batch {person.batch}</Badge>}
+              </>
+            )}
             {isPrivate ? (
               <Badge tone="gray" className="inline-flex items-center gap-1">
                 <Lock size={12} /> Private Account
@@ -224,7 +233,7 @@ export function ProfileModal({
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ink hover:border-ink transition"
                       >
-                        GitHub <ExternalLink size={12} />
+                        {person.github.includes("github.com") ? "GitHub" : "Portfolio / Website"} <ExternalLink size={12} />
                       </a>
                     )}
                   </div>
