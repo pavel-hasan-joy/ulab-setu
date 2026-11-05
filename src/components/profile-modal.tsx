@@ -17,7 +17,7 @@ import { publicContacts, whatsappLink } from "@/lib/contact";
 import { ContactLinks } from "./contact-fields";
 import { MessageButton } from "./message-button";
 import { ConnectButton, type ConnectionState } from "./connect-button";
-import { Avatar, Badge, Button, Card } from "./ui";
+import { Avatar, Badge, Button } from "./ui";
 
 type SafePerson = Omit<User, "passwordHash">;
 
@@ -117,7 +117,14 @@ export function ProfileModal({
           {/* Badges Bar */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {person.role === "ALUMNI" && (
-              <Badge tone="gold">Class of {person.graduationYear || "Alumni"}</Badge>
+              <>
+                <Badge tone="gold">Class of {person.graduationYear || "Alumni"}</Badge>
+                {person.alumniVerified && (
+                  <Badge tone="sage" className="inline-flex items-center gap-1 font-medium">
+                    <ShieldCheck size={12} /> Verified via ULAB Email
+                  </Badge>
+                )}
+              </>
             )}
             {person.role === "TEACHER" && <Badge tone="lilac">ULAB Faculty</Badge>}
             {person.role === "STUDENT" && <Badge tone="blue">ULAB Student</Badge>}

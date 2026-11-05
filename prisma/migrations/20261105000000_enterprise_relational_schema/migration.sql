@@ -234,3 +234,4 @@ BEGIN
       USING (true); -- App layer / Prisma Client currently manages service role queries with session validation
   END IF;
 END $$;
+

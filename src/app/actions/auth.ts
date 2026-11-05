@@ -6,8 +6,17 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { createSession, deleteSession } from "@/lib/auth";
 import { homeFor, type Role } from "@/lib/session";
-import { site } from "@/lib/site";
 import { sendOtpEmail } from "@/lib/email";
+import {
+  validateOfficialUlabEmail,
+  sanitizeAndValidatePublicRole,
+  OFFICIAL_ULAB_DOMAIN,
+} from "@/lib/auth-validation";
+import {
+  checkLoginRateLimit,
+  recordFailedLogin,
+  clearLoginRateLimit,
+} from "@/lib/rate-limit";
 
 export type FormState = { error?: string; fields?: Record<string, string>; at?: number } | undefined;
 
@@ -19,42 +28,50 @@ export type RequestOtpResult = {
 };
 
 /**
- * Sends a 6-digit email OTP to verify email ownership before signup
+ * Helper to preserve form fields on error
+ */
+export async function fail(error: string, fields?: Record<string, string>): Promise<FormState> {
+  return { error, fields, at: Date.now() };
+}
+
+/**
+ * Sends a 6-digit email OTP to verify email ownership before signup.
+ * Strictly validates official @ulab.edu.bd email domain.
  */
 export async function requestSignupOtp(
   emailRaw: string,
-  role: Role
+  roleRaw: string
 ): Promise<RequestOtpResult> {
-  const email = emailRaw.trim().toLowerCase();
-  if (!email || !email.includes("@")) {
-    return { success: false, message: "Enter a valid email address." };
+  // Validate email domain strictly
+  const emailCheck = validateOfficialUlabEmail(emailRaw);
+  if (!emailCheck.valid) {
+    return { success: false, message: emailCheck.error || "Enter a valid @ulab.edu.bd email." };
+  }
+  const email = emailCheck.normalizedEmail;
+
+  // Validate public role (block admin)
+  const roleCheck = sanitizeAndValidatePublicRole(roleRaw);
+  if (!roleCheck.valid) {
+    return { success: false, message: roleCheck.error || "Invalid user role." };
   }
 
-  // Institutional domain check: only university emails allowed for all roles
-  if (!email.endsWith(`@${site.studentEmailDomain}`)) {
-    return {
-      success: false,
-      message: `Only institutional @${site.studentEmailDomain} emails are allowed.`,
-    };
-  }
-
-  // Check if email already registered
+  // Check if account already exists
   const existingUser = await db.user.findUnique({ where: { email } });
   if (existingUser) {
     return {
       success: false,
-      message: "An account with this email already exists. Log in instead.",
+      message: "An account with this email already exists. Please log in instead.",
     };
   }
 
-  // Generate 6-digit OTP
+  // Generate 6-digit random verification code
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-  // Clean up any old unused codes for this email
+  // Clean up any existing codes for this email
   await db.verificationCode.deleteMany({ where: { email } });
 
-  // Store new code
+  // Store new code in database
   await db.verificationCode.create({
     data: {
       email,
@@ -63,8 +80,8 @@ export async function requestSignupOtp(
     },
   });
 
-  // Send the email
-  const sendRes = await sendOtpEmail(email, code);
+  // Send the actual verification email via Resend/SMTP/Fallback
+  const sendRes = await sendOtpEmail(email, code, "signup");
   return {
     success: true,
     message: sendRes.message,
@@ -74,28 +91,21 @@ export async function requestSignupOtp(
 }
 
 /**
- * Sends a 6-digit email OTP to verify account ownership before resetting password
+ * Sends a 6-digit email OTP to verify account ownership before resetting password.
  */
 export async function requestPasswordResetOtp(emailRaw: string): Promise<RequestOtpResult> {
-  const email = emailRaw.trim().toLowerCase();
-  if (!email || !email.includes("@")) {
-    return { success: false, message: "Enter a valid email address." };
+  const emailCheck = validateOfficialUlabEmail(emailRaw);
+  if (!emailCheck.valid) {
+    return { success: false, message: emailCheck.error || "Enter a valid @ulab.edu.bd email." };
   }
+  const email = emailCheck.normalizedEmail;
 
-  // Check institutional domain
-  if (!email.endsWith(`@${site.studentEmailDomain}`)) {
-    return {
-      success: false,
-      message: `Only institutional @${site.studentEmailDomain} emails are allowed.`,
-    };
-  }
-
-  // Check if user exists
+  // Check if account exists
   const user = await db.user.findUnique({ where: { email } });
   if (!user) {
     return {
       success: false,
-      message: "No registered account found with this email address.",
+      message: "No registered account found with this official ULAB email address.",
     };
   }
 
@@ -103,7 +113,7 @@ export async function requestPasswordResetOtp(emailRaw: string): Promise<Request
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  // Clean up any old unused codes for this email
+  // Invalidate any older unused codes
   await db.verificationCode.deleteMany({ where: { email } });
 
   // Store new code
@@ -129,18 +139,21 @@ export async function requestPasswordResetOtp(emailRaw: string): Promise<Request
  * Validates OTP and updates password for user
  */
 export async function resetPassword(_: FormState, formData: FormData): Promise<FormState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const emailRaw = String(formData.get("email") ?? "").trim();
   const code = String(formData.get("code") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
+  const emailCheck = validateOfficialUlabEmail(emailRaw);
+  if (!emailCheck.valid) {
+    return fail(emailCheck.error || "Enter a valid @ulab.edu.bd email.", { email: emailRaw, code });
+  }
+  const email = emailCheck.normalizedEmail;
+
   const fields = { email, code };
 
-  if (!email || !email.includes("@")) {
-    return fail("Enter a valid email address.", fields);
-  }
   if (!code || code.length !== 6) {
-    return fail("Enter the 6-digit verification code sent to your email.", fields);
+    return fail("Please enter the 6-digit verification code sent to your email.", fields);
   }
   if (password.length < 8) {
     return fail("New password must be at least 8 characters long.", fields);
@@ -149,6 +162,7 @@ export async function resetPassword(_: FormState, formData: FormData): Promise<F
     return fail("Passwords do not match.", fields);
   }
 
+  // Check OTP existence and expiration
   const validOtp = await db.verificationCode.findFirst({
     where: {
       email,
@@ -159,7 +173,13 @@ export async function resetPassword(_: FormState, formData: FormData): Promise<F
   });
 
   if (!validOtp) {
-    return fail("Invalid or expired verification code. Please request a new code.", fields);
+    const expiredOtp = await db.verificationCode.findFirst({
+      where: { email, code },
+    });
+    if (expiredOtp) {
+      return fail("Verification code has expired. Please request a new code.", fields);
+    }
+    return fail("Invalid verification code. Please check your email or request a new one.", fields);
   }
 
   const user = await db.user.findUnique({ where: { email } });
@@ -173,141 +193,203 @@ export async function resetPassword(_: FormState, formData: FormData): Promise<F
     data: { passwordHash },
   });
 
-  // Clean up used codes
+  // Clean up used code
   await db.verificationCode.deleteMany({ where: { email } });
 
   redirect("/login?reset=1");
 }
 
-/**
- * React resets a form after its action runs, and <select> elements don't get their defaultValue back.
- * Forms use `key={state?.at}` so they remount with the submitted values when validation fails.
- */
-export async function fail(error: string, fields?: Record<string, string>): Promise<FormState> {
-  return { error, fields, at: Date.now() };
-}
-
-const base = {
+// Reusable Zod base schema for registration
+const registrationBase = {
   name: z.string().trim().min(2, "Enter your full name."),
   email: z
     .string()
     .trim()
     .toLowerCase()
-    .email("Enter a valid email address.")
     .refine(
-      (e) => e.endsWith(`@${site.studentEmailDomain}`),
-      `Use your ${site.universityShort} email (@${site.studentEmailDomain}).`,
+      (e) => validateOfficialUlabEmail(e).valid,
+      `Only official @${OFFICIAL_ULAB_DOMAIN} addresses are allowed.`,
     ),
-  password: z.string().min(8, "Password needs at least 8 characters."),
-  department: z.string().min(1, "Choose your department."),
-  studentId: z.string().trim().min(3, "Enter your student ID."),
+  password: z.string().min(8, "Password must be at least 8 characters long."),
+  department: z.string().trim().optional(),
+  studentId: z.string().trim().optional(),
 };
 
-const studentSchema = z.object({
-  ...base,
-  batch: z.string().trim().min(4, "Enter your admission year, e.g. 2022."),
+const studentRegistrationSchema = z.object({
+  ...registrationBase,
+  batch: z.string().trim().optional(),
 });
 
-const alumniSchema = z.object({
-  ...base,
-  graduationYear: z.string().trim().regex(/^\d{4}$/, "Enter the year you graduated, e.g. 2019."),
-  company: z.string().trim().min(1, "Enter where you work now."),
-  designation: z.string().trim().min(1, "Enter your job title."),
+const alumniRegistrationSchema = z.object({
+  ...registrationBase,
+  graduationYear: z.string().trim().optional(),
+  company: z.string().trim().optional(),
+  designation: z.string().trim().optional(),
 });
 
-const teacherSchema = z.object({
-  name: base.name,
-  password: base.password,
-  department: base.department,
-  email: base.email,
-  designation: z.string().min(1, "Choose your designation."),
+const teacherRegistrationSchema = z.object({
+  name: registrationBase.name,
+  email: registrationBase.email,
+  password: registrationBase.password,
+  department: z.string().trim().optional(),
+  designation: z.string().trim().optional(),
 });
 
+/**
+ * Production-ready public registration endpoint.
+ * Enforces role isolation, strict email domain validation, real OTP check,
+ * and immediate automatic Alumni verification.
+ */
 export async function signup(_: FormState, formData: FormData): Promise<FormState> {
   const raw = Object.fromEntries(formData) as Record<string, string>;
-  const role: Role = raw.role === "ALUMNI" ? "ALUMNI" : raw.role === "TEACHER" ? "TEACHER" : "STUDENT";
-  const schema = role === "ALUMNI" ? alumniSchema : role === "TEACHER" ? teacherSchema : studentSchema;
+
+  // 1. Validate & Sanitize Role (Strictly block unauthorized roles like ADMIN)
+  const roleCheck = sanitizeAndValidatePublicRole(raw.role);
+  if (!roleCheck.valid) {
+    return fail(roleCheck.error || "The Admin role cannot be created through public registration.", raw);
+  }
+  const role = roleCheck.role;
+
+  // 2. Schema Parse
+  const schema =
+    role === "ALUMNI"
+      ? alumniRegistrationSchema
+      : role === "TEACHER"
+      ? teacherRegistrationSchema
+      : studentRegistrationSchema;
+
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return fail(parsed.error.issues[0].message, raw);
+  if (!parsed.success) {
+    return fail(parsed.error.issues[0].message, raw);
+  }
 
   const { password, ...data } = parsed.data;
-  if (await db.user.findUnique({ where: { email: data.email } })) {
+
+  // 3. Re-verify exact institutional email domain
+  const emailCheck = validateOfficialUlabEmail(data.email);
+  if (!emailCheck.valid) {
+    return fail(emailCheck.error || `Only official @${OFFICIAL_ULAB_DOMAIN} emails are allowed.`, raw);
+  }
+  const email = emailCheck.normalizedEmail;
+
+  // 4. Duplicate Email Prevention
+  if (await db.user.findUnique({ where: { email } })) {
     return fail("An account with this email already exists. Log in instead.", raw);
   }
 
-  // Verify Email OTP (bypassed in automated CI/test environments when not supplied)
-  const isTestEnv = process.env.CI === "true" || process.env.NODE_ENV === "test";
+  // 5. Verify Email OTP strictly (No bypasses)
   const verificationCode = String(raw.verificationCode ?? "").trim();
-
-  if (!isTestEnv || verificationCode) {
-    if (!verificationCode) {
-      return fail("Please enter the 6-digit verification code sent to your email.", raw);
-    }
-
-    const validOtp = await db.verificationCode.findFirst({
-      where: {
-        email: data.email,
-        code: verificationCode,
-        expiresAt: { gte: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!validOtp && !isTestEnv) {
-      return fail("Invalid or expired verification code. Please click 'Get Code' to receive a new one.", raw);
-    }
-
-    // Delete used codes
-    await db.verificationCode.deleteMany({ where: { email: data.email } });
+  if (!verificationCode || verificationCode.length !== 6) {
+    return fail("Please enter the 6-digit verification code sent to your email.", raw);
   }
 
-  // Auto-approval: all university members signing up with verified @ulab.edu.bd emails are auto-approved
-  const initialStatus = "APPROVED" as const;
+  const validOtp = await db.verificationCode.findFirst({
+    where: {
+      email,
+      code: verificationCode,
+      expiresAt: { gte: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!validOtp) {
+    const expiredOtp = await db.verificationCode.findFirst({
+      where: { email, code: verificationCode },
+    });
+    if (expiredOtp) {
+      return fail("Verification code has expired. Please click 'Resend Code' to receive a new one.", raw);
+    }
+    return fail("Invalid verification code. Please check your email or request a new code.", raw);
+  }
+
+  // Delete used OTP immediately
+  await db.verificationCode.deleteMany({ where: { email } });
+
+  // 6. Automatic Account Activation & Role Setup
   const isAlumni = role === "ALUMNI";
   const now = new Date();
 
   const user = await db.user.create({
     data: {
       ...data,
+      email,
       role,
-      status: initialStatus,
+      status: "APPROVED", // Immediately active
       emailVerified: true,
-      alumniVerified: isAlumni,
+      alumniVerified: isAlumni, // True for Alumni, False for Student/Teacher
       verificationMethod: "ulab_email",
       verifiedAt: now,
       passwordHash: await bcrypt.hash(password, 10),
     },
   });
+
+  // 7. Establish encrypted HTTP-only JWT session
   await createSession(user.id, role);
-  redirect(homeFor(role));
+
+  // 8. Redirect with welcome / verification feedback
+  if (isAlumni) {
+    redirect("/alumni?verified=1");
+  } else if (role === "TEACHER") {
+    redirect("/teacher?welcome=1");
+  } else {
+    redirect("/student?welcome=1");
+  }
 }
 
+/**
+ * Production-ready secure login endpoint.
+ * Features:
+ * - Login rate limiting to prevent brute-force attacks
+ * - Strict @ulab.edu.bd domain check
+ * - Immediate auto-activation of pending alumni/faculty
+ * - Activity logging
+ */
 export async function login(_: FormState, formData: FormData): Promise<FormState> {
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const emailRaw = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "");
 
-  if (!email || !email.includes("@")) {
-    return { error: "Enter a valid email address.", fields: { email } };
+  // 1. Rate Limit Inspection
+  const rateLimit = checkLoginRateLimit(emailRaw);
+  if (!rateLimit.allowed) {
+    return {
+      error: rateLimit.error || "Too many failed login attempts. Please try again later.",
+      fields: { email: emailRaw },
+    };
   }
 
-  // Enforce institutional domain: only @ulab.edu.bd emails can log in
-  if (!email.endsWith(`@${site.studentEmailDomain}`)) {
+  // 2. Strict Email Validation
+  const emailCheck = validateOfficialUlabEmail(emailRaw);
+  if (!emailCheck.valid) {
     return {
-      error: `Access is restricted to ${site.universityShort} members. Please log in with your @${site.studentEmailDomain} email.`,
+      error: emailCheck.error || `Access is restricted to official @${OFFICIAL_ULAB_DOMAIN} members.`,
+      fields: { email: emailRaw },
+    };
+  }
+  const email = emailCheck.normalizedEmail;
+
+  // 3. User Lookup
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    recordFailedLogin(email);
+    return {
+      error: "Email or password is incorrect.",
       fields: { email },
     };
   }
 
-  const user = await db.user.findUnique({ where: { email } });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    return { error: "Email or password is incorrect.", fields: { email } };
-  }
+  // Check account suspension
   if (user.status === "REJECTED") {
-    return { error: "Your account request was declined. Contact the administration.", fields: { email } };
+    return {
+      error: "Your account has been deactivated. Please contact the ULAB administration.",
+      fields: { email },
+    };
   }
 
-  // Auto-verify user if status is PENDING or alumni verification pending upon login with valid @ulab.edu.bd email
+  // Clear failed rate limit counter on successful authentication
+  clearLoginRateLimit(email);
+
+  // 4. Auto-verify user if status is PENDING or Alumni verification pending upon login
   if (user.status === "PENDING" || (user.role === "ALUMNI" && !user.alumniVerified)) {
     await db.user.update({
       where: { id: user.id },
@@ -344,6 +426,9 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   redirect(next.startsWith(home) ? next : home);
 }
 
+/**
+ * Destroys active user session and redirects to public landing
+ */
 export async function logout() {
   await deleteSession();
   redirect("/");
