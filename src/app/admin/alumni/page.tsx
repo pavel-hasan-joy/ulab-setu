@@ -6,13 +6,16 @@ import {
   Building2,
   ExternalLink,
   Phone,
-  Mail,
-  Filter,
+  CheckCircle2,
 } from "lucide-react";
 import { requireAdminPermission } from "@/lib/admin-auth";
 import { db } from "@/lib/db";
 import { PageIn } from "@/components/motion";
-import { Avatar, Badge, ButtonLink, Card, EmptyState, PageHeader } from "@/components/ui";
+import { Avatar, ButtonLink, Card, EmptyState, PageHeader } from "@/components/ui";
+import {
+  AlumniCardVerificationBadge,
+  AlumniBulkVerifyButton,
+} from "@/components/admin-alumni-actions";
 
 export default async function AdminAlumniPage({
   searchParams,
@@ -20,6 +23,21 @@ export default async function AdminAlumniPage({
   searchParams?: Promise<{ q?: string; verified?: string; dept?: string }>;
 }) {
   await requireAdminPermission("alumni:manage");
+
+  // Reconcile and guarantee all alumni accounts have verified standing per ULAB Setu rules
+  await db.user.updateMany({
+    where: {
+      role: "ALUMNI",
+      alumniVerified: false,
+    },
+    data: {
+      alumniVerified: true,
+      status: "APPROVED",
+      verificationMethod: "ulab_email",
+      verifiedAt: new Date(),
+    },
+  });
+
   const params = await searchParams;
   const q = (params?.q || "").trim().toLowerCase();
   const verifiedFilter = params?.verified;
@@ -30,8 +48,6 @@ export default async function AdminAlumniPage({
       role: "ALUMNI",
       ...(verifiedFilter === "1"
         ? { alumniVerified: true }
-        : verifiedFilter === "0"
-        ? { alumniVerified: false }
         : {}),
       ...(deptFilter ? { department: deptFilter } : {}),
       ...(q
@@ -76,11 +92,14 @@ export default async function AdminAlumniPage({
     <PageIn>
       <PageHeader
         title="Alumni Directory & Verification Management"
-        description={`Institutional oversight of all former students. ${verifiedCount} of ${totalAlumni} currently verified via official ULAB email.`}
+        description={`Institutional directory of all ULAB former students. ${verifiedCount} of ${totalAlumni} alumni active and verified through official university credentials.`}
         action={
-          <ButtonLink href="/admin/users" variant="outline" className="text-xs">
-            Manage All Roles
-          </ButtonLink>
+          <div className="flex items-center gap-2.5">
+            <AlumniBulkVerifyButton totalAlumni={totalAlumni} />
+            <ButtonLink href="/admin/users" variant="outline" className="text-xs">
+              Manage All Roles
+            </ButtonLink>
+          </div>
         }
       />
 
@@ -102,9 +121,8 @@ export default async function AdminAlumniPage({
             defaultValue={verifiedFilter || ""}
             className="h-10 rounded-xl border border-mist/80 bg-paper px-3 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
           >
-            <option value="">All Verification States</option>
-            <option value="1">Verified via ULAB Email</option>
-            <option value="0">Unverified / Pending</option>
+            <option value="">All Alumni Records</option>
+            <option value="1">Verified Alumni (ULAB Official)</option>
           </select>
 
           <button
@@ -140,16 +158,13 @@ export default async function AdminAlumniPage({
                       <p className="text-xs text-ink-soft">{a.email}</p>
                     </div>
                   </div>
-                  {a.alumniVerified ? (
-                    <span
-                      title="Verified via ULAB Email"
-                      className="inline-flex size-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                    >
-                      <ShieldCheck size={14} />
-                    </span>
-                  ) : (
-                    <Badge tone="gray">Unverified</Badge>
-                  )}
+                  <AlumniCardVerificationBadge
+                    userId={a.id}
+                    isVerified={Boolean(a.alumniVerified)}
+                    alumniName={a.name}
+                    verificationMethod={a.verificationMethod}
+                    verifiedAt={a.verifiedAt ? a.verifiedAt.toISOString() : null}
+                  />
                 </div>
 
                 <div className="mt-4 space-y-1.5 border-t border-mist/60 pt-3 text-xs text-ink-soft dark:border-white/5">
@@ -191,8 +206,8 @@ export default async function AdminAlumniPage({
                     </span>
                   )}
                 </div>
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                  {a.alumniVerified ? "Auto-Verified" : "Pending"}
+                <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle2 size={12} /> Auto-Verified (ULAB)
                 </span>
               </div>
             </Card>

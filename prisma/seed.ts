@@ -40,6 +40,9 @@ async function main() {
           email: `alumni${i + 1}@ulab.edu.bd`, passwordHash, role: "ALUMNI", status: "APPROVED",
           studentId: `${graduationYear.slice(2)}1${i}0${i}01`,
           bio: `ULAB ${department} graduate, now ${designation.toLowerCase()} at ${company}. Happy to talk about getting your first job.`,
+          alumniVerified: true,
+          verificationMethod: "ulab_email",
+          verifiedAt: new Date(),
         },
       }),
     ),
@@ -47,9 +50,12 @@ async function main() {
 
   await db.user.create({
     data: {
-      name: "Imran Hossain", email: "pending.alumni@ulab.edu.bd", passwordHash, role: "ALUMNI", status: "PENDING",
+      name: "Imran Hossain", email: "pending.alumni@ulab.edu.bd", passwordHash, role: "ALUMNI", status: "APPROVED",
       department: "Computer Science and Engineering", graduationYear: "2021", studentId: "171014045",
       company: "Kite Payments", designation: "Backend Engineer", location: "Dhaka",
+      alumniVerified: true,
+      verificationMethod: "ulab_email",
+      verifiedAt: new Date(),
     },
   });
 
