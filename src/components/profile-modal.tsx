@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   Building2,
   ExternalLink,
+  Globe,
   GraduationCap,
   Lock,
   MapPin,
@@ -13,11 +14,60 @@ import {
 } from "lucide-react";
 import type { User } from "@prisma/client";
 import { site } from "@/lib/site";
-import { publicContacts, whatsappLink } from "@/lib/contact";
+import { parseSocialLinks, publicContacts, whatsappLink } from "@/lib/contact";
 import { ContactLinks } from "./contact-fields";
 import { MessageButton } from "./message-button";
 import { ConnectButton, type ConnectionState } from "./connect-button";
 import { Avatar, Badge, Button } from "./ui";
+
+function getSocialIcon(name: string, size = 13) {
+  const n = name.toLowerCase();
+  if (n.includes("github")) {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
+      </svg>
+    );
+  }
+  if (n.includes("linkedin")) {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77Z" />
+      </svg>
+    );
+  }
+  if (n.includes("twitter") || n === "x" || n.includes(" x")) {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    );
+  }
+  if (n.includes("instagram") || n.includes("insta")) {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+      </svg>
+    );
+  }
+  if (n.includes("facebook") || n === "fb") {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+        <path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.6-1.5h1.6V4.4a21 21 0 0 0-2.4-.1c-2.4 0-4 1.4-4 4.1v2.1H7.7v3h2.6V21h3.2Z" />
+      </svg>
+    );
+  }
+  if (n.includes("youtube") || n.includes("yt")) {
+    return (
+      <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.5 12 3.5 12 3.5s-7.505 0-9.377.55a3.016 3.016 0 0 0-2.122 2.136C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.55 9.376.55 9.376.55s7.505 0 9.377-.55a3.016 3.016 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+      </svg>
+    );
+  }
+  return <Globe size={size} />;
+}
 
 type SafePerson = Omit<User, "passwordHash">;
 
@@ -211,34 +261,52 @@ export function ProfileModal({
                 </div>
               )}
 
-              {/* Professional Links (LinkedIn & GitHub) */}
-              {(person.linkedin || person.github) && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-1.5">Professional Links</h4>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {person.linkedin && (
-                      <a
-                        href={person.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ulab hover:border-ulab transition"
-                      >
-                        LinkedIn <ExternalLink size={12} />
-                      </a>
-                    )}
-                    {person.github && (
-                      <a
-                        href={person.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ink hover:border-ink transition"
-                      >
-                        {person.github.includes("github.com") ? "GitHub" : "Portfolio / Website"} <ExternalLink size={12} />
-                      </a>
-                    )}
+              {/* Professional & Social Links */}
+              {(() => {
+                const customSocials = parseSocialLinks(person.socialLinks);
+                if (!person.linkedin && !person.github && customSocials.length === 0) return null;
+
+                return (
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-ink-soft mb-1.5">
+                      Social & Professional Links
+                    </h4>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {person.linkedin && (
+                        <a
+                          href={person.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ulab hover:border-ulab transition shadow-2xs"
+                        >
+                          {getSocialIcon("linkedin", 12)} LinkedIn <ExternalLink size={10} className="opacity-70" />
+                        </a>
+                      )}
+                      {person.github && (
+                        <a
+                          href={person.github}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ink hover:border-ink transition shadow-2xs"
+                        >
+                          {getSocialIcon("github", 12)} {person.github.includes("github.com") ? "GitHub" : "Portfolio / Website"} <ExternalLink size={10} className="opacity-70" />
+                        </a>
+                      )}
+                      {customSocials.map((s) => (
+                        <a
+                          key={s.id}
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-mist bg-paper px-2.5 py-1 text-xs font-semibold text-ink hover:border-ink transition shadow-2xs"
+                        >
+                          {getSocialIcon(s.name)} {s.name} <ExternalLink size={10} className="opacity-70" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Contact Information (Respects individual contact privacy) */}
               <div>

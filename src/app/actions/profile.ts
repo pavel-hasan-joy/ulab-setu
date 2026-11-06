@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { deleteSession, requireUser } from "@/lib/auth";
 import type { FormState } from "./auth";
-import { cleanFacebook, cleanGitHub, cleanLinkedIn, cleanPhone } from "@/lib/contact";
+import { cleanFacebook, cleanGitHub, cleanLinkedIn, cleanPhone, normalizeSocialUrl } from "@/lib/contact";
 
 const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin", "github", "image"] as const;
 
@@ -47,7 +47,45 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
     if (data.skills) {
       data.skills = data.skills.split(",").map((s) => s.trim()).filter(Boolean).join(", ");
     }
-    await db.user.update({ where: { id: user.id }, data: { ...data, ...contact, isPrivate } });
+
+    // Process custom social media links
+    let socialLinksJson: string | null = null;
+    const rawSocial = formData.get("socialLinks");
+    if (rawSocial) {
+      try {
+        const parsed = JSON.parse(String(rawSocial));
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed
+            .filter((item) => item && typeof item === "object")
+            .map((item, idx) => {
+              const name = String(item.name || "").trim().slice(0, 50);
+              const rawVal = String(item.url || item.handle || "").trim().slice(0, 500);
+              if (!name || !rawVal) return null;
+              const url = normalizeSocialUrl(name, rawVal);
+              return {
+                id: String(item.id || `social-${idx}-${Date.now()}`),
+                name,
+                url,
+                handle: rawVal,
+              };
+            })
+            .filter(Boolean);
+          socialLinksJson = sanitized.length > 0 ? JSON.stringify(sanitized) : null;
+        }
+      } catch {
+        socialLinksJson = null;
+      }
+    }
+
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        ...data,
+        ...contact,
+        socialLinks: socialLinksJson,
+        isPrivate,
+      },
+    });
     revalidatePath("/", "layout");
     return { fields: { saved: "1" }, at: Date.now() };
   } catch (err) {

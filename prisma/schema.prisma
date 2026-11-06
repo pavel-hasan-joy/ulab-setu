@@ -29,6 +29,7 @@ model User {
   skills             String?   // comma separated
   linkedin           String?
   github             String?
+  socialLinks        String?   // JSON stringified array of { id: string, name: string, url: string }
   image              String?
   // Contact details, each hidden unless the owner makes it public
   phone              String?

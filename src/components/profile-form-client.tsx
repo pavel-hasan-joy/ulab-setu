@@ -1,11 +1,12 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Globe, Lock } from "lucide-react";
+import { Check, Globe, Lock, Plus, Trash2 } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
 import type { User } from "@prisma/client";
 import { updateProfile, deleteOwnAccount } from "@/app/actions/profile";
 import { departments, teacherRanks } from "@/lib/site";
+import { normalizeSocialUrl, parseSocialLinks, type SocialLinkItem } from "@/lib/contact";
 import { ContactFields } from "./contact-fields";
 import { PageIn } from "./motion";
 import { Avatar, Badge, Button, Card, Field, FormError, Input, PageHeader, Select, Textarea } from "./ui";
@@ -43,8 +44,41 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
   const [name, setName] = useState(user.name);
   const [image, setImage] = useState<string | null>(user.image ?? null);
   const [isPrivate, setIsPrivate] = useState(user.isPrivate ?? false);
+  const [socialLinks, setSocialLinks] = useState<SocialLinkItem[]>(() => {
+    return parseSocialLinks((user as any).socialLinks);
+  });
   const alumni = user.role === "ALUMNI";
   const teacher = user.role === "TEACHER";
+
+  const handleAddSocialLink = () => {
+    setSocialLinks((prev) => [
+      ...prev,
+      {
+        id: `social-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: "",
+        url: "",
+        handle: "",
+      },
+    ]);
+  };
+
+  const handleRemoveSocialLink = (id: string) => {
+    setSocialLinks((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateSocialLink = (id: string, field: "name" | "handle", value: string) => {
+    setSocialLinks((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const updated = { ...item, [field]: value };
+        const raw = field === "handle" ? value : item.handle || item.url;
+        const platform = field === "name" ? value : item.name;
+        updated.handle = raw;
+        updated.url = platform && raw ? normalizeSocialUrl(platform, raw) : raw;
+        return updated;
+      })
+    );
+  };
 
   return (
     <PageIn>
@@ -110,6 +144,125 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
                 </Field>
               </div>
               <ContactFields user={user} />
+
+              {/* Custom Social Media & Web Profiles */}
+              <input type="hidden" name="socialLinks" value={JSON.stringify(socialLinks)} />
+              <fieldset className="space-y-3 rounded-2xl border border-mist p-4 sm:p-5">
+                <legend className="px-1 text-sm font-semibold text-ink flex items-center gap-1.5">
+                  <Globe size={15} className="text-ulab" /> Social Media & Custom Links
+                </legend>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="-mt-1 text-xs text-ink-soft">
+                    Add your social media handles, coding platforms, or portfolios (e.g. Twitter/X, Instagram, YouTube, LeetCode, Kaggle, etc.).
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddSocialLink}
+                    className="inline-flex items-center gap-1.5 self-start sm:self-auto text-xs font-semibold py-1.5 px-3 hover:border-ulab hover:text-ulab"
+                  >
+                    <Plus size={14} /> Add Social Link
+                  </Button>
+                </div>
+
+                <datalist id="social-platform-suggestions">
+                  <option value="Twitter / X" />
+                  <option value="Instagram" />
+                  <option value="Facebook" />
+                  <option value="YouTube" />
+                  <option value="GitHub" />
+                  <option value="LinkedIn" />
+                  <option value="LeetCode" />
+                  <option value="Codeforces" />
+                  <option value="Kaggle" />
+                  <option value="Discord" />
+                  <option value="Telegram" />
+                  <option value="Medium" />
+                  <option value="Behance" />
+                  <option value="Dribbble" />
+                  <option value="Portfolio / Website" />
+                </datalist>
+
+                {socialLinks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-mist-deep/40 bg-surface/60 py-6 text-center">
+                    <p className="text-xs text-ink-soft">No extra social links added yet.</p>
+                    <button
+                      type="button"
+                      onClick={handleAddSocialLink}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-ulab hover:underline"
+                    >
+                      <Plus size={13} /> Click here to add your first social media link
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-1">
+                    {socialLinks.map((item, idx) => {
+                      const previewUrl = item.name && (item.handle || item.url) ? normalizeSocialUrl(item.name, item.handle || item.url) : null;
+                      return (
+                        <div
+                          key={item.id}
+                          className="group relative flex flex-col gap-2.5 rounded-xl border border-mist bg-paper/30 p-3.5 shadow-2xs transition hover:border-mist-deep"
+                        >
+                          <div className="flex items-center justify-between gap-2 border-b border-mist/60 pb-2">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+                              Social Link #{idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSocialLink(item.id)}
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-medium text-rose hover:bg-rose-wash transition"
+                              title="Remove this link"
+                            >
+                              <Trash2 size={13} /> Remove
+                            </button>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {/* 1st Field: Social Media Name */}
+                            <div>
+                              <label className="block text-xs font-semibold text-ink mb-1">
+                                1. Social Media Name
+                              </label>
+                              <input
+                                type="text"
+                                list="social-platform-suggestions"
+                                value={item.name}
+                                onChange={(e) => handleUpdateSocialLink(item.id, "name", e.target.value)}
+                                placeholder="e.g. Twitter, Instagram, LeetCode, YouTube..."
+                                className="w-full rounded-xl border border-mist bg-surface px-3 py-2 text-xs font-medium text-ink placeholder:text-ink-soft/70 focus:border-ulab focus:outline-hidden"
+                                required
+                              />
+                            </div>
+
+                            {/* 2nd Field: Link or Username */}
+                            <div>
+                              <label className="block text-xs font-semibold text-ink mb-1">
+                                2. Link or Username
+                              </label>
+                              <input
+                                type="text"
+                                value={item.handle || item.url}
+                                onChange={(e) => handleUpdateSocialLink(item.id, "handle", e.target.value)}
+                                placeholder="e.g. @username or https://..."
+                                className="w-full rounded-xl border border-mist bg-surface px-3 py-2 text-xs font-medium text-ink placeholder:text-ink-soft/70 focus:border-ulab focus:outline-hidden"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Generated URL preview */}
+                          {previewUrl && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-ink-soft truncate pt-0.5">
+                              <span className="font-medium text-sage">Resolved URL:</span>
+                              <span className="truncate text-ink-soft/80">{previewUrl}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
 
               {/* Account Privacy (Public vs Private) */}
               <fieldset className="space-y-3 rounded-2xl border border-mist p-4">

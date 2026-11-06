@@ -72,3 +72,105 @@ export function publicContacts(u: Contactable) {
     facebook: u.facebookPublic ? u.facebook : null,
   };
 }
+
+export type SocialLinkItem = {
+  id: string;
+  name: string;
+  url: string;
+  handle?: string;
+};
+
+/**
+ * Intelligently normalizes a social media platform input (either a full URL or a handle/username)
+ * into a valid, clickable web URL.
+ */
+export function normalizeSocialUrl(platform: string, input: string): string {
+  const v = input.trim();
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v)) return v;
+
+  const p = platform.trim().toLowerCase();
+  const cleanHandle = v.replace(/^@+/, "").replace(/^\/+|\/+$/g, "");
+
+  if (p === "github") {
+    return cleanGitHub(v) || `https://github.com/${cleanHandle}`;
+  }
+  if (p === "linkedin") {
+    return cleanLinkedIn(v) || `https://linkedin.com/in/${cleanHandle}`;
+  }
+  if (p === "facebook" || p === "fb") {
+    return cleanFacebook(v) || `https://facebook.com/${cleanHandle}`;
+  }
+  if (p === "twitter" || p === "x") {
+    return `https://x.com/${cleanHandle}`;
+  }
+  if (p === "instagram" || p === "insta") {
+    return `https://instagram.com/${cleanHandle}`;
+  }
+  if (p === "youtube" || p === "yt") {
+    return `https://youtube.com/@${cleanHandle}`;
+  }
+  if (p === "telegram" || p === "tg") {
+    return `https://t.me/${cleanHandle}`;
+  }
+  if (p === "leetcode") {
+    return `https://leetcode.com/u/${cleanHandle}`;
+  }
+  if (p === "codeforces") {
+    return `https://codeforces.com/profile/${cleanHandle}`;
+  }
+  if (p === "kaggle") {
+    return `https://kaggle.com/${cleanHandle}`;
+  }
+  if (p === "medium") {
+    return `https://medium.com/@${cleanHandle}`;
+  }
+  if (p === "behance") {
+    return `https://behance.net/${cleanHandle}`;
+  }
+  if (p === "dribbble") {
+    return `https://dribbble.com/${cleanHandle}`;
+  }
+  if (p === "pinterest") {
+    return `https://pinterest.com/${cleanHandle}`;
+  }
+  if (p === "threads") {
+    return `https://threads.net/@${cleanHandle}`;
+  }
+  if (p === "tiktok") {
+    return `https://tiktok.com/@${cleanHandle}`;
+  }
+  if (p === "whatsapp") {
+    return whatsappLink(v);
+  }
+
+  // If looks like domain e.g. "portfolio.site/me"
+  if (/^[\w-]+(\.[\w-]+)+([/?#].*)?$/i.test(v)) {
+    return `https://${v}`;
+  }
+
+  // Fallback to https with the clean handle or text
+  return `https://${v}`;
+}
+
+export function parseSocialLinks(raw: string | null | undefined): SocialLinkItem[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter(item => item && typeof item === "object" && typeof item.name === "string" && typeof item.url === "string")
+        .map((item, idx) => ({
+          id: String(item.id || `social-${idx}-${Date.now()}`),
+          name: String(item.name).trim(),
+          url: String(item.url).trim(),
+          handle: typeof item.handle === "string" ? item.handle.trim() : undefined,
+        }))
+        .filter(item => item.name.length > 0 && item.url.length > 0);
+    }
+  } catch {
+    // Ignore invalid JSON
+  }
+  return [];
+}
+
