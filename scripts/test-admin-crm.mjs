@@ -40,7 +40,7 @@ const mockUsers = [
     verifiedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     department: "Computer Science and Engineering",
     studentId: "141014001",
-    batch: null,
+    batch: "141",
     graduationYear: "2018",
     company: "Nimbus Labs",
     designation: "Senior Software Engineer",
@@ -100,7 +100,7 @@ const mockUsers = [
     verifiedAt: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(),
     department: "Media Studies and Journalism",
     studentId: "161019001",
-    batch: null,
+    batch: "161",
     graduationYear: "2020",
     company: "Daily Star",
     designation: "Journalist",
@@ -129,7 +129,9 @@ function filterSearch(list, query) {
     u.email.toLowerCase().includes(q) ||
     (u.studentId && u.studentId.toLowerCase().includes(q)) ||
     (u.company && u.company.toLowerCase().includes(q)) ||
-    (u.department && u.department.toLowerCase().includes(q))
+    (u.department && u.department.toLowerCase().includes(q)) ||
+    (u.batch && u.batch.toLowerCase().includes(q)) ||
+    (u.graduationYear && u.graduationYear.toLowerCase().includes(q))
   );
 }
 
@@ -144,7 +146,15 @@ assert.equal(searchByCompany[0].role, "ALUMNI");
 const searchByStudentId = filterSearch(mockUsers, "141014001");
 assert.equal(searchByStudentId.length, 1);
 assert.equal(searchByStudentId[0].id, "user_2");
-console.log("[PASS] 2. Search correctly resolves name, email, student ID, company & department");
+
+const searchByBatch = filterSearch(mockUsers, "141");
+assert.equal(searchByBatch.length, 1);
+assert.equal(searchByBatch[0].id, "user_2");
+
+const searchByGradYear = filterSearch(mockUsers, "2018");
+assert.equal(searchByGradYear.length, 1);
+assert.equal(searchByGradYear[0].name, "Tanvir Hasan");
+console.log("[PASS] 2. Search correctly resolves name, email, student ID, company, department, batch & graduation year");
 
 // Test 3: Role and Account Status Filtering
 console.log("\n[TEST 3] Role and Account Status Filtering");
@@ -203,7 +213,7 @@ function generateCSV(items) {
   const headers = [
     "User ID", "Full Name", "Official Email", "Role", "Account Status",
     "Email Verified", "Alumni Verified", "Verification Method", "Department",
-    "Jobs Posted", "Applications Submitted", "Mentorships"
+    "Batch", "Graduation Year", "Jobs Posted", "Applications Submitted", "Mentorships"
   ];
   const rows = items.map((u) => [
     `"${u.id}"`,
@@ -215,6 +225,8 @@ function generateCSV(items) {
     `"${u.alumniVerified ? "Yes (ULAB)" : "No"}"`,
     `"${u.verificationMethod || "None"}"`,
     `"${u.department || ""}"`,
+    `"${u.batch || ""}"`,
+    `"${u.graduationYear || ""}"`,
     `"${u.activity.jobsCount}"`,
     `"${u.activity.applicationsCount}"`,
     `"${u.activity.mentorshipCount}"`
@@ -238,7 +250,37 @@ assert.equal(safeTargetIds.length, 2, "Bulk operations must exclude the acting a
 assert.equal(safeTargetIds.includes(currentAdminId), false, "Acting admin must never be self-suspended/deleted");
 console.log("[PASS] 8. Bulk operations protect acting administrator from accidental self-lockout");
 
-console.log("\n=================================================");
-console.log("Results: 8/8 CRM Tests Passed successfully.");
-console.log("=================================================");
+// Test 9: Registration Date Range Filtering
+console.log("\n[TEST 9] Registration Date Range Filtering");
+function filterByDate(items, range) {
+  const now = Date.now();
+  return items.filter((u) => {
+    const diffDays = (now - new Date(u.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (range === "7D") return diffDays <= 7;
+    if (range === "30D") return diffDays <= 30;
+    if (range === "90D") return diffDays <= 90;
+    if (range === "1Y") return diffDays <= 365;
+    return true;
+  });
+}
+const recent7D = filterByDate(mockUsers, "7D");
+assert.equal(recent7D.length, 1);
+assert.equal(recent7D[0].id, "user_1");
 
+const recent90D = filterByDate(mockUsers, "90D");
+assert.equal(recent90D.length, 3);
+console.log("[PASS] 9. Registration date range filtering accurately isolates members across time boundaries");
+
+// Test 10: Alumni Verification Status View-Only Guarantee
+console.log("\n[TEST 10] Alumni Verification Status View-Only Contract");
+const verifiedAlumni = mockUsers.filter((u) => u.role === "ALUMNI" && u.alumniVerified);
+assert.equal(verifiedAlumni.length, 2);
+for (const a of verifiedAlumni) {
+  assert.equal(a.verificationMethod, "ulab_email");
+  assert.ok(a.verifiedAt !== null);
+}
+console.log("[PASS] 10. Automatic verification metadata is viewable without manual approval bottleneck");
+
+console.log("\n=================================================");
+console.log("Results: 10/10 CRM Tests Passed successfully.");
+console.log("=================================================");

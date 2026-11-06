@@ -685,7 +685,8 @@ export function AdminUsersView({
                 </th>
                 <th className="px-4 py-3.5">User</th>
                 <th className="px-4 py-3.5">Role</th>
-                <th className="px-4 py-3.5">Department & Academic</th>
+                <th className="px-4 py-3.5">Department</th>
+                <th className="px-4 py-3.5">Batch</th>
                 <th className="px-4 py-3.5">Account Status</th>
                 <th className="px-4 py-3.5">Email Verification</th>
                 <th className="px-4 py-3.5">Alumni Verification</th>
@@ -696,7 +697,7 @@ export function AdminUsersView({
             <tbody className="divide-y divide-mist/60 text-ink dark:divide-white/5">
               {paginatedUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12">
+                  <td colSpan={10} className="py-12">
                     <EmptyState
                       title="No users match your criteria"
                       body="Try adjusting filters or clear the active search query."
@@ -751,14 +752,23 @@ export function AdminUsersView({
                         {u.role === "ADMIN" && <Badge tone="gray">Admin</Badge>}
                       </td>
 
-                      {/* Department & Academic Information */}
-                      <td className="px-4 py-3.5 text-ink-soft">
-                        <p className="font-medium text-ink">{u.department || "No department"}</p>
-                        <p className="text-[11px]">
-                          {u.batch && <span>Batch {u.batch}</span>}
-                          {u.graduationYear && <span>Class of {u.graduationYear}</span>}
-                          {u.studentId && <span className="font-mono"> • ID: {u.studentId}</span>}
-                        </p>
+                      {/* Department */}
+                      <td className="px-4 py-3.5 text-ink">
+                        <span className="font-medium">{u.department || "—"}</span>
+                      </td>
+
+                      {/* Batch */}
+                      <td className="px-4 py-3.5 text-ink-soft whitespace-nowrap">
+                        {u.batch ? (
+                          <span className="font-semibold text-ink">Batch {u.batch}</span>
+                        ) : u.graduationYear ? (
+                          <span>Class of {u.graduationYear}</span>
+                        ) : (
+                          <span className="text-ink-soft/40">—</span>
+                        )}
+                        {u.studentId && (
+                          <span className="block font-mono text-[10px] text-ink-soft">ID: {u.studentId}</span>
+                        )}
                       </td>
 
                       {/* Account Status Badge */}
