@@ -179,50 +179,77 @@ export function ChatWindow({
   return (
     <div className="flex h-[72dvh] flex-col md:h-full relative">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-mist/70 px-4 py-3 bg-surface">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center justify-between border-b border-mist/70 px-3 py-2.5 sm:px-4 sm:py-3 bg-surface">
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             href={backHref}
-            className="rounded-lg p-1.5 text-ink-soft hover:bg-paper md:hidden"
-            aria-label="Back"
+            scroll={false}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-mist bg-paper/80 px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-ulab hover:text-ulab hover:bg-paper transition shadow-2xs shrink-0"
+            title="All Conversations (সব চ্যাটে ফিরে যান)"
+            aria-label="Back to all conversations"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={15} />
+            <span className="hidden sm:inline">All Chats</span>
           </Link>
-          <Avatar name={other.name} size={38} />
+          <Avatar name={other.name} size={36} className="shrink-0" />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-ink">{other.name}</p>
             <p className="truncate text-xs text-ink-soft">{other.subtitle}</p>
           </div>
         </div>
 
-        {/* Options Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-xl p-2 text-ink-soft hover:bg-paper hover:text-ink transition"
-            title="Options"
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Link
+            href={backHref}
+            scroll={false}
+            className="inline-flex items-center gap-1 rounded-xl border border-mist/80 bg-paper/60 px-2.5 py-1.5 text-xs font-medium text-ink-soft hover:border-mist-deep hover:bg-paper hover:text-ink transition shadow-2xs"
+            title="Close this chat (চ্যাট বন্ধ করুন)"
+            aria-label="Exit conversation"
           >
-            <MoreVertical size={18} />
-          </button>
+            <X size={14} />
+            <span className="hidden sm:inline">Exit</span>
+          </Link>
 
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-48 rounded-2xl border border-mist bg-surface p-1.5 shadow-lift z-20">
-              <button
-                onClick={() => handleOpenReport()}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-paper hover:text-ink transition"
-              >
-                <ShieldAlert size={14} className="text-gold-ink" />
-                Report User
-              </button>
-              <button
-                onClick={handleBlockUser}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose hover:bg-rose-wash transition"
-              >
-                <UserX size={14} />
-                Block User
-              </button>
-            </div>
-          )}
+          {/* Options Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="rounded-xl p-2 text-ink-soft hover:bg-paper hover:text-ink transition"
+              title="Options"
+              aria-label="Options"
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1.5 w-48 rounded-2xl border border-mist bg-surface p-1.5 shadow-lift z-20">
+                <Link
+                  href={backHref}
+                  scroll={false}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-paper hover:text-ink transition"
+                >
+                  <X size={14} />
+                  Exit Conversation
+                </Link>
+                <button
+                  onClick={() => handleOpenReport()}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-paper hover:text-ink transition"
+                >
+                  <ShieldAlert size={14} className="text-gold-ink" />
+                  Report User
+                </button>
+                <button
+                  onClick={handleBlockUser}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-rose hover:bg-rose-wash transition"
+                >
+                  <UserX size={14} />
+                  Block User
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

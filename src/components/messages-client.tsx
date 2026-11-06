@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Plus, Users, User as UserIcon, Search } from "lucide-react";
+import { MessageSquare, Plus, Users, User as UserIcon, Search, MessageSquarePlus } from "lucide-react";
 import { Avatar, Button, cn, timeAgo } from "./ui";
 import { CreateGroupModal } from "./create-group-modal";
+import { NewChatModal } from "./new-chat-modal";
 import { ChatWindow } from "./chat-window";
 import { GroupChatWindow } from "./group-chat-window";
 
@@ -72,6 +73,7 @@ export function MessagesClient({
   const [tab, setTab] = useState<TabType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
 
   // Active items
   const activeConnection = (connections || []).find((c) => c.id === selectedConnectionId);
@@ -132,16 +134,28 @@ export function MessagesClient({
       >
         {/* Top Actions & Create Group */}
         <div className="border-b border-mist/60 p-3.5 space-y-2.5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-1">
             <h3 className="text-sm font-bold text-ink">Conversations</h3>
-            <Button
-              onClick={() => setIsCreateGroupOpen(true)}
-              variant="soft"
-              className="h-8 gap-1.5 px-2.5 text-xs font-semibold text-ulab-deep shadow-none"
-            >
-              <Plus size={14} />
-              New Group
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <Button
+                onClick={() => setIsNewChatOpen(true)}
+                variant="soft"
+                className="h-8 gap-1.5 px-2.5 text-xs font-semibold text-ulab-deep shadow-none"
+                title="Start a new chat (নতুন মেসেজ)"
+              >
+                <MessageSquarePlus size={14} />
+                <span className="hidden sm:inline">New Chat</span>
+              </Button>
+              <Button
+                onClick={() => setIsCreateGroupOpen(true)}
+                variant="soft"
+                className="h-8 gap-1.5 px-2.5 text-xs font-semibold text-ulab-deep shadow-none"
+                title="Create a new group"
+              >
+                <Plus size={14} />
+                <span className="hidden sm:inline">Group</span>
+              </Button>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -335,10 +349,18 @@ export function MessagesClient({
               <p className="mt-1 text-xs text-ink-soft">
                 Choose a direct message from the left or create a group to start chatting with students, faculty, and alumni.
               </p>
-              <div className="mt-4 flex justify-center gap-2">
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <Button
+                  onClick={() => setIsNewChatOpen(true)}
+                  className="py-2 text-xs gap-1.5"
+                >
+                  <MessageSquarePlus size={14} />
+                  New Chat
+                </Button>
                 <Button
                   onClick={() => setIsCreateGroupOpen(true)}
-                  className="py-2 text-xs"
+                  variant="outline"
+                  className="py-2 text-xs gap-1.5"
                 >
                   <Plus size={14} />
                   New Group
@@ -348,6 +370,14 @@ export function MessagesClient({
           </div>
         )}
       </div>
+
+      {/* New Chat Modal */}
+      <NewChatModal
+        isOpen={isNewChatOpen}
+        onClose={() => setIsNewChatOpen(false)}
+        basePath={basePath}
+        availablePeople={availablePeople}
+      />
 
       {/* Create Group Modal */}
       <CreateGroupModal

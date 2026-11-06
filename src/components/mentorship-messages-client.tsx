@@ -360,28 +360,33 @@ function MentorshipChatPane({
   return (
     <div className="flex h-full flex-col">
       {/* Top Header */}
-      <div className="flex items-center justify-between border-b border-mist/70 p-3.5 dark:border-white/10">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between border-b border-mist/70 p-3 sm:p-3.5 dark:border-white/10">
+        <div className="flex items-center gap-2.5 min-w-0">
           <Link
             href={backHref}
-            className="grid size-8 place-items-center rounded-xl border border-mist/80 bg-paper/60 text-ink-soft hover:bg-paper md:hidden"
+            scroll={false}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-mist bg-paper/80 px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-ulab hover:text-ulab hover:bg-paper transition shadow-2xs shrink-0"
+            title="All Mentorship Chats (সব মেন্টরশিপ চ্যাটে ফিরে যান)"
+            aria-label="Back to all mentorship conversations"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={15} />
+            <span className="hidden sm:inline">All Chats</span>
           </Link>
 
           <Avatar
             name={connection.otherUser.name}
             src={connection.otherUser.image}
-            size={40}
+            size={38}
+            className="shrink-0"
           />
 
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-ink">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="text-xs font-bold text-ink truncate">
                 {connection.otherUser.name}
               </span>
               {connection.otherUser.alumniVerified && (
-                <ShieldCheck size={14} className="text-emerald-600" />
+                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
               )}
               <Badge
                 tone={
@@ -391,31 +396,42 @@ function MentorshipChatPane({
                     ? "gold"
                     : "blue"
                 }
+                className="shrink-0 text-[10px] py-0 px-1.5"
               >
                 {roleLabel}
               </Badge>
             </div>
 
-            <p className="text-[11px] text-ink-soft">
+            <p className="text-[11px] text-ink-soft truncate">
               {connection.otherUser.designation || connection.otherUser.department || "ULAB Member"} {connection.otherUser.company && `at ${connection.otherUser.company}`}
             </p>
           </div>
         </div>
 
-        {/* Mentorship Topic & Status Badge */}
-        <div className="flex items-center gap-2">
+        {/* Right Actions: Topic, Status Badge, and Close Button */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {connection.topic && (
-            <span className="hidden sm:inline-flex rounded-xl bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <span className="hidden md:inline-flex rounded-xl bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
               {connection.topic}
             </span>
           )}
-          <Badge tone={connection.isCompleted ? "gray" : "sage"}>
+          <Badge tone={connection.isCompleted ? "gray" : "sage"} className="text-[10px] sm:text-xs">
             {connection.isCompleted
               ? "Concluded"
               : connection.hasCompletedSession
-              ? "1 Session Done · Active"
-              : "Active Mentorship"}
+              ? "1 Done"
+              : "Active"}
           </Badge>
+          <Link
+            href={backHref}
+            scroll={false}
+            className="inline-flex items-center gap-1 rounded-xl border border-mist/80 bg-paper/60 px-2.5 py-1.5 text-xs font-medium text-ink-soft hover:border-mist-deep hover:bg-paper hover:text-ink transition shadow-2xs"
+            title="Close this chat (চ্যাট বন্ধ করুন)"
+            aria-label="Exit conversation"
+          >
+            <X size={14} />
+            <span className="hidden sm:inline">Exit</span>
+          </Link>
         </div>
       </div>
 
