@@ -587,9 +587,10 @@ export async function acceptMentorshipRequest(requestId: string, note?: string) 
 
   const now = new Date();
 
-  // 2. Dedicated Mentorship Conversation (Connection)
+  // 2. Dedicated Mentorship Conversation (Connection with type="mentorship")
   let connection = await db.connection.findFirst({
     where: {
+      type: "mentorship",
       OR: [
         { fromId: user.id, toId: req.studentId },
         { fromId: req.studentId, toId: user.id },
@@ -602,14 +603,24 @@ export async function acceptMentorshipRequest(requestId: string, note?: string) 
       data: {
         fromId: user.id,
         toId: req.studentId,
+        type: "mentorship",
+        topic: req.topic,
+        mentorshipRequestId: req.id,
         status: "ACCEPTED",
+        isCompleted: false,
         note: `Mentorship: ${req.topic}`,
       },
     });
-  } else if (connection.status !== "ACCEPTED") {
+  } else {
     await db.connection.update({
       where: { id: connection.id },
-      data: { status: "ACCEPTED" },
+      data: {
+        status: "ACCEPTED",
+        type: "mentorship",
+        topic: req.topic,
+        mentorshipRequestId: req.id,
+        isCompleted: false,
+      },
     });
   }
 
@@ -807,6 +818,13 @@ export async function completeMentorshipSession(requestId: string, feedbackNotes
     },
   });
 
+  if (req.connectionId) {
+    await db.connection.update({
+      where: { id: req.connectionId },
+      data: { isCompleted: true },
+    }).catch(() => {});
+  }
+
   // Completing a session frees an active slot!
   await checkAndRestoreAvailability(req.mentorId);
 
@@ -870,6 +888,13 @@ export async function cancelMentorshipRequest(requestId: string, reason?: string
       endReason: reason?.trim() || "Request cancelled",
     },
   }).catch(() => {});
+
+  if (req.connectionId) {
+    await db.connection.update({
+      where: { id: req.connectionId },
+      data: { isCompleted: true },
+    }).catch(() => {});
+  }
 
   // Cancelling frees an active slot!
   await checkAndRestoreAvailability(req.mentorId);
@@ -939,6 +964,13 @@ export async function endMentorshipRelationship(requestId: string, endReason?: s
       endReason: endReason?.trim() || "Concluded by mentor",
     },
   }).catch(() => {});
+
+  if (req.connectionId) {
+    await db.connection.update({
+      where: { id: req.connectionId },
+      data: { isCompleted: true },
+    }).catch(() => {});
+  }
 
   // Free up mentor capacity!
   await checkAndRestoreAvailability(req.mentorId);

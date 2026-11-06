@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import {
-  Briefcase, FileText, GraduationCap, Home, LogOut, Megaphone, MessageCircle, PlusCircle, ShieldCheck, User, Users, BarChart3, BookOpen, Bell, LifeBuoy, Compass,
+  Briefcase, FileText, GraduationCap, Home, LogOut, Megaphone, MessageCircle, MessageSquare, PlusCircle, ShieldCheck, User, Users, BarChart3, BookOpen, Bell, LifeBuoy, Compass,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { Logo } from "./site-header";
 import { ThemeToggle } from "./theme";
 import { Avatar, cn } from "./ui";
 
-const icons = { Home, Briefcase, Users, MessageCircle, User, FileText, PlusCircle, ShieldCheck, Megaphone, BarChart3, GraduationCap, BookOpen, Bell, LifeBuoy, Compass };
+const icons = { Home, Briefcase, Users, MessageCircle, MessageSquare, User, FileText, PlusCircle, ShieldCheck, Megaphone, BarChart3, GraduationCap, BookOpen, Bell, LifeBuoy, Compass };
 export type NavItem = { href: string; label: string; icon: keyof typeof icons; badge?: number };
 
 export function AppShell({

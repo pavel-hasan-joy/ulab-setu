@@ -40,6 +40,7 @@ export async function startConversation(otherId: string) {
 
   const existing = await db.connection.findFirst({
     where: {
+      type: "general",
       OR: [
         { fromId: user.id, toId: otherId },
         { fromId: otherId, toId: user.id },
@@ -62,6 +63,7 @@ export async function startConversation(otherId: string) {
       fromId: user.id,
       toId: otherId,
       status: "ACCEPTED",
+      type: "general",
     },
   });
 
@@ -79,6 +81,7 @@ export async function sendConnectRequest(toId: string, note?: string) {
 
   const existing = await db.connection.findFirst({
     where: {
+      type: "general",
       OR: [
         { fromId: user.id, toId },
         { fromId: toId, toId: user.id },
@@ -111,6 +114,7 @@ export async function sendConnectRequest(toId: string, note?: string) {
       fromId: user.id,
       toId,
       status: "PENDING",
+      type: "general",
       note: note?.trim() || null,
     },
   });
@@ -174,7 +178,7 @@ export async function declineConnectRequest(connectionId: string) {
 export async function cancelConnectRequest(toId: string) {
   const user = await requireUser();
   const conn = await db.connection.findFirst({
-    where: { fromId: user.id, toId, status: "PENDING" },
+    where: { fromId: user.id, toId, status: "PENDING", type: "general" },
   });
   if (conn) {
     await db.connection.delete({ where: { id: conn.id } });
@@ -188,6 +192,7 @@ export async function removeConnection(targetUserId: string) {
   const user = await requireUser();
   const conn = await db.connection.findFirst({
     where: {
+      type: "general",
       OR: [
         { fromId: user.id, toId: targetUserId },
         { fromId: targetUserId, toId: user.id },
@@ -227,6 +232,13 @@ export async function sendMessage(
     include: { from: true, to: true },
   });
   if (!conn) return { error: "Conversation not found." };
+
+  // Guard: if mentorship conversation is completed/ended, prevent new messages (read-only mode)
+  if (conn.type === "mentorship" && conn.isCompleted) {
+    return {
+      error: "This career mentorship has been concluded. The conversation is preserved in read-only mode.",
+    };
+  }
 
   const recipient = conn.fromId === user.id ? conn.to : conn.from;
   const recipientId = recipient.id;
@@ -284,19 +296,34 @@ export async function sendMessage(
     },
   });
 
-  // Dispatch in-app notification to the recipient
-  await dispatchNotification({
-    userId: recipientId,
-    actorId: user.id,
-    title: `Message from ${user.name}`,
-    body: trimmedBody
-      ? trimmedBody.length > 80
-        ? trimmedBody.slice(0, 77) + "..."
-        : trimmedBody
-      : `Sent an attachment: ${attachment?.name || "file"}`,
-    type: "MESSAGE",
-    link: `/${recipient.role.toLowerCase()}/messages?c=${connectionId}`,
-  });
+  // Dispatch in-app notification to the recipient with respective inbox link
+  if (conn.type === "mentorship") {
+    await dispatchNotification({
+      userId: recipientId,
+      actorId: user.id,
+      title: `Mentorship Message from ${user.name}`,
+      body: trimmedBody
+        ? trimmedBody.length > 80
+          ? trimmedBody.slice(0, 77) + "..."
+          : trimmedBody
+        : `Sent an attachment: ${attachment?.name || "file"}`,
+      type: "MENTORSHIP",
+      link: `/${recipient.role.toLowerCase()}/mentorship-messages?c=${connectionId}`,
+    });
+  } else {
+    await dispatchNotification({
+      userId: recipientId,
+      actorId: user.id,
+      title: `Message from ${user.name}`,
+      body: trimmedBody
+        ? trimmedBody.length > 80
+          ? trimmedBody.slice(0, 77) + "..."
+          : trimmedBody
+        : `Sent an attachment: ${attachment?.name || "file"}`,
+      type: "MESSAGE",
+      link: `/${recipient.role.toLowerCase()}/messages?c=${connectionId}`,
+    });
+  }
 
   return { success: true, messageId: msg.id };
 }

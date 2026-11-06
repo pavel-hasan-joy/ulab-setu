@@ -69,12 +69,19 @@ export async function PeopleDirectory({
           orderBy: tab === "alumni" ? { graduationYear: "desc" } : { name: "asc" },
         }),
     db.connection.findMany({
-      where: { OR: [{ fromId: viewer.id }, { toId: viewer.id }] },
+      where: {
+        type: "general",
+        OR: [{ fromId: viewer.id }, { toId: viewer.id }],
+      },
       select: { id: true, fromId: true, toId: true, status: true },
     }),
     db.user.groupBy({ by: ["role"], where: { status: "APPROVED", id: { not: viewer.id } }, _count: true }),
     db.connection.findMany({
-      where: { toId: viewer.id, status: "PENDING" },
+      where: {
+        type: "general",
+        toId: viewer.id,
+        status: "PENDING",
+      },
       include: { from: true },
       orderBy: { createdAt: "desc" },
     }),

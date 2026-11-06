@@ -4,12 +4,25 @@ import { db } from "@/lib/db";
 
 export default async function AlumniLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser("ALUMNI");
-  const [pendingInvites, unreadNotifs, unreadMessages] = await Promise.all([
+  const [pendingInvites, unreadNotifs, unreadGeneral, unreadMentorship] = await Promise.all([
     db.connection.count({ where: { toId: user.id, status: "PENDING" } }),
     db.notification.count({ where: { userId: user.id, read: false } }),
     db.message.count({
       where: {
-        connection: { OR: [{ fromId: user.id }, { toId: user.id }] },
+        connection: {
+          type: "general",
+          OR: [{ fromId: user.id }, { toId: user.id }],
+        },
+        senderId: { not: user.id },
+        isRead: false,
+      },
+    }),
+    db.message.count({
+      where: {
+        connection: {
+          type: "mentorship",
+          OR: [{ fromId: user.id }, { toId: user.id }],
+        },
         senderId: { not: user.id },
         isRead: false,
       },
@@ -24,10 +37,11 @@ export default async function AlumniLayout({ children }: { children: React.React
         { href: "/alumni", label: "Home", icon: "Home" },
         { href: "/alumni/board", label: "Notices", icon: "Megaphone" },
         { href: "/alumni/jobs", label: "My jobs", icon: "Briefcase" },
-        { href: "/alumni/mentorship", label: "Mentorship", icon: "Compass" },
+        { href: "/alumni/mentorship", label: "My Mentees", icon: "GraduationCap" },
+        { href: "/alumni/mentorship-messages", label: "Mentorship Messages", icon: "MessageSquare", badge: unreadMentorship > 0 ? unreadMentorship : undefined },
         { href: "/alumni/tuitions", label: "Tuitions", icon: "BookOpen" },
         { href: "/alumni/people", label: "People", icon: "Users", badge: pendingInvites > 0 ? pendingInvites : undefined },
-        { href: "/alumni/messages", label: "Messages", icon: "MessageCircle", badge: unreadMessages > 0 ? unreadMessages : undefined },
+        { href: "/alumni/messages", label: "General Messages", icon: "MessageCircle", badge: unreadGeneral > 0 ? unreadGeneral : undefined },
         { href: "/alumni/notifications", label: "Alerts", icon: "Bell", badge: unreadNotifs > 0 ? unreadNotifs : undefined },
         { href: "/alumni/profile", label: "Profile", icon: "User" },
         { href: "/alumni/support", label: "Helpdesk", icon: "LifeBuoy" },

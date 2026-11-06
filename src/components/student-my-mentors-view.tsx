@@ -371,11 +371,20 @@ export function StudentMyMentorsView({
 
                 {(req.status === "ACCEPTED" || req.status === "SCHEDULED") && (
                   <Link
-                    href="/student/messages"
+                    href="/student/mentorship-messages"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-ulab py-1.5 px-3 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft"
                   >
                     <MessageSquare size={13} />
-                    Message Mentor
+                    Mentorship Chat
+                  </Link>
+                )}
+                {req.status === "COMPLETED" && (
+                  <Link
+                    href="/student/mentorship-messages"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs font-semibold text-ink hover:bg-surface shadow-soft"
+                  >
+                    <MessageSquare size={13} />
+                    View Chat History
                   </Link>
                 )}
 

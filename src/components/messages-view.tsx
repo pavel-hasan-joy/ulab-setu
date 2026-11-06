@@ -25,7 +25,10 @@ export async function MessagesView({
   let connectionsData: any[] = [];
   try {
     connectionsData = await db.connection.findMany({
-      where: { OR: [{ fromId: user.id }, { toId: user.id }] },
+      where: {
+        type: "general",
+        OR: [{ fromId: user.id }, { toId: user.id }],
+      },
       include: {
         from: true,
         to: true,

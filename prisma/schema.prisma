@@ -161,22 +161,27 @@ model Application {
 }
 
 model Connection {
-  id        String    @id @default(cuid())
-  note      String?
-  status    String    @default("PENDING") // PENDING | ACCEPTED | DECLINED
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt @default(now())
+  id                   String    @id @default(cuid())
+  note                 String?
+  status               String    @default("PENDING") // PENDING | ACCEPTED | DECLINED
+  type                 String    @default("general") // general | mentorship
+  topic                String?   // Mentorship topic for mentorship conversations
+  mentorshipRequestId  String?   // Associated mentorship request ID
+  isCompleted          Boolean   @default(false)     // True when mentorship is concluded (read-only archive)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt @default(now())
 
-  fromId    String
-  from      User      @relation("sent", fields: [fromId], references: [id], onDelete: Cascade)
-  toId      String
-  to        User      @relation("received", fields: [toId], references: [id], onDelete: Cascade)
-  messages  Message[]
+  fromId               String
+  from                 User      @relation("sent", fields: [fromId], references: [id], onDelete: Cascade)
+  toId                 String
+  to                   User      @relation("received", fields: [toId], references: [id], onDelete: Cascade)
+  messages             Message[]
 
-  @@unique([fromId, toId])
+  @@unique([fromId, toId, type])
   @@index([fromId])
   @@index([toId])
   @@index([status])
+  @@index([type])
 }
 
 model Message {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Compass,
   CheckCircle2,
@@ -418,6 +419,13 @@ export function AlumniMentorshipView({
 
                     {(r.status === "ACCEPTED" || r.status === "SCHEDULED") && (
                       <>
+                        <Link
+                          href="/alumni/mentorship-messages"
+                          className="inline-flex items-center gap-1 rounded-xl bg-ulab py-1 px-3 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft"
+                        >
+                          <MessageSquare size={13} />
+                          Mentorship Chat
+                        </Link>
                         <Button
                           variant="outline"
                           onClick={() => setSchedulingReq(r)}
@@ -434,6 +442,16 @@ export function AlumniMentorshipView({
                           Mark Completed
                         </Button>
                       </>
+                    )}
+
+                    {r.status === "COMPLETED" && (
+                      <Link
+                        href="/alumni/mentorship-messages"
+                        className="inline-flex items-center gap-1 rounded-xl border border-mist/80 bg-paper py-1 px-3 text-xs font-semibold text-ink hover:bg-surface shadow-soft"
+                      >
+                        <MessageSquare size={13} />
+                        Chat History
+                      </Link>
                     )}
                   </div>
                 </div>
