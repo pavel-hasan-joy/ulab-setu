@@ -280,7 +280,15 @@ export function PeopleDirectoryClient({
                   )}
 
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-mist/40">
-                    <span className="text-xs text-ink-soft">{p.department}</span>
+                    <div className="flex items-center gap-1.5 text-xs text-ink-soft">
+                      <span>{p.department}</span>
+                      {p.role === "ALUMNI" && p.batch && (
+                        <>
+                          <span>•</span>
+                          <span className="font-medium text-ink">Batch {p.batch}</span>
+                        </>
+                      )}
+                    </div>
                     <div
                       onClick={(e) => e.stopPropagation()}
                       className="flex items-center gap-2"
