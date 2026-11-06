@@ -13,6 +13,7 @@ export type AdminPermission =
   | "applications:view"
   | "reports:manage"
   | "mentorship:view"
+  | "mentorship:manage"
   | "tickets:manage"
   | "notifications:manage"
   | "analytics:view"
@@ -29,6 +30,7 @@ export const ROLE_PERMISSIONS: Record<AdminSubRole, AdminPermission[]> = {
     "applications:view",
     "reports:manage",
     "mentorship:view",
+    "mentorship:manage",
     "tickets:manage",
     "notifications:manage",
     "analytics:view",
@@ -53,6 +55,7 @@ export const ROLE_PERMISSIONS: Record<AdminSubRole, AdminPermission[]> = {
     "tickets:manage",
     "notifications:manage",
     "mentorship:view",
+    "mentorship:manage",
   ],
   ANALYST: [
     "dashboard:view",

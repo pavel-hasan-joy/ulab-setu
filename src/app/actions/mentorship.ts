@@ -41,6 +41,31 @@ export type CareerMentorProfileData = {
 };
 
 /**
+ * Record mentorship lifecycle audit log with actor ID and action payload.
+ */
+export async function logMentorshipAudit(
+  actorId: string,
+  action: string,
+  targetType: string,
+  targetId?: string,
+  details?: string
+) {
+  try {
+    await db.mentorshipAuditLog.create({
+      data: {
+        actorId,
+        action,
+        targetType,
+        targetId: targetId || null,
+        details: details || null,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to write mentorship audit log:", err);
+  }
+}
+
+/**
  * Check if a user is authorized to be a Career Mentor.
  * STRICT SECURITY REQUIREMENT:
  * Only verified Alumni (role === 'ALUMNI' && alumniVerified) and authorized Faculty (role === 'TEACHER')
@@ -247,6 +272,14 @@ export async function toggleMentorActivation(isActive: boolean) {
       mentorAvailable: isActive && newStatus === "AVAILABLE",
     },
   });
+
+  await logMentorshipAudit(
+    user.id,
+    isActive ? "MENTOR_ACTIVATION" : "MENTOR_DEACTIVATION",
+    "MENTOR_PROFILE",
+    user.id,
+    `Mentor ${user.name} set availability mode to ${isActive ? "ON" : "OFF"} (status: ${newStatus})`
+  );
 
   revalidatePath("/alumni/mentorship");
   revalidatePath("/alumni");
@@ -532,6 +565,14 @@ export async function sendMentorshipRequest(data: {
     link: notifyTarget,
   });
 
+  await logMentorshipAudit(
+    student.id,
+    "REQUEST_CREATION",
+    "MENTORSHIP_REQUEST",
+    req.id,
+    `Student ${student.name} requested mentorship on "${data.topic.trim()}" from ${mentor.name}`
+  );
+
   revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentors");
   revalidatePath("/student/mentorship");
@@ -678,6 +719,14 @@ export async function acceptMentorshipRequest(requestId: string, note?: string) 
     link: `/student/my-mentors`,
   });
 
+  await logMentorshipAudit(
+    user.id,
+    "REQUEST_ACCEPTANCE",
+    "MENTORSHIP_REQUEST",
+    req.id,
+    `Mentor ${user.name} accepted mentorship request on "${req.topic}" from student ${req.student.name}`
+  );
+
   revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentors");
   revalidatePath("/student/mentorship");
@@ -727,6 +776,14 @@ export async function declineMentorshipRequest(requestId: string, reason?: strin
     type: "MENTORSHIP",
     link: `/student/my-mentors`,
   });
+
+  await logMentorshipAudit(
+    user.id,
+    "REQUEST_DECLINE",
+    "MENTORSHIP_REQUEST",
+    req.id,
+    `Mentor ${user.name} declined request from student ${req.student.name}. Reason: ${reason || "None"}`
+  );
 
   revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentorship");
@@ -833,11 +890,20 @@ export async function completeMentorshipSession(requestId: string, feedbackNotes
     userId: req.studentId,
     actorId: user.id,
     title: `Mentorship Session Completed 🌟`,
-    body: `Thank you for completing your career mentorship session on "${req.topic}" with ${user.name}!`,
+    body: `Thank you for completing your career mentorship session on "${req.topic}" with ${user.name}! Please leave your review and feedback.`,
     type: "MENTORSHIP",
-    link: `/student/mentorship`,
+    link: `/student/my-mentors`,
   });
 
+  await logMentorshipAudit(
+    user.id,
+    "RELATIONSHIP_COMPLETION",
+    "MENTORSHIP_REQUEST",
+    req.id,
+    `Completed mentorship session on "${req.topic}" for student ${req.student.name}`
+  );
+
+  revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentorship");
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
@@ -922,6 +988,14 @@ export async function cancelMentorshipRequest(requestId: string, reason?: string
     });
   }
 
+  await logMentorshipAudit(
+    user.id,
+    "RELATIONSHIP_CANCELLATION",
+    "MENTORSHIP_REQUEST",
+    req.id,
+    `Mentorship request ${req.id} cancelled by ${user.name}. Reason: ${reason || "None"}`
+  );
+
   revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentorship");
   revalidatePath("/alumni/mentorship");
@@ -986,6 +1060,14 @@ export async function endMentorshipRelationship(requestId: string, endReason?: s
     type: "MENTORSHIP",
     link: `/student/my-mentors`,
   });
+
+  await logMentorshipAudit(
+    user.id,
+    "RELATIONSHIP_CANCELLATION",
+    "MENTORSHIP_RELATIONSHIP",
+    req.id,
+    `Mentor ${user.name} ended mentorship relationship ${req.id}. Reason: ${endReason || "None"}`
+  );
 
   revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentorship");
@@ -1342,6 +1424,18 @@ export async function getStudentMentorshipHistory() {
           },
         },
       },
+      relationship: {
+        select: {
+          id: true,
+          feedback: {
+            select: {
+              id: true,
+              rating: true,
+              review: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -1364,6 +1458,8 @@ export async function getStudentMentorshipHistory() {
     cancelledAt: r.cancelledAt ? r.cancelledAt.toISOString() : null,
     endReason: r.endReason,
     connectionId: r.connectionId,
+    relationshipId: r.relationship?.id || null,
+    feedback: r.relationship?.feedback || null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     mentor: {
@@ -1387,5 +1483,577 @@ export async function getStudentMentorshipHistory() {
     active: serialized.filter((r) => r.status === "ACCEPTED" || r.status === "SCHEDULED"),
     completed: serialized.filter((r) => r.status === "COMPLETED"),
     archived: serialized.filter((r) => r.status === "DECLINED" || r.status === "CANCELLED"),
+  };
+}
+
+// ==============================================================================
+// PHASE 5: CRM INTEGRATION, FEEDBACK, REPORTING, AUDIT & ANALYTICS
+// ==============================================================================
+
+/**
+ * Submit post-mentorship rating and optional feedback review.
+ * Only the participating student can review a completed mentorship.
+ * Prevents duplicate reviews for the same relationship.
+ */
+export async function submitMentorshipFeedback(input: {
+  relationshipId: string;
+  rating: number;
+  review?: string;
+  isAnonymous?: boolean;
+}) {
+  const user = await requireUser();
+  const { relationshipId, rating, review, isAnonymous } = input;
+
+  const numericRating = Math.round(Number(rating));
+  if (!numericRating || numericRating < 1 || numericRating > 5) {
+    return { error: "Rating must be an integer between 1 and 5 stars." };
+  }
+
+  const relationship = await db.mentorshipRelationship.findUnique({
+    where: { id: relationshipId },
+    include: { request: true, feedback: true },
+  });
+
+  if (!relationship) {
+    return { error: "Mentorship relationship record not found." };
+  }
+
+  if (relationship.studentId !== user.id && user.role !== "ADMIN") {
+    return { error: "Only the participating student can submit feedback for this mentorship." };
+  }
+
+  if (relationship.status !== "COMPLETED" && relationship.request.status !== "COMPLETED") {
+    return { error: "Feedback can only be submitted after the mentorship session is completed." };
+  }
+
+  if (relationship.feedback) {
+    return { error: "Feedback has already been submitted for this mentorship relationship." };
+  }
+
+  const trimmedReview = review?.trim() || null;
+
+  const feedback = await db.mentorshipFeedback.create({
+    data: {
+      relationshipId,
+      studentId: relationship.studentId,
+      mentorId: relationship.mentorId,
+      rating: numericRating,
+      review: trimmedReview ? trimmedReview.slice(0, 2000) : null,
+      status: "PUBLISHED",
+      isAnonymous: Boolean(isAnonymous),
+    },
+  });
+
+  // Recalculate Mentor's average rating and total reviews
+  const allMentorFeedbacks = await db.mentorshipFeedback.findMany({
+    where: { mentorId: relationship.mentorId, status: "PUBLISHED" },
+    select: { rating: true },
+  });
+
+  const totalReviews = allMentorFeedbacks.length;
+  const avgRating =
+    totalReviews > 0
+      ? Number((allMentorFeedbacks.reduce((sum, f) => sum + f.rating, 0) / totalReviews).toFixed(1))
+      : null;
+
+  await db.mentorProfile.update({
+    where: { userId: relationship.mentorId },
+    data: {
+      averageRating: avgRating,
+      totalReviews,
+    },
+  }).catch(() => {});
+
+  // Dispatch notification to mentor
+  await dispatchNotification({
+    userId: relationship.mentorId,
+    actorId: user.id,
+    title: "New Mentorship Feedback Received! 🌟",
+    body: `A student rated your mentorship session ${numericRating} out of 5 stars.${
+      trimmedReview ? ` "${trimmedReview.slice(0, 60)}..."` : ""
+    }`,
+    type: "MENTORSHIP",
+    link: "/alumni/mentorship",
+  }).catch(() => {});
+
+  await logMentorshipAudit(
+    user.id,
+    "FEEDBACK_SUBMISSION",
+    "FEEDBACK",
+    feedback.id,
+    `Student rated mentor ${relationship.mentorId} with ${numericRating}/5 stars`
+  );
+
+  revalidatePath("/student/my-mentors");
+  revalidatePath("/admin/mentorship");
+  revalidatePath("/admin/analytics");
+
+  return { success: true, feedbackId: feedback.id };
+}
+
+/**
+ * Report inappropriate mentorship behavior, harassment, or fraudulent profiles.
+ */
+export async function reportMentorship(input: {
+  targetType: "MENTOR" | "STUDENT" | "MENTORSHIP_REQUEST" | "FEEDBACK";
+  targetId: string;
+  reportedUserId?: string;
+  reason: string;
+  details: string;
+}) {
+  const user = await requireUser();
+  const { targetType, targetId, reportedUserId, reason, details } = input;
+
+  if (!reason?.trim() || !details?.trim()) {
+    return { error: "Both reason and detailed explanation are required to submit a report." };
+  }
+
+  const report = await db.userReport.create({
+    data: {
+      reporterId: user.id,
+      reportedUserId: reportedUserId || null,
+      targetType: targetType === "FEEDBACK" ? "FEEDBACK" : "MENTORSHIP",
+      targetId,
+      reason: reason.trim(),
+      details: details.trim().slice(0, 2000),
+      status: "PENDING",
+    },
+  });
+
+  if (targetType === "FEEDBACK") {
+    await db.mentorshipFeedback.update({
+      where: { id: targetId },
+      data: { isReported: true, reportReason: reason.trim() },
+    }).catch(() => {});
+  }
+
+  await logMentorshipAudit(
+    user.id,
+    "REPORT_SUBMISSION",
+    targetType,
+    targetId,
+    `Report filed: ${reason} - ${details.slice(0, 100)}`
+  );
+
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin/mentorship");
+
+  return { success: true, reportId: report.id };
+}
+
+/**
+ * Admin moderates written feedback (Publish, Hide, or Delete).
+ */
+export async function adminModerateFeedback(
+  feedbackId: string,
+  action: "PUBLISH" | "HIDE" | "DELETE",
+  note?: string
+) {
+  const { user: admin } = await requireAdminPermission("mentorship:manage");
+
+  const feedback = await db.mentorshipFeedback.findUnique({
+    where: { id: feedbackId },
+  });
+  if (!feedback) return { error: "Feedback record not found." };
+
+  if (action === "DELETE") {
+    await db.mentorshipFeedback.delete({ where: { id: feedbackId } });
+  } else {
+    await db.mentorshipFeedback.update({
+      where: { id: feedbackId },
+      data: {
+        status: action === "PUBLISH" ? "PUBLISHED" : "HIDDEN",
+        adminNotes: note?.trim() || null,
+        isReported: false,
+      },
+    });
+  }
+
+  // Recalculate Mentor's average rating
+  const allMentorFeedbacks = await db.mentorshipFeedback.findMany({
+    where: { mentorId: feedback.mentorId, status: "PUBLISHED" },
+    select: { rating: true },
+  });
+
+  const totalReviews = allMentorFeedbacks.length;
+  const avgRating =
+    totalReviews > 0
+      ? Number((allMentorFeedbacks.reduce((sum, f) => sum + f.rating, 0) / totalReviews).toFixed(1))
+      : null;
+
+  await db.mentorProfile.update({
+    where: { userId: feedback.mentorId },
+    data: {
+      averageRating: avgRating,
+      totalReviews,
+    },
+  }).catch(() => {});
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "FEEDBACK_MODERATION",
+      targetType: "FEEDBACK",
+      targetId: feedbackId,
+      details: `Admin ${action} feedback ${feedbackId}. Note: ${note || "None"}`,
+    },
+  }).catch(() => {});
+
+  await logMentorshipAudit(
+    admin.id,
+    "ADMIN_MODERATION",
+    "FEEDBACK",
+    feedbackId,
+    `Admin moderated feedback: ${action}`
+  );
+
+  revalidatePath("/admin/mentorship");
+  revalidatePath("/admin/analytics");
+
+  return { success: true };
+}
+
+/**
+ * Admin toggles a mentor's active status if there is a security or policy violation.
+ */
+export async function adminToggleMentorStatus(
+  mentorUserId: string,
+  isActive: boolean,
+  note?: string
+) {
+  const { user: admin } = await requireAdminPermission("mentorship:manage");
+
+  const mentor = await db.user.findUnique({
+    where: { id: mentorUserId },
+    include: { mentorProfile: true },
+  });
+  if (!mentor) return { error: "Mentor not found." };
+
+  await db.user.update({
+    where: { id: mentorUserId },
+    data: {
+      isMentor: isActive,
+      mentorAvailable: isActive,
+    },
+  });
+
+  if (mentor.mentorProfile) {
+    await db.mentorProfile.update({
+      where: { userId: mentorUserId },
+      data: {
+        isActive,
+        status: isActive ? "AVAILABLE" : "TEMPORARILY_UNAVAILABLE",
+      },
+    });
+  }
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "MENTOR_STATUS_TOGGLE",
+      targetType: "USER",
+      targetId: mentorUserId,
+      details: `Admin set mentor active=${isActive} for ${mentor.name} (${mentor.email}). Note: ${note || "None"}`,
+    },
+  }).catch(() => {});
+
+  await logMentorshipAudit(
+    admin.id,
+    "ADMIN_MODERATION",
+    "MENTOR_PROFILE",
+    mentorUserId,
+    `Admin toggled mentor isActive to ${isActive}`
+  );
+
+  revalidatePath("/admin/mentorship");
+  revalidatePath("/admin/users");
+
+  return { success: true };
+}
+
+/**
+ * Comprehensive Admin Mentorship Dashboard Data Query.
+ * Fetches real database statistics, mentor directory, requests, ratings, and audit logs.
+ */
+export async function adminGetMentorshipDashboardData() {
+  await requireAdminPermission("mentorship:view");
+
+  const [
+    totalMentors,
+    activeAlumniMentors,
+    activeFacultyMentors,
+    availableMentors,
+    fullyBookedMentors,
+    totalRequests,
+    pendingRequests,
+    acceptedRequests,
+    activeRelationships,
+    completedMentorships,
+    cancelledMentorships,
+    rawMentors,
+    rawRequests,
+    rawFeedbacks,
+    rawAuditLogs,
+    rawReports,
+  ] = await Promise.all([
+    db.user.count({ where: { isMentor: true, status: "APPROVED" } }),
+    db.user.count({ where: { isMentor: true, role: "ALUMNI", status: "APPROVED" } }),
+    db.user.count({ where: { isMentor: true, role: "TEACHER", status: "APPROVED" } }),
+    db.user.count({ where: { isMentor: true, mentorAvailable: true, status: "APPROVED" } }),
+    db.mentorProfile.count({ where: { status: "FULLY_BOOKED" } }),
+    db.mentorshipRequest.count(),
+    db.mentorshipRequest.count({ where: { status: "PENDING" } }),
+    db.mentorshipRequest.count({ where: { status: "ACCEPTED" } }),
+    db.mentorshipRelationship.count({ where: { status: "ACTIVE" } }),
+    db.mentorshipRequest.count({ where: { status: "COMPLETED" } }),
+    db.mentorshipRequest.count({ where: { status: { in: ["CANCELLED", "DECLINED"] } } }),
+    // Mentors list
+    db.user.findMany({
+      where: { isMentor: true, status: "APPROVED" },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        department: true,
+        company: true,
+        designation: true,
+        image: true,
+        alumniVerified: true,
+        mentorAvailable: true,
+        mentorProfile: true,
+        _count: {
+          select: {
+            mentorRequests: true,
+            mentorRelationships: { where: { status: "ACTIVE" } },
+            receivedReports: true,
+            feedbackReceived: true,
+          },
+        },
+      },
+    }),
+    // Requests list
+    db.mentorshipRequest.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      include: {
+        student: { select: { id: true, name: true, email: true, department: true, image: true } },
+        mentor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            company: true,
+            designation: true,
+            department: true,
+          },
+        },
+        relationship: {
+          select: {
+            id: true,
+            status: true,
+            startedAt: true,
+            endedAt: true,
+            feedback: true,
+          },
+        },
+      },
+    }),
+    // Feedbacks list
+    db.mentorshipFeedback.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        student: { select: { id: true, name: true, email: true, department: true } },
+        mentor: { select: { id: true, name: true, email: true, role: true } },
+      },
+    }),
+    // Audit logs
+    db.mentorshipAuditLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: {
+        actor: { select: { id: true, name: true, email: true, role: true } },
+      },
+    }),
+    // Reports
+    db.userReport.findMany({
+      where: { targetType: { in: ["MENTORSHIP", "FEEDBACK"] } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: {
+        reporter: { select: { id: true, name: true, email: true } },
+        reportedUser: { select: { id: true, name: true, email: true } },
+      },
+    }),
+  ]);
+
+  // Serialized Mentors
+  const mentors = rawMentors.map((m) => ({
+    id: m.id,
+    name: m.name,
+    email: m.email,
+    role: m.role,
+    department: m.department,
+    company: m.mentorProfile?.company || m.company,
+    designation: m.mentorProfile?.position || m.designation,
+    careerField: m.mentorProfile?.careerField || null,
+    expertise: m.mentorProfile?.expertise || null,
+    skills: m.mentorProfile?.skills || null,
+    topics: m.mentorProfile?.topics || null,
+    maxMentees: m.mentorProfile?.maxMentees ?? 3,
+    activeMenteesCount: m._count.mentorRelationships,
+    totalRequestsCount: m._count.mentorRequests,
+    reportsCount: m._count.receivedReports,
+    averageRating: m.mentorProfile?.averageRating ?? null,
+    totalReviews: m.mentorProfile?.totalReviews ?? m._count.feedbackReceived,
+    isActive: m.mentorProfile?.isActive ?? true,
+    status: m.mentorProfile?.status ?? (m.mentorAvailable ? "AVAILABLE" : "TEMPORARILY_UNAVAILABLE"),
+    image: m.image,
+    alumniVerified: m.alumniVerified,
+  }));
+
+  // Serialized Requests
+  const requests = rawRequests.map((r) => ({
+    id: r.id,
+    topic: r.topic,
+    message: r.message,
+    careerGoals: r.careerGoals,
+    reason: r.reason,
+    status: r.status,
+    sessionFormat: r.sessionFormat,
+    scheduledAt: r.scheduledAt ? r.scheduledAt.toISOString() : null,
+    sessionLink: r.sessionLink,
+    mentorNotes: r.mentorNotes,
+    startedAt: r.startedAt ? r.startedAt.toISOString() : null,
+    completedAt: r.completedAt ? r.completedAt.toISOString() : null,
+    declinedAt: r.declinedAt ? r.declinedAt.toISOString() : null,
+    cancelledAt: r.cancelledAt ? r.cancelledAt.toISOString() : null,
+    endReason: r.endReason,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    student: r.student,
+    mentor: r.mentor,
+    relationship: r.relationship
+      ? {
+          id: r.relationship.id,
+          status: r.relationship.status,
+          hasFeedback: Boolean(r.relationship.feedback),
+        }
+      : null,
+  }));
+
+  // Serialized Feedbacks
+  const feedbacks = rawFeedbacks.map((f) => ({
+    id: f.id,
+    relationshipId: f.relationshipId,
+    rating: f.rating,
+    review: f.review,
+    status: f.status,
+    isReported: f.isReported,
+    reportReason: f.reportReason,
+    adminNotes: f.adminNotes,
+    createdAt: f.createdAt.toISOString(),
+    student: f.isAnonymous
+      ? { id: f.student.id, name: "Anonymous Student", department: f.student.department }
+      : f.student,
+    mentor: f.mentor,
+  }));
+
+  // Serialized Audit Logs
+  const auditLogs = rawAuditLogs.map((l) => ({
+    id: l.id,
+    action: l.action,
+    targetType: l.targetType,
+    targetId: l.targetId,
+    details: l.details,
+    createdAt: l.createdAt.toISOString(),
+    actor: l.actor,
+  }));
+
+  // Serialized Reports
+  const reports = rawReports.map((rp) => ({
+    id: rp.id,
+    targetType: rp.targetType,
+    targetId: rp.targetId,
+    reason: rp.reason,
+    details: rp.details,
+    status: rp.status,
+    createdAt: rp.createdAt.toISOString(),
+    reporter: rp.reporter,
+    reportedUser: rp.reportedUser,
+  }));
+
+  // Compute Topic Distribution
+  const topicCounts: Record<string, number> = {};
+  for (const r of rawRequests) {
+    if (r.topic) {
+      topicCounts[r.topic] = (topicCounts[r.topic] || 0) + 1;
+    }
+  }
+  const popularTopics = Object.entries(topicCounts)
+    .map(([topic, count]) => ({ topic, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Compute Monthly Trends (Last 6-12 Months)
+  const monthMap: Record<string, { requests: number; accepted: number; completed: number; declined: number }> = {};
+  for (const r of rawRequests) {
+    const key = new Date(r.createdAt).toISOString().slice(0, 7); // YYYY-MM
+    if (!monthMap[key]) {
+      monthMap[key] = { requests: 0, accepted: 0, completed: 0, declined: 0 };
+    }
+    monthMap[key].requests++;
+    if (r.status === "ACCEPTED" || r.status === "SCHEDULED" || r.status === "COMPLETED") {
+      monthMap[key].accepted++;
+    }
+    if (r.status === "COMPLETED") {
+      monthMap[key].completed++;
+    }
+    if (r.status === "DECLINED") {
+      monthMap[key].declined++;
+    }
+  }
+  const monthlyTrends = Object.entries(monthMap)
+    .map(([month, data]) => ({ month, ...data }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  return {
+    kpis: {
+      totalMentors,
+      activeAlumniMentors,
+      activeFacultyMentors,
+      availableMentors,
+      fullyBookedMentors,
+      totalRequests,
+      pendingRequests,
+      acceptedRequests,
+      activeRelationships,
+      completedMentorships,
+      cancelledMentorships,
+      acceptanceRate:
+        totalRequests > 0
+          ? Math.round(((acceptedRequests + completedMentorships) / totalRequests) * 100)
+          : 0,
+    },
+    mentors,
+    requests,
+    feedbacks,
+    auditLogs,
+    reports,
+    analytics: {
+      popularTopics,
+      monthlyTrends,
+      mentorAvailability: {
+        available: availableMentors,
+        fullyBooked: fullyBookedMentors,
+        unavailable: totalMentors - availableMentors - fullyBookedMentors,
+      },
+      roleBreakdown: {
+        alumni: activeAlumniMentors,
+        faculty: activeFacultyMentors,
+      },
+    },
   };
 }

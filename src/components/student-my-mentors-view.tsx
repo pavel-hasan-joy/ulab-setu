@@ -16,9 +16,13 @@ import {
   GraduationCap,
   Sparkles,
   MessageSquare,
+  Star,
 } from "lucide-react";
-import { Avatar, Badge, Button, Card } from "./ui";
-import { cancelMentorshipRequest } from "@/app/actions/mentorship";
+import { Avatar, Badge, Button, Card, cn } from "./ui";
+import {
+  cancelMentorshipRequest,
+  submitMentorshipFeedback,
+} from "@/app/actions/mentorship";
 
 export interface StudentMentorshipRecord {
   id: string;
@@ -39,6 +43,12 @@ export interface StudentMentorshipRecord {
   cancelledAt?: string | null;
   endReason?: string | null;
   connectionId?: string | null;
+  relationshipId?: string | null;
+  feedback?: {
+    id: string;
+    rating: number;
+    review: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
   mentor: {
@@ -62,90 +72,127 @@ export function StudentMyMentorsView({
   initialRequests: StudentMentorshipRecord[];
 }) {
   const [requests, setRequests] = useState<StudentMentorshipRecord[]>(initialRequests);
-  const [activeTab, setActiveTab] = useState<"ALL" | "ACTIVE" | "PENDING" | "COMPLETED" | "ARCHIVED">("ALL");
+  const [activeTab, setActiveTab] = useState<
+    "ALL" | "ACTIVE" | "PENDING" | "COMPLETED" | "ARCHIVED"
+  >("ALL");
   const [isPending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null
+  );
 
-  const handleCancelRequest = (requestId: string) => {
-    if (!confirm("Are you sure you want to cancel this mentorship request?")) return;
-    setFeedback(null);
+  // Review modal state
+  const [reviewingReq, setReviewingReq] = useState<StudentMentorshipRecord | null>(null);
+  const [ratingStars, setRatingStars] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isAnonymousReview, setIsAnonymousReview] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
-    startTransition(async () => {
-      const res = await cancelMentorshipRequest(requestId);
-      if (res.success) {
-        setRequests((prev) =>
-          prev.map((r) => (r.id === requestId ? { ...r, status: "CANCELLED" } : r))
-        );
-        setFeedback({
-          type: "success",
-          message: "Mentorship request cancelled successfully.",
-        });
-      } else {
-        setFeedback({
-          type: "error",
-          message: res.error || "Failed to cancel request.",
-        });
-      }
-    });
-  };
-
+  // Filter lists
   const pendingList = requests.filter((r) => r.status === "PENDING");
-  const activeList = requests.filter((r) => r.status === "ACCEPTED" || r.status === "SCHEDULED");
+  const activeList = requests.filter(
+    (r) => r.status === "ACCEPTED" || r.status === "SCHEDULED"
+  );
   const completedList = requests.filter((r) => r.status === "COMPLETED");
-  const archivedList = requests.filter((r) => r.status === "DECLINED" || r.status === "CANCELLED");
+  const archivedList = requests.filter(
+    (r) => r.status === "DECLINED" || r.status === "CANCELLED"
+  );
 
   const displayedList =
-    activeTab === "PENDING"
-      ? pendingList
-      : activeTab === "ACTIVE"
+    activeTab === "ACTIVE"
       ? activeList
+      : activeTab === "PENDING"
+      ? pendingList
       : activeTab === "COMPLETED"
       ? completedList
       : activeTab === "ARCHIVED"
       ? archivedList
       : requests;
 
+  const handleCancelRequest = (requestId: string) => {
+    if (!confirm("Are you sure you want to cancel this mentorship request?")) return;
+
+    startTransition(async () => {
+      const res = await cancelMentorshipRequest(requestId, "Cancelled by student");
+      if (res.error) {
+        setFeedback({ type: "error", message: res.error });
+      } else {
+        setFeedback({ type: "success", message: "Mentorship request cancelled." });
+        setRequests((prev) =>
+          prev.map((r) => (r.id === requestId ? { ...r, status: "CANCELLED" } : r))
+        );
+      }
+    });
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewingReq || !reviewingReq.relationshipId) {
+      setFeedback({
+        type: "error",
+        message: "Relationship reference missing. Please refresh and try again.",
+      });
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await submitMentorshipFeedback({
+        relationshipId: reviewingReq.relationshipId,
+        rating: ratingStars,
+        review: reviewComment.trim() || undefined,
+        isAnonymous: isAnonymousReview,
+      });
+
+      if (res.error) {
+        setFeedback({ type: "error", message: res.error });
+      } else {
+        setFeedback({
+          type: "success",
+          message: "Thank you! Your mentorship feedback and rating have been recorded.",
+        });
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === reviewingReq.id
+              ? {
+                  ...r,
+                  feedback: {
+                    id: res.feedbackId || "new",
+                    rating: ratingStars,
+                    review: reviewComment.trim() || null,
+                  },
+                }
+              : r
+          )
+        );
+        setReviewingReq(null);
+        setReviewComment("");
+        setRatingStars(5);
+      }
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top Metric Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* Top summary KPIs */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card className="p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
-            Active Mentors
-          </span>
+          <p className="text-[11px] font-semibold text-ink-soft">Active Guidance</p>
           <p className="mt-1 text-2xl font-bold text-ink">{activeList.length}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Ongoing & scheduled sessions</p>
         </Card>
-
         <Card className="p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
-            Pending Inquiries
-          </span>
-          <p className="mt-1 text-2xl font-bold text-amber-600">{pendingList.length}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Awaiting mentor acceptance</p>
+          <p className="text-[11px] font-semibold text-ink-soft">Pending Requests</p>
+          <p className="mt-1 text-2xl font-bold text-gold-ink">{pendingList.length}</p>
         </Card>
-
         <Card className="p-4">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
-            Completed Sessions
-          </span>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{completedList.length}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">With mentor recommendations</p>
+          <p className="text-[11px] font-semibold text-ink-soft">Completed Sessions</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {completedList.length}
+          </p>
         </Card>
-
-        <Card className="p-4 flex flex-col justify-between">
-          <div>
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
-              Expand Network
-            </span>
-            <p className="mt-1 text-xs text-ink-soft">Explore more mentors</p>
-          </div>
-          <Link
-            href="/student/mentors"
-            className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-ulab hover:underline"
-          >
-            Find a Mentor →
-          </Link>
+        <Card className="p-4">
+          <p className="text-[11px] font-semibold text-ink-soft">Total Applications</p>
+          <p className="mt-1 text-2xl font-bold text-ink">{requests.length}</p>
         </Card>
       </div>
 
@@ -263,6 +310,13 @@ export function StudentMyMentorsView({
                     >
                       {req.status}
                     </Badge>
+
+                    {req.feedback && (
+                      <Badge tone="gold" className="gap-1 text-[11px]">
+                        <Star size={11} className="fill-amber-400 text-amber-500" />
+                        {req.feedback.rating}.0 Rated
+                      </Badge>
+                    )}
                   </div>
 
                   <p className="text-xs text-ink-soft">
@@ -322,6 +376,16 @@ export function StudentMyMentorsView({
                     </div>
                   )}
 
+                  {/* Student's submitted review */}
+                  {req.feedback && req.feedback.review && (
+                    <div className="mt-2 rounded-xl bg-amber-50/60 border border-amber-200/60 p-2.5 text-xs text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-200">
+                      <p className="font-semibold text-[11px] flex items-center gap-1">
+                        <Star size={12} className="fill-amber-400 text-amber-500" /> Your Review:
+                      </p>
+                      <p className="mt-0.5 italic text-[11px]">&ldquo;{req.feedback.review}&rdquo;</p>
+                    </div>
+                  )}
+
                   {req.careerGoals && (
                     <p className="text-[11px] text-ink-soft">
                       <strong className="text-ink">Career Goal:</strong> {req.careerGoals}
@@ -330,7 +394,8 @@ export function StudentMyMentorsView({
 
                   {req.preferredAvailability && (
                     <p className="text-[11px] text-ink-soft">
-                      <strong className="text-ink">Preferred Availability:</strong> {req.preferredAvailability}
+                      <strong className="text-ink">Preferred Availability:</strong>{" "}
+                      {req.preferredAvailability}
                     </p>
                   )}
 
@@ -340,14 +405,12 @@ export function StudentMyMentorsView({
                     </p>
                   )}
 
-                  {/* Decline Reason */}
                   {req.status === "DECLINED" && req.mentorNotes && (
                     <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
                       <strong className="text-ink">Mentor Note:</strong> &quot;{req.mentorNotes}&quot;
                     </p>
                   )}
 
-                  {/* End Reason */}
                   {req.endReason && (
                     <p className="mt-2 text-xs text-ink-soft italic">
                       <strong className="text-ink">Conclusion Note:</strong> &quot;{req.endReason}&quot;
@@ -378,14 +441,32 @@ export function StudentMyMentorsView({
                     Mentorship Chat
                   </Link>
                 )}
+
                 {req.status === "COMPLETED" && (
-                  <Link
-                    href="/student/mentorship-messages"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs font-semibold text-ink hover:bg-surface shadow-soft"
-                  >
-                    <MessageSquare size={13} />
-                    View Chat History
-                  </Link>
+                  <div className="flex flex-col gap-1.5 items-end">
+                    {!req.feedback && req.relationshipId && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setReviewingReq(req);
+                          setRatingStars(5);
+                          setReviewComment("");
+                        }}
+                        className="gap-1 bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 text-xs font-semibold"
+                      >
+                        <Star size={13} className="fill-white" />
+                        Rate & Review Mentor
+                      </Button>
+                    )}
+
+                    <Link
+                      href="/student/mentorship-messages"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs font-semibold text-ink hover:bg-surface shadow-soft"
+                    >
+                      <MessageSquare size={13} />
+                      View Chat History
+                    </Link>
+                  </div>
                 )}
 
                 <Link
@@ -399,7 +480,99 @@ export function StudentMyMentorsView({
           ))}
         </div>
       )}
+
+      {/* Review Modal */}
+      {reviewingReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-mist bg-surface p-6 shadow-lift space-y-4">
+            <div className="flex items-center justify-between border-b border-mist/60 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-ink">Rate & Review Mentor</h3>
+                <p className="text-xs text-ink-soft">
+                  Provide your feedback for {reviewingReq.mentor.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewingReq(null)}
+                className="rounded-lg p-1 text-ink-soft hover:bg-paper"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Star Rating Selector */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-ink">Overall Rating (1 to 5 Stars):</label>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRatingStars(star)}
+                    className="p-1 transition transform hover:scale-110"
+                  >
+                    <Star
+                      size={28}
+                      className={cn(
+                        star <= ratingStars
+                          ? "fill-amber-400 text-amber-500"
+                          : "text-ink-soft/30 hover:text-amber-400"
+                      )}
+                    />
+                  </button>
+                ))}
+                <span className="ml-2 font-bold text-sm text-ink">{ratingStars} out of 5</span>
+              </div>
+            </div>
+
+            {/* Written Review */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-ink">
+                Written Feedback & Experience (Optional):
+              </label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                rows={3}
+                placeholder="Share how this mentorship session helped your career, resume, or technical preparation..."
+                className="w-full rounded-xl border border-mist bg-paper p-3 text-xs text-ink focus:border-ulab focus:outline-none"
+              />
+            </div>
+
+            {/* Anonymous Toggle */}
+            <label className="flex items-center gap-2 text-xs text-ink-soft cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isAnonymousReview}
+                onChange={(e) => setIsAnonymousReview(e.target.checked)}
+                className="size-4 accent-ulab"
+              />
+              <span>Submit review anonymously (hide my student name from public listing)</span>
+            </label>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-mist/60">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setReviewingReq(null)}
+                className="py-1.5 px-4 text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmitReview}
+                disabled={submittingReview}
+                className="py-1.5 px-5 text-xs font-semibold bg-ulab text-white hover:bg-ulab-deep shadow-soft"
+              >
+                {submittingReview ? "Submitting..." : "Submit Review"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
