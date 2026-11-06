@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, CheckCircle2, PlusCircle, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Compass, PlusCircle, ShieldCheck } from "lucide-react";
 import { requirePoster } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
@@ -79,6 +79,28 @@ export default async function AlumniHome({
           </div>
         </div>
       </div>
+
+      {/* Become a Career Mentor Banner */}
+      {!user.isMentor && user.status === "APPROVED" && (
+        <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl border border-emerald-300/80 bg-gradient-to-r from-emerald-50 via-surface to-gold-wash/30 p-5 shadow-sm sm:flex-row sm:items-center dark:border-emerald-900/40 dark:from-emerald-950/40 dark:via-surface">
+          <div className="flex items-center gap-3.5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-white shadow-soft">
+              <Compass size={22} />
+            </span>
+            <div>
+              <h3 className="font-display text-sm font-bold text-ink">
+                Become a Career Mentor on ULAB Setu
+              </h3>
+              <p className="mt-0.5 text-xs text-ink-soft">
+                Share your professional journey, mentor students in your field, and help them land rewarding careers.
+              </p>
+            </div>
+          </div>
+          <ButtonLink href={`${base}/mentorship`} className="shrink-0 bg-emerald-700 text-xs text-white hover:bg-emerald-800">
+            Enroll as Mentor →
+          </ButtonLink>
+        </div>
+      )}
 
       <Stagger className="mt-6 grid grid-cols-3 gap-3 md:gap-4">
         {[

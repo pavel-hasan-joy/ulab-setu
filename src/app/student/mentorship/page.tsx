@@ -4,6 +4,8 @@ import { PageIn } from "@/components/motion";
 import { PageHeader } from "@/components/ui";
 import { StudentMentorshipView } from "@/components/student-mentorship-view";
 
+export const dynamic = "force-dynamic";
+
 export default async function StudentMentorshipPage() {
   const user = await requireUser("STUDENT");
 
@@ -32,6 +34,7 @@ export default async function StudentMentorshipPage() {
         mentorSessionFormat: true,
         mentorAvailabilityNote: true,
         mentorMaxMentees: true,
+        mentorProfile: true,
       },
       orderBy: { name: "asc" },
     }),
@@ -56,6 +59,35 @@ export default async function StudentMentorshipPage() {
     }),
   ]);
 
+  // Filter out mentors who switched off mentor activation (isActive === false)
+  const activeMentors = rawMentors
+    .filter((m) => {
+      if (m.mentorProfile && m.mentorProfile.isActive === false) return false;
+      return m.isMentor;
+    })
+    .map((m) => {
+      const mp = m.mentorProfile;
+      return {
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        role: m.role,
+        department: mp?.department || m.department,
+        designation: mp?.position || m.designation,
+        company: mp?.company || m.company,
+        image: m.image,
+        skills: mp?.skills || m.skills,
+        alumniVerified: m.alumniVerified,
+        isMentor: mp?.isActive ?? m.isMentor,
+        mentorAvailable: mp ? mp.status === "AVAILABLE" && mp.isActive : m.mentorAvailable,
+        mentorTopics: mp?.topics || m.mentorTopics,
+        mentorExpertise: mp?.expertise || m.mentorExpertise,
+        mentorSessionFormat: mp?.preferredSessionType || m.mentorSessionFormat,
+        mentorAvailabilityNote: mp?.availabilityNote || m.mentorAvailabilityNote,
+        mentorMaxMentees: mp?.maxMentees || m.mentorMaxMentees,
+      };
+    });
+
   const serializedRequests = rawRequests.map((r) => ({
     id: r.id,
     topic: r.topic,
@@ -75,12 +107,12 @@ export default async function StudentMentorshipPage() {
   return (
     <PageIn>
       <PageHeader
-        title="Alumni Career Mentorship"
-        description="Connect with verified ULAB alumni working in industry for 1-on-1 resume reviews, mock interviews, and career guidance."
+        title="ULAB Career & Faculty Mentorship"
+        description="Connect with verified alumni in industry and university faculty mentors for 1-on-1 resume reviews, mock interviews, and career guidance."
       />
       <div className="mt-6">
         <StudentMentorshipView
-          mentors={rawMentors}
+          mentors={activeMentors}
           requests={serializedRequests}
           currentUserId={user.id}
         />
@@ -88,4 +120,3 @@ export default async function StudentMentorshipPage() {
     </PageIn>
   );
 }
-

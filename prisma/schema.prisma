@@ -90,6 +90,7 @@ model User {
   blockedByUsers         BlockedUser[]         @relation("BlockedUsers")
   ticketMessages         TicketMessage[]       @relation("UserTicketMessages")
   updatedSettings        SystemSetting[]       @relation("UpdatedSettings")
+  mentorProfile          MentorProfile?        @relation("UserMentorProfile")
 
   @@index([role])
   @@index([status])
@@ -418,6 +419,41 @@ model MentorshipRequest {
   @@index([mentorId])
   @@index([status])
   @@index([createdAt])
+}
+
+/** Comprehensive Career Mentor profile for verified Alumni and Faculty */
+model MentorProfile {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation("UserMentorProfile", fields: [userId], references: [id], onDelete: Cascade)
+  isActive               Boolean  @default(false) // Whether mentor mode is enabled
+  status                 String   @default("AVAILABLE") // AVAILABLE | TEMPORARILY_UNAVAILABLE | FULLY_BOOKED
+  bio                    String?  // Professional introduction / statement
+  careerField            String?  // Career field / industry
+  company                String?  // Current company
+  position               String?  // Current position
+  department             String?  // Academic department
+  expertise              String?  // Areas of expertise
+  skills                 String?  // Technical & soft skills (comma-separated)
+  topics                 String?  // Mentorship topics (comma-separated)
+  yearsOfExperience      Int?     // Years of professional experience
+  preferredSessionType   String   @default("ONLINE") // ONLINE | IN_PERSON | HYBRID
+  availableDays          String?  // Comma-separated (e.g. "Sunday, Tuesday, Thursday")
+  communicationMethod    String   @default("GOOGLE_MEET") // GOOGLE_MEET | ZOOM | IN_PERSON | CAMPUS | EMAIL
+  maxMentees             Int      @default(3) // Maximum active concurrent mentees (1-10)
+  availabilityNote       String?  // Additional scheduling / timing notes
+  // Faculty specific academic fields
+  academicExpertise      String?  // Academic / subject expertise
+  researchInterests      String?  // Research interests
+  teachingAreas          String?  // Teaching areas
+  academicGuidanceTopics String?  // Academic guidance topics
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt @default(now())
+
+  @@index([isActive])
+  @@index([status])
+  @@index([careerField])
+  @@index([department])
 }
 
 /** Support and Helpdesk ticketing system */

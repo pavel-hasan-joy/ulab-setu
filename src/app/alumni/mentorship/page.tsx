@@ -2,24 +2,21 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageIn } from "@/components/motion";
 import { PageHeader } from "@/components/ui";
-import { AlumniMentorshipView } from "@/components/alumni-mentorship-view";
+import {
+  CareerMentorSettingsView,
+  type MentorProfileItem,
+  type MentorshipRequestRecord,
+} from "@/components/career-mentor-settings-view";
+
+export const dynamic = "force-dynamic";
 
 export default async function AlumniMentorshipPage() {
   const user = await requireUser("ALUMNI");
 
-  const [rawUser, rawRequests] = await Promise.all([
+  const [rawUser, rawRequests, activeCount, completedCount] = await Promise.all([
     db.user.findUnique({
       where: { id: user.id },
-      select: {
-        id: true,
-        isMentor: true,
-        mentorAvailable: true,
-        mentorTopics: true,
-        mentorExpertise: true,
-        mentorSessionFormat: true,
-        mentorAvailabilityNote: true,
-        mentorMaxMentees: true,
-      },
+      include: { mentorProfile: true },
     }),
     db.mentorshipRequest.findMany({
       where: { mentorId: user.id },
@@ -38,20 +35,47 @@ export default async function AlumniMentorshipPage() {
         },
       },
     }),
+    db.mentorshipRequest.count({
+      where: {
+        mentorId: user.id,
+        status: { in: ["PENDING", "ACCEPTED", "SCHEDULED"] },
+      },
+    }),
+    db.mentorshipRequest.count({
+      where: {
+        mentorId: user.id,
+        status: "COMPLETED",
+      },
+    }),
   ]);
 
-  const profile = {
-    id: user.id,
-    isMentor: rawUser?.isMentor ?? false,
-    mentorAvailable: rawUser?.mentorAvailable ?? true,
-    mentorTopics: rawUser?.mentorTopics ?? null,
-    mentorExpertise: rawUser?.mentorExpertise ?? null,
-    mentorSessionFormat: rawUser?.mentorSessionFormat ?? "ONLINE",
-    mentorAvailabilityNote: rawUser?.mentorAvailabilityNote ?? null,
-    mentorMaxMentees: rawUser?.mentorMaxMentees ?? 3,
+  const mp = rawUser?.mentorProfile;
+  const initialProfile: MentorProfileItem = {
+    id: mp?.id,
+    userId: user.id,
+    isActive: mp?.isActive ?? rawUser?.isMentor ?? false,
+    status: (mp?.status || (rawUser?.mentorAvailable ? "AVAILABLE" : "TEMPORARILY_UNAVAILABLE")) as any,
+    bio: mp?.bio || rawUser?.bio || "",
+    careerField: mp?.careerField || "",
+    company: mp?.company || rawUser?.company || "",
+    position: mp?.position || rawUser?.designation || "",
+    department: mp?.department || rawUser?.department || "",
+    expertise: mp?.expertise || rawUser?.mentorExpertise || "",
+    skills: mp?.skills || rawUser?.skills || "",
+    topics: mp?.topics || rawUser?.mentorTopics || "",
+    yearsOfExperience: mp?.yearsOfExperience ?? null,
+    preferredSessionType: mp?.preferredSessionType || rawUser?.mentorSessionFormat || "ONLINE",
+    availableDays: mp?.availableDays || "Sunday, Tuesday, Thursday",
+    communicationMethod: mp?.communicationMethod || "GOOGLE_MEET",
+    maxMentees: mp?.maxMentees || rawUser?.mentorMaxMentees || 3,
+    availabilityNote: mp?.availabilityNote || rawUser?.mentorAvailabilityNote || "",
+    academicExpertise: mp?.academicExpertise || "",
+    researchInterests: mp?.researchInterests || "",
+    teachingAreas: mp?.teachingAreas || "",
+    academicGuidanceTopics: mp?.academicGuidanceTopics || "",
   };
 
-  const serializedRequests = rawRequests.map((r) => ({
+  const serializedRequests: MentorshipRequestRecord[] = rawRequests.map((r) => ({
     id: r.id,
     topic: r.topic,
     message: r.message,
@@ -70,16 +94,22 @@ export default async function AlumniMentorshipPage() {
   return (
     <PageIn>
       <PageHeader
-        title="Alumni Mentorship Hub"
-        description="Empower the next generation of ULABians by sharing industry insights, reviewing portfolios, and scheduling advisory sessions."
+        title="Alumni Mentorship Console"
+        description="Share industry guidance, review student resumes, conduct mock technical interviews, and manage 1-on-1 career mentorship sessions."
       />
+
       <div className="mt-6">
-        <AlumniMentorshipView
-          initialProfile={profile}
+        <CareerMentorSettingsView
+          initialProfile={initialProfile}
           initialRequests={serializedRequests}
+          userRole="ALUMNI"
+          userName={user.name}
+          userEmail={user.email}
+          userImage={user.image}
+          activeMenteesCount={activeCount}
+          completedSessionsCount={completedCount}
         />
       </div>
     </PageIn>
   );
 }
-
