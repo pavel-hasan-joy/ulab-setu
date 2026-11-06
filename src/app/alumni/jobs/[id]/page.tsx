@@ -51,6 +51,15 @@ export default async function JobApplicants({
 
   if (!job) notFound();
 
+  // Auto-mark any unviewed application as VIEWED
+  const unviewedIds = job.applications.filter((a) => a.status === "APPLIED").map((a) => a.id);
+  if (unviewedIds.length > 0) {
+    await db.application.updateMany({
+      where: { id: { in: unviewedIds } },
+      data: { status: "VIEWED", viewedAt: new Date(), statusUpdatedAt: new Date() },
+    }).catch(() => {});
+  }
+
   const isLive = job.status === "PUBLISHED" && job.active;
   const isExpired = job.status === "EXPIRED" || (job.deadline && new Date(job.deadline).getTime() < Date.now());
   const shortlistedCount = job.applications.filter((a) => a.status === "SHORTLISTED").length;
@@ -210,11 +219,12 @@ export default async function JobApplicants({
                 <StaggerItem key={a.id}>
                   <ApplicantCard
                     applicationId={a.id}
-                    status={a.status}
+                    status={a.status === "APPLIED" ? "VIEWED" : a.status}
                     createdAt={a.createdAt}
                     student={a.student}
                     app={app}
                     base={base}
+                    hiringNotes={a.hiringNotes}
                   />
                 </StaggerItem>
               );

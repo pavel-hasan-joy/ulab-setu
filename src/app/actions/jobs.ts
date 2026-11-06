@@ -317,6 +317,8 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
   const cvFileName = String(formData.get("cvFileName") ?? "").trim();
   let cvUrl = String(formData.get("cvUrl") ?? "").trim();
   const cvData = String(formData.get("cvData") ?? "").trim();
+  const useSavedCv = formData.get("useSavedCv") === "on" || formData.get("useSavedCv") === "true";
+  const saveCvToProfile = formData.get("saveCvToProfile") === "on" || formData.get("saveCvToProfile") === "true";
 
   if (linkedin) {
     linkedin = cleanLinkedIn(linkedin) ?? linkedin;
@@ -328,18 +330,57 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     cvUrl = sanitizeUrl(cvUrl) ?? cvUrl;
   }
 
+  // Prevent duplicate application
+  const existingApp = await db.application.findUnique({
+    where: { jobId_studentId: { jobId, studentId: user.id } },
+  });
+  if (existingApp && existingApp.status !== "WITHDRAWN") {
+    return { error: "You have already submitted an application for this job posting." };
+  }
+
   await syncExpiredJobs();
   const job = await db.job.findUnique({
     where: { id: jobId },
-    select: { id: true, active: true, status: true, deadline: true, deletedAt: true, postedById: true, title: true, company: true },
+    select: {
+      id: true,
+      active: true,
+      status: true,
+      deadline: true,
+      deletedAt: true,
+      postedById: true,
+      title: true,
+      company: true,
+    },
   });
 
   if (!job || !isJobAcceptingApplications(job)) {
     return { error: "This job is no longer open or its deadline has passed." };
   }
 
-  if (!coverNote && !cvData && !cvUrl) {
+  // Handle saved CV resolution
+  let finalCvFileName = cvFileName;
+  let finalCvUrl = cvUrl;
+  let finalCvData = cvData;
+
+  if (useSavedCv && user.savedCvUrl) {
+    finalCvFileName = user.savedCvName || "Saved_Resume.pdf";
+    finalCvUrl = user.savedCvUrl;
+  }
+
+  if (!coverNote && !finalCvData && !finalCvUrl) {
     return { error: "Please write why you're a good fit or attach your CV before submitting." };
+  }
+
+  // Save CV to user profile for 1-click future reuse if requested
+  if (saveCvToProfile && (finalCvUrl || finalCvData)) {
+    await db.user.update({
+      where: { id: user.id },
+      data: {
+        savedCvUrl: finalCvUrl || finalCvData,
+        savedCvName: finalCvFileName || "My_Resume.pdf",
+        savedCvDate: new Date(),
+      },
+    }).catch(() => {});
   }
 
   // Auto-sync phone, linkedin, or github to user profile if newly provided
@@ -366,15 +407,26 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     linkedin: linkedin || user.linkedin || null,
     portfolio: portfolio || user.github || null,
     availability: availability || null,
-    cvFileName: cvFileName || null,
-    cvUrl: cvUrl || null,
-    cvData: cvData || null,
+    cvFileName: finalCvFileName || null,
+    cvUrl: finalCvUrl || null,
+    cvData: finalCvData || null,
   });
 
   await db.application.upsert({
     where: { jobId_studentId: { jobId, studentId: user.id } },
-    create: { jobId, studentId: user.id, note: structuredPayload },
-    update: { note: structuredPayload },
+    create: {
+      jobId,
+      studentId: user.id,
+      note: structuredPayload,
+      status: "APPLIED",
+      statusUpdatedAt: new Date(),
+    },
+    update: {
+      note: structuredPayload,
+      status: "APPLIED",
+      withdrawnAt: null,
+      statusUpdatedAt: new Date(),
+    },
   });
 
   // Notify job poster of new application
@@ -391,32 +443,147 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
 
   revalidatePath(`/student/jobs/${jobId}`);
   revalidatePath("/student/applications");
+  revalidatePath(`/alumni/jobs/${jobId}`);
   return {};
 }
 
-export async function setApplicationStatus(applicationId: string, status: "SHORTLISTED" | "REJECTED" | "APPLIED") {
+export async function withdrawApplication(applicationId: string) {
+  const user = await requireUser("STUDENT");
+  const app = await db.application.findFirst({
+    where: { id: applicationId, studentId: user.id },
+    include: { job: { select: { title: true, id: true, postedById: true } } },
+  });
+
+  if (!app) return { error: "Application record not found." };
+  if (app.status !== "APPLIED" && app.status !== "VIEWED") {
+    return { error: `Applications marked as "${app.status}" cannot be withdrawn.` };
+  }
+
+  await db.application.update({
+    where: { id: applicationId },
+    data: {
+      status: "WITHDRAWN",
+      withdrawnAt: new Date(),
+      statusUpdatedAt: new Date(),
+    },
+  });
+
+  // Notify the job poster
+  await db.notification.create({
+    data: {
+      userId: app.job.postedById,
+      actorId: user.id,
+      title: "Application Withdrawn",
+      body: `${user.name} has withdrawn their application for "${app.job.title}".`,
+      type: "APPLICATION",
+      link: `/alumni/jobs/${app.job.id}`,
+    },
+  }).catch(() => {});
+
+  revalidatePath("/student/applications");
+  revalidatePath(`/student/jobs/${app.job.id}`);
+  revalidatePath(`/alumni/jobs/${app.job.id}`);
+  return { success: true };
+}
+
+export async function setApplicationStatus(
+  applicationId: string,
+  status: "APPLIED" | "VIEWED" | "SHORTLISTED" | "INTERVIEW" | "SELECTED" | "REJECTED",
+  interviewNotes?: string
+) {
   const { user, base } = await requirePoster();
   const app = await db.application.findFirst({
     where: { id: applicationId, job: { postedById: user.id } },
     include: { job: { select: { title: true, id: true } } },
   });
-  if (!app) return;
+  if (!app && user.role !== "ADMIN") return { error: "Unauthorized" };
+  if (!app) return { error: "Application not found" };
 
-  await db.application.update({ where: { id: applicationId }, data: { status } });
+  await db.application.update({
+    where: { id: applicationId },
+    data: {
+      status,
+      statusUpdatedAt: new Date(),
+      ...(interviewNotes ? { hiringNotes: interviewNotes.trim() } : {}),
+    },
+  });
 
-  // In-app notification to the applicant
+  // Formulate human-friendly in-app notification for the student
+  let notificationTitle = "Application Update";
+  let notificationBody = `Your application for "${app.job.title}" has been updated to ${status}.`;
+
+  if (status === "SHORTLISTED") {
+    notificationTitle = "Application Shortlisted! 🎉";
+    notificationBody = `Great news! You have been shortlisted for "${app.job.title}".`;
+  } else if (status === "INTERVIEW") {
+    notificationTitle = "Interview Invitation 💼";
+    notificationBody = `You have been invited for an interview for "${app.job.title}". Check your email or messages for details!`;
+  } else if (status === "SELECTED") {
+    notificationTitle = "Congratulations! Selected for Role 🌟";
+    notificationBody = `Congratulations! You have been selected for the position of "${app.job.title}".`;
+  } else if (status === "VIEWED") {
+    notificationTitle = "Application Reviewed 👀";
+    notificationBody = `The recruiter reviewed your CV and profile for "${app.job.title}".`;
+  }
+
   await db.notification.create({
     data: {
       userId: app.studentId,
       actorId: user.id,
-      title: status === "SHORTLISTED" ? "Application Shortlisted! 🎉" : "Application Update",
-      body: status === "SHORTLISTED" 
-        ? `Congratulations! You have been shortlisted for "${app.job.title}".`
-        : `Your application status for "${app.job.title}" has been updated to ${status}.`,
+      title: notificationTitle,
+      body: notificationBody,
       type: "APPLICATION",
       link: `/student/applications`,
     },
   }).catch(() => {});
 
-  revalidatePath(`${base}/jobs/${app.jobId}`);
+  revalidatePath(`${base}/jobs/${app.job.id}`);
+  revalidatePath(`/student/applications`);
+  return { success: true };
+}
+
+export async function updateApplicationHiringNotes(applicationId: string, hiringNotes: string) {
+  const { user } = await requirePoster();
+  const app = await db.application.findFirst({
+    where: { id: applicationId, job: { postedById: user.id } },
+  });
+  if (!app && user.role !== "ADMIN") return { error: "Unauthorized" };
+
+  await db.application.update({
+    where: { id: applicationId },
+    data: { hiringNotes: hiringNotes.trim() || null },
+  });
+
+  return { success: true };
+}
+
+export async function markApplicationViewed(applicationId: string) {
+  const { user } = await requirePoster();
+  const app = await db.application.findFirst({
+    where: { id: applicationId, job: { postedById: user.id } },
+    include: { job: { select: { title: true } } },
+  });
+  if (!app) return;
+
+  if (app.status === "APPLIED") {
+    await db.application.update({
+      where: { id: applicationId },
+      data: {
+        status: "VIEWED",
+        viewedAt: new Date(),
+        statusUpdatedAt: new Date(),
+      },
+    });
+
+    await db.notification.create({
+      data: {
+        userId: app.studentId,
+        actorId: user.id,
+        title: "Application Reviewed 👀",
+        body: `The recruiter reviewed your CV for "${app.job.title}".`,
+        type: "APPLICATION",
+        link: `/student/applications`,
+      },
+    }).catch(() => {});
+  }
 }

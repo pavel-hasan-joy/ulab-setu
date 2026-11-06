@@ -38,6 +38,10 @@ model User {
   facebook           String?
   facebookPublic     Boolean   @default(false)
   isPrivate          Boolean   @default(false)
+  // Saved CV for 1-click job applications
+  savedCvUrl         String?
+  savedCvName        String?
+  savedCvDate        DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt @default(now())
   deletedAt          DateTime?
@@ -114,17 +118,21 @@ model Job {
 }
 
 model Application {
-  id        String   @id @default(cuid())
-  note      String?
-  resumeUrl String?
-  status    String   @default("APPLIED") // APPLIED | SHORTLISTED | REJECTED
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  id              String    @id @default(cuid())
+  note            String?
+  resumeUrl       String?
+  status          String    @default("APPLIED") // APPLIED | VIEWED | SHORTLISTED | INTERVIEW | SELECTED | REJECTED | WITHDRAWN
+  hiringNotes     String?   // Private internal notes by job author/admin
+  viewedAt        DateTime? // Timestamp when recruiter first reviewed
+  statusUpdatedAt DateTime? // Timestamp of last status change
+  withdrawnAt     DateTime? // Timestamp if withdrawn by student
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt @default(now())
 
-  jobId     String
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  studentId String
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  jobId           String
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, studentId])
   @@index([studentId])

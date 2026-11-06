@@ -43,3 +43,4 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
 
   return <EditJobForm job={formattedJob} base={base} />;
 }
+

@@ -1,65 +1,65 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PageIn, Stagger, StaggerItem } from "@/components/motion";
-import { Badge, ButtonLink, Card, EmptyState, PageHeader, timeAgo } from "@/components/ui";
+import { PageIn } from "@/components/motion";
+import { PageHeader } from "@/components/ui";
+import {
+  StudentApplicationsView,
+  type StudentApplicationRecord,
+} from "@/components/student-applications-view";
+import type { ApplicationStatus } from "@/lib/applications";
 
-export const metadata: Metadata = { title: "Applications" };
+export const metadata: Metadata = { title: "My Applications | ULAB Setu" };
 
-const tone = { APPLIED: "blue", SHORTLISTED: "sage", REJECTED: "gray" } as const;
-const label = { APPLIED: "Sent", SHORTLISTED: "Shortlisted", REJECTED: "Not selected" } as const;
-
-export default async function Applications() {
+export default async function ApplicationsPage() {
   const user = await requireUser("STUDENT");
-  const apps = await db.application.findMany({
+
+  const rawApps = await db.application.findMany({
     where: { studentId: user.id },
-    include: { job: { include: { postedBy: true } } },
+    include: {
+      job: {
+        select: {
+          id: true,
+          title: true,
+          company: true,
+          location: true,
+          type: true,
+          salary: true,
+          referral: true,
+          active: true,
+          postedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              department: true,
+            },
+          },
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
+  const formattedApps: StudentApplicationRecord[] = rawApps.map((a) => ({
+    id: a.id,
+    status: (a.status as ApplicationStatus) || "APPLIED",
+    createdAt: a.createdAt.toISOString(),
+    viewedAt: a.viewedAt ? a.viewedAt.toISOString() : null,
+    statusUpdatedAt: a.statusUpdatedAt ? a.statusUpdatedAt.toISOString() : null,
+    withdrawnAt: a.withdrawnAt ? a.withdrawnAt.toISOString() : null,
+    rawNote: a.note,
+    job: a.job,
+  }));
+
   return (
     <PageIn>
-      <PageHeader title="My applications" description="Track every alumni job you've applied to. Jobs from Bdjobs and other sites are tracked on those sites." />
-      {apps.length === 0 ? (
-        <EmptyState title="You haven't applied yet" body="Alumni jobs often come with a referral. Start there." action={<ButtonLink href="/student/jobs">Browse alumni jobs</ButtonLink>} />
-      ) : (
-        <Stagger className="space-y-3">
-          {apps.map((a) => {
-            let hasCv = false;
-            let cvName = "";
-            try {
-              if (a.note?.trim().startsWith("{")) {
-                const parsed = JSON.parse(a.note);
-                if (parsed.cvFileName || parsed.cvUrl || parsed.cvData) {
-                  hasCv = true;
-                  cvName = parsed.cvFileName || "CV Attached";
-                }
-              }
-            } catch {}
+      <PageHeader
+        title="My Applications"
+        description="Track all job applications submitted to ULAB alumni and faculty. Monitor recruiter reviews and interview invitations in real time."
+      />
 
-            return (
-              <StaggerItem key={a.id}>
-                <Link href={`/student/jobs/${a.jobId}`}>
-                  <Card className="flex flex-wrap items-center gap-4 p-5 transition hover:shadow-lift">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-ink">{a.job.title}</p>
-                      <p className="text-sm text-ink-soft">{a.job.company}, posted by {a.job.postedBy.name}</p>
-                      {hasCv && (
-                        <p className="mt-1 text-xs text-sage font-medium inline-flex items-center gap-1">
-                          📄 {cvName}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-xs text-ink-soft">{timeAgo(a.createdAt)}</span>
-                    <Badge tone={tone[a.status as keyof typeof tone]}>{label[a.status as keyof typeof label]}</Badge>
-                  </Card>
-                </Link>
-              </StaggerItem>
-            );
-          })}
-        </Stagger>
-      )}
+      <StudentApplicationsView applications={formattedApps} />
     </PageIn>
   );
 }

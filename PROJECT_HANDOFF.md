@@ -135,10 +135,39 @@
 - **Test Suites Passed:** 5 complete test suites (39/39 tests passed).
 - **Production URL:** `https://ulab-setu.vercel.app/` — **HTTP 200 OK (LIVE & READY)**.
 
+### PROMPT 09 — Complete Job Application Management & ATS
+- **Status:** **COMPLETED**
+- **Evidence:**
+  - Student Application Lifecycle & Saved CV Reuse:
+    - Application submission (`src/app/actions/jobs.ts`: `applyToJob`): Supports cover pitch, contact phone, portfolio/GitHub, and CV file or link.
+    - Saved Profile CV: Added `savedCvUrl`, `savedCvName`, `savedCvDate` to `model User`. Students can reuse their saved profile CV in 1 click or save newly uploaded CVs for future applications without re-uploading.
+    - Duplicate Prevention: Strict backend check blocks redundant applications for the same job.
+    - Application Withdrawal: `withdrawApplication()` allows students to withdraw applications in `APPLIED` or `VIEWED` status.
+    - Application Tracking Dashboard: `src/app/student/applications/page.tsx` & `src/components/student-applications-view.tsx` with KPI counters, 7-stage status timeline, CV preview link, and withdrawal action.
+  - Complete 7-Stage ATS Pipeline:
+    - `APPLIED`, `VIEWED`, `SHORTLISTED`, `INTERVIEW`, `SELECTED`, `REJECTED`, `WITHDRAWN`.
+    - Auto-Viewed Detection: Opening candidate list automatically transitions `APPLIED` to `VIEWED` and timestamps `viewedAt`.
+    - Real-time in-app Notifications: Automatically notifies student when status changes to Viewed, Shortlisted, Interview, or Selected.
+  - Recruiter Management & Private Hiring Notes:
+    - `src/app/alumni/jobs/[id]/page.tsx`, `applicant-card.tsx`, & `applicant-actions.tsx`: Full candidate overview, status progression controls, and private hiring notes (`hiringNotes`) strictly isolated from student views.
+  - Admin Application Auditing & Analytics:
+    - `src/app/admin/applications/page.tsx` & `src/components/admin-applications-view.tsx`: Search across candidates and jobs, 7 status filters, candidate inspector drawer, and CSV export.
+  - Automated test suite: `scripts/test-applications-ats.mjs` — **6/6 tests PASS**.
+
 ---
 
-## 5. Upcoming Implementation: PROMPT 09
+## 4. Current Git, Build & Deployment Status
 
-### Next Immediate Stage: PROMPT 09 — Student Job Application Management
-- **Objective:** Complete candidate application portal for students: multi-step CV application workflow, cover note generator, application tracking dashboard (`/student/applications`), real-time status updates (Applied, Shortlisted, Selected, Rejected), withdrawal option, and interviewer feedback.
+- **Git Branch:** `main`
+- **TypeScript Static Check:** `pnpm exec tsc --noEmit` — **0 errors (PASS)**.
+- **Production Build:** `pnpm next build` — **47 static/dynamic routes successfully compiled via Turbopack (PASS)**.
+- **Test Suites Passed:** 6 complete test suites (45/45 tests passed).
+- **Production URL:** `https://ulab-setu.vercel.app/` — **HTTP 200 OK (LIVE & READY)**.
+
+---
+
+## 5. Upcoming Implementation: PROMPT 10
+
+### Next Immediate Stage: PROMPT 10 — Direct Messaging and Real-Time Notifications
+- **Objective:** Production-grade 1-on-1 and Group communication bridge with unread indicators, file attachments (PDF/Images up to 6MB), typing indicators, real-time toast notifications, and notification center.
 

@@ -21,7 +21,7 @@ import { site } from "@/lib/site";
 import { Avatar, Badge, Button, Card, timeAgo } from "@/components/ui";
 import { ProfileModal } from "@/components/profile-modal";
 import { ApplicantActions } from "./applicant-actions";
-import type { ApplicationPayload } from "@/lib/applications";
+import { APPLICATION_STATUS_CONFIG, type ApplicationPayload, type ApplicationStatus } from "@/lib/applications";
 
 type SafeStudent = Omit<PrismaUser, "passwordHash">;
 
@@ -32,6 +32,7 @@ export function ApplicantCard({
   student,
   app,
   base,
+  hiringNotes,
 }: {
   applicationId: string;
   status: string;
@@ -39,6 +40,7 @@ export function ApplicantCard({
   student: SafeStudent;
   app: ApplicationPayload;
   base: string;
+  hiringNotes?: string | null;
 }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
@@ -50,6 +52,8 @@ export function ApplicantCard({
   const studentId = student.studentId || app.studentId;
   const department = student.department || app.department;
   const batch = student.batch || app.batch;
+
+  const statusConfig = APPLICATION_STATUS_CONFIG[status as ApplicationStatus] || APPLICATION_STATUS_CONFIG.APPLIED;
 
   const skillList = student.skills
     ? student.skills.split(",").map((s) => s.trim()).filter(Boolean)
@@ -83,8 +87,7 @@ export function ApplicantCard({
                     ID: {studentId}
                   </Badge>
                 )}
-                {status === "SHORTLISTED" && <Badge tone="sage">Shortlisted</Badge>}
-                {status === "REJECTED" && <Badge tone="gray">Not selected</Badge>}
+                <Badge tone={statusConfig.tone}>{statusConfig.label}</Badge>
               </div>
               <p className="mt-0.5 text-xs text-ink-soft">
                 {department} {batch ? `• Batch ${batch}` : ""} • Applied {timeAgo(createdAt)}
@@ -101,7 +104,7 @@ export function ApplicantCard({
             >
               <User size={13} /> Full Profile
             </Button>
-            <ApplicantActions applicationId={applicationId} status={status} />
+            <ApplicantActions applicationId={applicationId} status={status} initialNotes={hiringNotes} />
           </div>
         </div>
 
@@ -155,6 +158,16 @@ export function ApplicantCard({
               <Sparkles size={12} className="text-ulab" /> Applicant Note / Why good fit
             </p>
             &ldquo;{app.coverNote}&rdquo;
+          </div>
+        )}
+
+        {/* Private Recruiter Notes (if any) */}
+        {hiringNotes && (
+          <div className="mt-3 rounded-xl border border-gold/40 bg-gold-wash/50 p-3 text-xs">
+            <span className="font-bold text-gold-ink flex items-center gap-1 mb-0.5">
+              Private Recruiter Notes:
+            </span>
+            <p className="text-ink-soft whitespace-pre-line">{hiringNotes}</p>
           </div>
         )}
 
