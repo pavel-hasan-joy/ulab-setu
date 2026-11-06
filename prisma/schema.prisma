@@ -42,6 +42,11 @@ model User {
   savedCvUrl         String?
   savedCvName        String?
   savedCvDate        DateTime?
+  // Notification preferences
+  notifyEmailMessages     Boolean   @default(true)
+  notifyEmailApplications Boolean   @default(true)
+  notifyEmailMentorship   Boolean   @default(true)
+  notifyEmailSystem       Boolean   @default(true)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt @default(now())
   deletedAt          DateTime?
@@ -73,6 +78,8 @@ model User {
   receivedReports        UserReport[]          @relation("ReportedUser")
   resolvedReports        UserReport[]          @relation("ResolvedReports")
   adminAuditLogs         AdminAuditLog[]       @relation("AdminAuditActions")
+  blockedUsers           BlockedUser[]         @relation("BlockerUsers")
+  blockedByUsers         BlockedUser[]         @relation("BlockedUsers")
 
   @@index([role])
   @@index([status])
@@ -160,19 +167,38 @@ model Connection {
 }
 
 model Message {
-  id           String     @id @default(cuid())
-  body         String
-  isRead       Boolean    @default(false)
-  createdAt    DateTime   @default(now())
+  id             String     @id @default(cuid())
+  body           String
+  isRead         Boolean    @default(false)
+  readAt         DateTime?
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentSize String?
+  attachmentType String?
+  createdAt      DateTime   @default(now())
 
-  connectionId String
-  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  senderId     String
-  sender       User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  connectionId   String
+  connection     Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([connectionId, createdAt])
   @@index([senderId])
   @@index([isRead])
+}
+
+/** User blocking to prevent harassment and unwanted direct messages */
+model BlockedUser {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("BlockerUsers", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockedUsers", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }
 
 /** Notice board: announcements, events, scholarships and research calls from teachers and alumni. */

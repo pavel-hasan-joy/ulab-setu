@@ -311,3 +311,4 @@ export function StudentApplicationsView({
     </div>
   );
 }
+

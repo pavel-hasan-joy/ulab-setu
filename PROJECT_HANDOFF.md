@@ -156,18 +156,39 @@
 
 ---
 
+### PROMPT 10 — Direct Messaging & Real-Time Notifications
+- **Status:** **COMPLETED**
+- **Evidence:**
+  - **No Contact-Request Gate for Direct Messaging:**
+    - `startConversation(otherId)` immediately creates or transitions connections to `ACCEPTED` status, allowing Students, Alumni, and Teachers to engage directly without waiting for invitation queues.
+  - **Direct Messaging with Attachments & Real-Time Polling:**
+    - Enhanced `src/app/actions/network.ts`: `sendMessage(connectionId, body, attachment?)` supports rich text, safe file attachments (images, PDFs, documents up to 6MB), rate limiting (5 msgs/10s), and block validation.
+    - Extended `model Message` in `prisma/schema.prisma` with `readAt`, `attachmentUrl`, `attachmentName`, `attachmentSize`, `attachmentType`.
+    - Double-check read receipts (`CheckCheck` in blue on read, gray on delivered) and formatted timestamps in `src/components/chat-window.tsx`.
+  - **Safety, Moderation & Privacy:**
+    - User Blocking: Added `model BlockedUser` in Prisma with server actions `blockUser` and `unblockUser`. Blocked users are restricted from sending messages or initiating conversations in both directions.
+    - In-App Reporting: Users can flag messages or conversations with categorized reasons (`SPAM`, `HARASSMENT`, `INAPPROPRIATE`, `FRAUD`, `OTHER`) routed directly to `UserReport` for admin investigation.
+  - **Notification Center & Channel Preferences:**
+    - Dedicated notification routes: `/student/notifications`, `/alumni/notifications`, `/teacher/notifications`.
+    - `src/components/notifications-client.tsx`: Comprehensive notification hub with category filters (All, Unread, Messages, Jobs/Applications, Campus/System), mark-all-read, single mark read, delete, and deep links.
+    - User notification preferences: toggles for `notifyEmailMessages`, `notifyEmailApplications`, `notifyEmailMentorship`, `notifyEmailSystem`.
+    - Integrated unread notification and message badges across desktop sidebars and mobile navigation in `AppShell`, `StudentLayout`, `AlumniLayout`, and `TeacherLayout`.
+  - **Automated test suite:** `scripts/test-messaging-notifications.mjs` — **8/8 tests PASS**.
+
+---
+
 ## 4. Current Git, Build & Deployment Status
 
 - **Git Branch:** `main`
 - **TypeScript Static Check:** `pnpm exec tsc --noEmit` — **0 errors (PASS)**.
 - **Production Build:** `pnpm next build` — **47 static/dynamic routes successfully compiled via Turbopack (PASS)**.
-- **Test Suites Passed:** 6 complete test suites (45/45 tests passed).
+- **Test Suites Passed:** 7 complete test suites (53/53 tests passed).
 - **Production URL:** `https://ulab-setu.vercel.app/` — **HTTP 200 OK (LIVE & READY)**.
 
 ---
 
-## 5. Upcoming Implementation: PROMPT 10
+## 5. Upcoming Implementation: PROMPT 11
 
-### Next Immediate Stage: PROMPT 10 — Direct Messaging and Real-Time Notifications
-- **Objective:** Production-grade 1-on-1 and Group communication bridge with unread indicators, file attachments (PDF/Images up to 6MB), typing indicators, real-time toast notifications, and notification center.
+### Next Immediate Stage: PROMPT 11 — Notice Board & Campus Opportunity Feeds
+- **Objective:** Institutional Notice Board & Campus Opportunity Feed for announcements, events, scholarships, and research calls from teachers, departments, and alumni with category filters and author verification.
 

@@ -242,3 +242,4 @@ console.log("\n[TEST 6] Recruiter Authorization & Ownership Isolation");
 console.log("\n=================================================");
 console.log("Results: 6/6 ATS Application Management Tests Passed.");
 console.log("=================================================");
+

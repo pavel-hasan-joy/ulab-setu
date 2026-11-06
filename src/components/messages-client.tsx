@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Plus, Users, User as UserIcon } from "lucide-react";
+import { MessageSquare, Plus, Users, User as UserIcon, Search } from "lucide-react";
 import { Avatar, Button, cn, timeAgo } from "./ui";
 import { CreateGroupModal } from "./create-group-modal";
 import { ChatWindow } from "./chat-window";
@@ -70,6 +70,7 @@ export function MessagesClient({
   selectedGroupId,
 }: MessagesClientProps) {
   const [tab, setTab] = useState<TabType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
 
   // Active items
@@ -103,8 +104,20 @@ export function MessagesClient({
   ].sort((a, b) => b.lastTime - a.lastTime);
 
   const filteredItems = allItems.filter((item) => {
-    if (tab === "direct") return item.type === "direct";
-    if (tab === "groups") return item.type === "group";
+    if (tab === "direct" && item.type !== "direct") return false;
+    if (tab === "groups" && item.type !== "group") return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      if (item.type === "direct") {
+        return (
+          item.data.otherUser.name.toLowerCase().includes(q) ||
+          (item.data.otherUser.department && item.data.otherUser.department.toLowerCase().includes(q)) ||
+          (item.data.otherUser.company && item.data.otherUser.company.toLowerCase().includes(q))
+        );
+      } else {
+        return item.data.name.toLowerCase().includes(q);
+      }
+    }
     return true;
   });
 
@@ -118,7 +131,7 @@ export function MessagesClient({
         )}
       >
         {/* Top Actions & Create Group */}
-        <div className="border-b border-mist/60 p-3.5 space-y-3">
+        <div className="border-b border-mist/60 p-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-ink">Conversations</h3>
             <Button
@@ -129,6 +142,17 @@ export function MessagesClient({
               <Plus size={14} />
               New Group
             </Button>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full rounded-xl border border-mist bg-paper py-1.5 pl-8 pr-3 text-xs focus:border-ulab focus:outline-none"
+            />
           </div>
 
           {/* Filter Tabs */}
@@ -294,6 +318,7 @@ export function MessagesClient({
             connectionId={activeConnection.id}
             backHref={basePath}
             other={{
+              id: activeConnection.otherUser.id,
               name: activeConnection.otherUser.name,
               subtitle: activeConnection.otherUser.company
                 ? `${activeConnection.otherUser.designation} at ${activeConnection.otherUser.company}`
