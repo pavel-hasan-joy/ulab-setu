@@ -65,9 +65,12 @@ export function StudentMentorDetailsView({
 }) {
   const [showRequestModal, setShowRequestModal] = useState(initialOpenRequest);
   const [selectedTopic, setSelectedTopic] = useState(mentor.topics[0] || "Career Guidance");
-  const [message, setMessage] = useState("");
   const [careerGoals, setCareerGoals] = useState("");
+  const [reason, setReason] = useState("");
+  const [introduction, setIntroduction] = useState("");
   const [sessionFormat, setSessionFormat] = useState(mentor.preferredSessionType || "ONLINE");
+  const [preferredAvailability, setPreferredAvailability] = useState("");
+  const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
   const [requestStatus, setRequestStatus] = useState<string | null>(
     mentor.existingRequest ? mentor.existingRequest.status : null
@@ -82,9 +85,12 @@ export function StudentMentorDetailsView({
       const res = await sendMentorshipRequest({
         mentorId: mentor.id,
         topic: selectedTopic,
-        message,
         careerGoals,
+        reason,
+        introduction,
         sessionFormat,
+        preferredAvailability,
+        message,
       });
 
       if (res.success) {
@@ -400,15 +406,16 @@ export function StudentMentorDetailsView({
               </button>
             </div>
 
-            <form onSubmit={handleSendRequest} className="mt-4 space-y-4">
+            <form onSubmit={handleSendRequest} className="mt-4 max-h-[75vh] overflow-y-auto pr-1 space-y-3.5">
+              {/* 1. Mentorship Topic */}
               <div>
                 <label className="text-xs font-semibold text-ink">
-                  What topic would you like guidance on?
+                  1. Mentorship Topic <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={selectedTopic}
                   onChange={(e) => setSelectedTopic(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs font-semibold text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
                 >
                   {mentor.topics.map((t) => (
                     <option key={t} value={t}>
@@ -418,47 +425,96 @@ export function StudentMentorDetailsView({
                 </select>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-ink">Preferred Session Format</label>
-                <select
-                  value={sessionFormat}
-                  onChange={(e) => setSessionFormat(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
-                >
-                  <option value="ONLINE">Online Virtual Meeting</option>
-                  <option value="IN_PERSON">In-Person (ULAB Campus)</option>
-                  <option value="FLEXIBLE">Flexible / Either</option>
-                </select>
-              </div>
-
+              {/* 2. Career Goal */}
               <div>
                 <label className="text-xs font-semibold text-ink">
-                  Brief Introduction & What You Hope to Learn
+                  2. Career Goal <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={careerGoals}
+                  onChange={(e) => setCareerGoals(e.target.value)}
+                  placeholder="e.g. Become a Software Engineer at a leading global tech company or pursue higher studies."
+                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                />
+              </div>
+
+              {/* 3. Reason for Request */}
+              <div>
+                <label className="text-xs font-semibold text-ink">
+                  3. Reason for Request <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   required
-                  rows={3}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="e.g. Hi Tanvir! I am a final-year CSE student preparing for frontend software engineering interviews. I would love feedback on my projects and system design fundamentals."
+                  rows={2}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="e.g. I admire your experience at Brain Station 23 and would value your feedback on my tech stack and interview prep."
                   className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 p-2.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
                 />
               </div>
 
+              {/* 4. Short Introduction */}
               <div>
                 <label className="text-xs font-semibold text-ink">
-                  Your Career Goals (Optional)
+                  4. Short Introduction <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={introduction}
+                  onChange={(e) => setIntroduction(e.target.value)}
+                  placeholder="e.g. I am a 7th semester CSE student passionate about distributed systems and cloud engineering."
+                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 p-2.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                />
+              </div>
+
+              {/* 5. Preferred Session Type */}
+              <div>
+                <label className="text-xs font-semibold text-ink">
+                  5. Preferred Session Type <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={sessionFormat}
+                  onChange={(e) => setSessionFormat(e.target.value)}
+                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs font-semibold text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                >
+                  <option value="ONLINE">Online Virtual Meeting (Google Meet / Zoom)</option>
+                  <option value="IN_PERSON">In-Person (ULAB Campus)</option>
+                  <option value="HYBRID">Flexible / Hybrid</option>
+                </select>
+              </div>
+
+              {/* 6. Preferred Availability */}
+              <div>
+                <label className="text-xs font-semibold text-ink">
+                  6. Preferred Availability (Days & Time Slots)
                 </label>
                 <input
                   type="text"
-                  value={careerGoals}
-                  onChange={(e) => setCareerGoals(e.target.value)}
-                  placeholder="e.g. Become a Full-Stack Engineer at a high-growth tech company."
+                  value={preferredAvailability}
+                  onChange={(e) => setPreferredAvailability(e.target.value)}
+                  placeholder="e.g. Friday afternoons, or Weekday evenings after 7 PM"
                   className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
                 />
               </div>
 
-              <div className="mt-6 flex justify-end gap-2 border-t border-mist/70 pt-4 dark:border-white/10">
+              {/* 7. Optional Additional Message */}
+              <div>
+                <label className="text-xs font-semibold text-ink">
+                  7. Optional Additional Message / Specific Questions
+                </label>
+                <textarea
+                  rows={2}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Any portfolio / GitHub links, resume notes, or specific topics you want to prioritize."
+                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 p-2.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                />
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2 border-t border-mist/70 pt-3.5 dark:border-white/10">
                 <Button
                   type="button"
                   onClick={() => setShowRequestModal(false)}
@@ -468,10 +524,10 @@ export function StudentMentorDetailsView({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!message.trim() || isPending}
+                  disabled={!reason.trim() || !introduction.trim() || isPending}
                   className="bg-ulab text-xs text-white hover:bg-ulab-deep shadow-soft"
                 >
-                  {isPending ? "Sending Request..." : "Confirm & Send"}
+                  {isPending ? "Submitting Request..." : "Submit Mentorship Request"}
                 </Button>
               </div>
             </form>

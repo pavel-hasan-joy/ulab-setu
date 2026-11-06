@@ -25,12 +25,20 @@ export interface StudentMentorshipRecord {
   topic: string;
   message: string;
   careerGoals: string | null;
+  reason?: string | null;
+  introduction?: string | null;
+  preferredAvailability?: string | null;
   status: string;
   sessionFormat: string | null;
   scheduledAt: string | null;
   sessionLink: string | null;
   mentorNotes: string | null;
+  startedAt?: string | null;
   completedAt: string | null;
+  declinedAt?: string | null;
+  cancelledAt?: string | null;
+  endReason?: string | null;
+  connectionId?: string | null;
   createdAt: string;
   updatedAt: string;
   mentor: {
@@ -314,10 +322,35 @@ export function StudentMyMentorsView({
                     </div>
                   )}
 
+                  {req.careerGoals && (
+                    <p className="text-[11px] text-ink-soft">
+                      <strong className="text-ink">Career Goal:</strong> {req.careerGoals}
+                    </p>
+                  )}
+
+                  {req.preferredAvailability && (
+                    <p className="text-[11px] text-ink-soft">
+                      <strong className="text-ink">Preferred Availability:</strong> {req.preferredAvailability}
+                    </p>
+                  )}
+
+                  {req.startedAt && (
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                      Started on {new Date(req.startedAt).toLocaleDateString()}
+                    </p>
+                  )}
+
                   {/* Decline Reason */}
                   {req.status === "DECLINED" && req.mentorNotes && (
                     <p className="mt-2 text-xs text-rose-700 dark:text-rose-400">
                       <strong className="text-ink">Mentor Note:</strong> &quot;{req.mentorNotes}&quot;
+                    </p>
+                  )}
+
+                  {/* End Reason */}
+                  {req.endReason && (
+                    <p className="mt-2 text-xs text-ink-soft italic">
+                      <strong className="text-ink">Conclusion Note:</strong> &quot;{req.endReason}&quot;
                     </p>
                   )}
                 </div>
@@ -336,6 +369,16 @@ export function StudentMyMentorsView({
                   </Button>
                 )}
 
+                {(req.status === "ACCEPTED" || req.status === "SCHEDULED") && (
+                  <Link
+                    href="/student/messages"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-ulab py-1.5 px-3 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft"
+                  >
+                    <MessageSquare size={13} />
+                    Message Mentor
+                  </Link>
+                )}
+
                 <Link
                   href={`/student/mentors/${req.mentor.id}`}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-ink"
@@ -350,3 +393,4 @@ export function StudentMyMentorsView({
     </div>
   );
 }
+

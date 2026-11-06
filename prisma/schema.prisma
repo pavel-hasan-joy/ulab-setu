@@ -78,8 +78,10 @@ model User {
   // Governance, Mentorship & Collaboration Relations
   notifications          Notification[]        @relation("UserNotifications")
   triggeredNotifications Notification[]        @relation("TriggeredNotifications")
-  studentMentorships     MentorshipRequest[]   @relation("StudentMentorships")
-  mentorRequests         MentorshipRequest[]   @relation("MentorRequests")
+  studentMentorships     MentorshipRequest[]      @relation("StudentMentorships")
+  mentorRequests         MentorshipRequest[]      @relation("MentorRequests")
+  studentRelationships   MentorshipRelationship[] @relation("StudentMentorshipRelations")
+  mentorRelationships    MentorshipRelationship[] @relation("MentorRelationships")
   supportTickets         SupportTicket[]       @relation("UserTickets")
   assignedTickets        SupportTicket[]       @relation("AssignedTickets")
   submittedReports       UserReport[]          @relation("SubmittedReports")
@@ -398,27 +400,58 @@ model Notification {
 
 /** Student to Alumni / Teacher mentorship connections */
 model MentorshipRequest {
-  id            String    @id @default(cuid())
-  studentId     String
-  student       User      @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
-  mentorId      String
-  mentor        User      @relation("MentorRequests", fields: [mentorId], references: [id], onDelete: Cascade)
-  topic         String    // Career Guidance | Resume Review | Technical Interview | Industry Transition | Research | Startup
-  message       String
-  careerGoals   String?   // Student's specified career goals
-  status        String    @default("PENDING") // PENDING | ACCEPTED | DECLINED | SCHEDULED | COMPLETED | CANCELLED
-  sessionFormat String?   // ONLINE | IN_PERSON | FLEXIBLE
-  scheduledAt   DateTime? // When session is scheduled
-  sessionLink   String?   // Virtual meeting URL or physical location
-  mentorNotes   String?
-  completedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt @default(now())
+  id                    String                  @id @default(cuid())
+  studentId             String
+  student               User                    @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
+  mentorId              String
+  mentor                User                    @relation("MentorRequests", fields: [mentorId], references: [id], onDelete: Cascade)
+  topic                 String                  // Career Guidance | Resume Review | Technical Interview | Industry Transition | Research | Startup
+  message               String
+  careerGoals           String?                 // Student's specified career goals
+  reason                String?                 // Reason for request
+  introduction          String?                 // Short introduction of student
+  preferredAvailability String?                 // Preferred days/hours
+  status                String                  @default("PENDING") // PENDING | ACCEPTED | DECLINED | SCHEDULED | COMPLETED | CANCELLED
+  sessionFormat         String?                 // ONLINE | IN_PERSON | HYBRID
+  scheduledAt           DateTime?               // When session is scheduled
+  sessionLink           String?                 // Virtual meeting URL or physical location
+  mentorNotes           String?
+  startedAt             DateTime?               // When relationship started
+  completedAt           DateTime?
+  declinedAt            DateTime?
+  cancelledAt           DateTime?
+  endReason             String?                 // Optional reason when ended/cancelled
+  connectionId          String?                 // Dedicated Conversation connection ID
+  relationship          MentorshipRelationship?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt @default(now())
 
   @@index([studentId])
   @@index([mentorId])
   @@index([status])
   @@index([createdAt])
+}
+
+/** Active or historical Mentorship Relationship separate from the request workflow */
+model MentorshipRelationship {
+  id           String            @id @default(cuid())
+  requestId    String            @unique
+  request      MentorshipRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      User              @relation("StudentMentorshipRelations", fields: [studentId], references: [id], onDelete: Cascade)
+  mentorId     String
+  mentor       User              @relation("MentorRelationships", fields: [mentorId], references: [id], onDelete: Cascade)
+  status       String            @default("ACTIVE") // ACTIVE | COMPLETED | CANCELLED
+  startedAt    DateTime          @default(now())
+  endedAt      DateTime?
+  endReason    String?
+  connectionId String?           // ID of the dedicated Connection for direct messaging
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt @default(now())
+
+  @@index([studentId])
+  @@index([mentorId])
+  @@index([status])
 }
 
 /** Comprehensive Career Mentor profile for verified Alumni and Faculty */

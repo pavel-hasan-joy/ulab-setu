@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Compass,
@@ -16,6 +17,7 @@ import {
   UserCheck,
   User,
   MessageSquare,
+  MessageCircle,
   Eye,
   Save,
   Briefcase,
@@ -23,6 +25,7 @@ import {
   Building,
   Mail,
   AlertCircle,
+  StopCircle,
   ShieldCheck,
   BookOpen,
 } from "lucide-react";
@@ -33,6 +36,7 @@ import {
   declineMentorshipRequest,
   scheduleMentorshipSession,
   completeMentorshipSession,
+  endMentorshipRelationship,
   type MentorshipTopic,
   type MentorAvailabilityStatus,
 } from "@/app/actions/mentorship";
@@ -80,12 +84,20 @@ export interface MentorshipRequestRecord {
   topic: string;
   message: string;
   careerGoals: string | null;
+  reason?: string | null;
+  introduction?: string | null;
+  preferredAvailability?: string | null;
   status: string;
   sessionFormat: string | null;
   scheduledAt: string | null;
   sessionLink: string | null;
   mentorNotes: string | null;
+  startedAt?: string | null;
   completedAt: string | null;
+  declinedAt?: string | null;
+  cancelledAt?: string | null;
+  endReason?: string | null;
+  connectionId?: string | null;
   createdAt: string;
   updatedAt: string;
   student: {
@@ -179,6 +191,10 @@ export function CareerMentorSettingsView({
   const [declineReason, setDeclineReason] = useState("");
   const [isDeclining, setIsDeclining] = useState(false);
 
+  const [endingReq, setEndingReq] = useState<MentorshipRequestRecord | null>(null);
+  const [endReason, setEndReason] = useState("");
+  const [isEnding, setIsEnding] = useState(false);
+
   // 1. One-click Toggle Activation
   const handleToggleActivation = () => {
     const nextState = !isActive;
@@ -266,29 +282,93 @@ export function CareerMentorSettingsView({
 
   // Request Management Handlers
   const handleAccept = async (id: string) => {
+    setFeedback(null);
     const res = await acceptMentorshipRequest(id);
     if (res.success) {
       setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "ACCEPTED", updatedAt: new Date().toISOString() } : r))
+        prev.map((r) =>
+          r.id === id
+            ? { ...r, status: "ACCEPTED", startedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+            : r
+        )
       );
+      setFeedback({
+        type: "success",
+        message: "Mentorship request accepted! Mentorship relationship and dedicated conversation created.",
+      });
+    } else {
+      setFeedback({
+        type: "error",
+        message: res.error || "Failed to accept mentorship request.",
+      });
     }
   };
 
   const handleDeclineSubmit = async () => {
     if (!decliningReq) return;
     setIsDeclining(true);
+    setFeedback(null);
     const res = await declineMentorshipRequest(decliningReq.id, declineReason);
     setIsDeclining(false);
     if (res.success) {
       setRequests((prev) =>
         prev.map((r) =>
           r.id === decliningReq.id
-            ? { ...r, status: "DECLINED", mentorNotes: declineReason || null, updatedAt: new Date().toISOString() }
+            ? {
+                ...r,
+                status: "DECLINED",
+                mentorNotes: declineReason || null,
+                declinedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }
             : r
         )
       );
       setDecliningReq(null);
       setDeclineReason("");
+      setFeedback({
+        type: "success",
+        message: "Mentorship request declined.",
+      });
+    } else {
+      setFeedback({
+        type: "error",
+        message: res.error || "Failed to decline mentorship request.",
+      });
+    }
+  };
+
+  const handleEndSubmit = async () => {
+    if (!endingReq) return;
+    setIsEnding(true);
+    setFeedback(null);
+    const res = await endMentorshipRelationship(endingReq.id, endReason);
+    setIsEnding(false);
+    if (res.success) {
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === endingReq.id
+            ? {
+                ...r,
+                status: "COMPLETED",
+                endReason: endReason || null,
+                completedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }
+            : r
+        )
+      );
+      setEndingReq(null);
+      setEndReason("");
+      setFeedback({
+        type: "success",
+        message: "Mentorship relationship successfully ended and archived.",
+      });
+    } else {
+      setFeedback({
+        type: "error",
+        message: res.error || "Failed to end mentorship relationship.",
+      });
     }
   };
 
@@ -926,16 +1006,26 @@ export function CareerMentorSettingsView({
                   className="flex flex-col gap-4 rounded-3xl border border-mist/80 bg-surface p-5 shadow-soft sm:flex-row sm:items-start sm:justify-between dark:border-white/10"
                 >
                   <div className="flex items-start gap-3.5">
-                    <Avatar name={req.student.name} src={req.student.image} size={40} />
-                    <div>
+                    <Avatar name={req.student.name} src={req.student.image} size={44} />
+                    <div className="space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-ink">{req.student.name}</span>
                         <Badge tone="blue">{req.student.department || "Student"}</Badge>
+                        {req.student.batch && (
+                          <span className="rounded-lg bg-paper px-2 py-0.5 text-[10px] font-semibold text-ink-soft">
+                            Batch: {req.student.batch}
+                          </span>
+                        )}
+                        {req.student.studentId && (
+                          <span className="text-[10px] text-ink-soft">
+                            ID: {req.student.studentId}
+                          </span>
+                        )}
                         <Badge
                           tone={
                             req.status === "PENDING"
                               ? "gold"
-                              : req.status === "SCHEDULED"
+                              : req.status === "ACCEPTED" || req.status === "SCHEDULED"
                               ? "sage"
                               : req.status === "COMPLETED"
                               ? "lilac"
@@ -946,41 +1036,96 @@ export function CareerMentorSettingsView({
                         </Badge>
                       </div>
 
-                      <p className="mt-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                        Topic: {req.topic}
-                      </p>
-                      <p className="mt-1 text-xs text-ink-soft leading-relaxed max-w-xl">
-                        &quot;{req.message}&quot;
+                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                        Topic: <span className="font-bold">{req.topic}</span>
+                        {req.sessionFormat && (
+                          <span className="ml-2 rounded-md bg-paper/60 px-1.5 py-0.5 text-[10px] font-normal text-ink-soft">
+                            Format: {req.sessionFormat}
+                          </span>
+                        )}
                       </p>
 
-                      {req.careerGoals && (
-                        <p className="mt-2 text-[11px] text-ink-soft">
-                          <span className="font-semibold text-ink">Career Goals:</span> {req.careerGoals}
+                      {req.introduction && (
+                        <p className="text-xs text-ink leading-relaxed">
+                          <strong className="text-ink-soft">Intro:</strong> &quot;{req.introduction}&quot;
                         </p>
                       )}
 
-                      {req.scheduledAt && (
-                        <div className="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-ink-soft">
-                          <span className="flex items-center gap-1 text-emerald-700 font-semibold dark:text-emerald-400">
-                            <Calendar size={13} />
-                            {new Date(req.scheduledAt).toLocaleString("en-US", {
+                      {req.reason && (
+                        <p className="text-xs text-ink leading-relaxed">
+                          <strong className="text-ink-soft">Reason:</strong> &quot;{req.reason}&quot;
+                        </p>
+                      )}
+
+                      {req.message && req.message !== req.introduction && req.message !== req.reason && (
+                        <p className="text-xs text-ink-soft leading-relaxed max-w-xl">
+                          <strong className="text-ink">Message:</strong> &quot;{req.message}&quot;
+                        </p>
+                      )}
+
+                      {req.careerGoals && (
+                        <p className="text-[11px] text-ink-soft">
+                          <span className="font-semibold text-ink">Career Goal:</span> {req.careerGoals}
+                        </p>
+                      )}
+
+                      {req.preferredAvailability && (
+                        <p className="text-[11px] text-ink-soft">
+                          <span className="font-semibold text-ink">Preferred Availability:</span> {req.preferredAvailability}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-ink-soft">
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} />
+                          Requested: {new Date(req.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+
+                        {req.startedAt && (
+                          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                            <CheckCircle2 size={12} />
+                            Started: {new Date(req.startedAt).toLocaleDateString()}
+                          </span>
+                        )}
+
+                        {req.scheduledAt && (
+                          <span className="flex items-center gap-1 text-blue-700 font-semibold dark:text-blue-400">
+                            <Calendar size={12} />
+                            Session: {new Date(req.scheduledAt).toLocaleString("en-US", {
                               dateStyle: "medium",
                               timeStyle: "short",
                             })}
                           </span>
-                          {req.sessionLink && (
-                            <a
-                              href={req.sessionLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 font-semibold text-ulab hover:underline"
-                            >
-                              <Video size={13} />
-                              Join Meeting
-                            </a>
-                          )}
-                        </div>
-                      )}
+                        )}
+
+                        {req.sessionLink && (
+                          <a
+                            href={req.sessionLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 font-semibold text-ulab hover:underline"
+                          >
+                            <Video size={12} />
+                            Join Session
+                          </a>
+                        )}
+
+                        {req.mentorNotes && (
+                          <span className="italic text-ink-soft">
+                            Note: {req.mentorNotes}
+                          </span>
+                        )}
+
+                        {req.endReason && (
+                          <span className="text-rose-600 italic">
+                            End Reason: {req.endReason}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -991,10 +1136,10 @@ export function CareerMentorSettingsView({
                         <Button
                           type="button"
                           onClick={() => handleAccept(req.id)}
-                          className="bg-emerald-700 py-1.5 px-3 text-xs text-white hover:bg-emerald-800"
+                          className="bg-emerald-700 py-1.5 px-3 text-xs text-white hover:bg-emerald-800 shadow-soft"
                         >
                           <Check size={14} className="mr-1" />
-                          Accept
+                          Accept Request
                         </Button>
                         <Button
                           type="button"
@@ -1002,38 +1147,59 @@ export function CareerMentorSettingsView({
                           className="border border-mist bg-paper/60 py-1.5 px-3 text-xs text-rose-600 hover:bg-paper"
                         >
                           <X size={14} className="mr-1" />
-                          Decline
+                          Decline Request
                         </Button>
                       </>
                     )}
 
-                    {req.status === "ACCEPTED" && (
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          setSchedulingReq(req);
-                          setScheduleDatetime("");
-                          setScheduleLink("");
-                        }}
-                        className="bg-ulab py-1.5 px-3 text-xs text-white hover:bg-ulab-deep"
-                      >
-                        <Calendar size={14} className="mr-1" />
-                        Schedule Session
-                      </Button>
-                    )}
+                    {(req.status === "ACCEPTED" || req.status === "SCHEDULED") && (
+                      <>
+                        <Link
+                          href={`${userRole === "TEACHER" ? "/teacher" : "/alumni"}/messages`}
+                          className="flex items-center gap-1 rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-paper transition"
+                        >
+                          <MessageCircle size={14} />
+                          Direct Chat
+                        </Link>
 
-                    {req.status === "SCHEDULED" && (
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          setCompletingReq(req);
-                          setCompleteNotes("");
-                        }}
-                        className="bg-purple-700 py-1.5 px-3 text-xs text-white hover:bg-purple-800"
-                      >
-                        <CheckCircle2 size={14} className="mr-1" />
-                        Mark Completed
-                      </Button>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setSchedulingReq(req);
+                            setScheduleDatetime(req.scheduledAt ? req.scheduledAt.slice(0, 16) : "");
+                            setScheduleLink(req.sessionLink || "");
+                            setScheduleNote(req.mentorNotes || "");
+                          }}
+                          className="bg-ulab py-1.5 px-3 text-xs text-white hover:bg-ulab-deep shadow-soft"
+                        >
+                          <Calendar size={14} className="mr-1" />
+                          {req.status === "SCHEDULED" ? "Reschedule" : "Schedule Session"}
+                        </Button>
+
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setCompletingReq(req);
+                            setCompleteNotes("");
+                          }}
+                          className="bg-purple-700 py-1.5 px-3 text-xs text-white hover:bg-purple-800"
+                        >
+                          <CheckCircle2 size={14} className="mr-1" />
+                          Complete
+                        </Button>
+
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            setEndingReq(req);
+                            setEndReason("");
+                          }}
+                          className="border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                        >
+                          <StopCircle size={14} className="mr-1" />
+                          End Mentorship
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -1281,6 +1447,50 @@ export function CareerMentorSettingsView({
                 className="bg-rose-600 text-xs text-white hover:bg-rose-700"
               >
                 {isDeclining ? "Declining..." : "Decline Request"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End Mentorship Modal */}
+      {endingReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-mist/80 bg-surface p-6 shadow-2xl dark:border-white/10">
+            <h3 className="font-bold text-ink flex items-center gap-2">
+              <StopCircle size={18} className="text-rose-600" />
+              End Mentorship Relationship
+            </h3>
+            <p className="text-xs text-ink-soft mt-1.5 leading-relaxed">
+              Are you sure you want to conclude your active mentorship with <strong className="text-ink">{endingReq.student.name}</strong> on <span className="font-semibold text-ink">&quot;{endingReq.topic}&quot;</span>? This will free up 1 mentee slot in your capacity and archive the relationship.
+            </p>
+
+            <div className="mt-4">
+              <label className="text-xs font-semibold text-ink">Conclusive Note / Reason (Optional)</label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Completed initial career consultation and resume feedback goals."
+                value={endReason}
+                onChange={(e) => setEndReason(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 p-2.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                type="button"
+                onClick={() => setEndingReq(null)}
+                className="bg-paper text-xs text-ink hover:bg-paper/80"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isEnding}
+                onClick={handleEndSubmit}
+                className="bg-rose-600 text-xs text-white hover:bg-rose-700 shadow-soft"
+              >
+                {isEnding ? "Ending..." : "Confirm & End Mentorship"}
               </Button>
             </div>
           </div>

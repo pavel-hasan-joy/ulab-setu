@@ -412,9 +412,12 @@ export async function updateMentorProfile(data: {
 export async function sendMentorshipRequest(data: {
   mentorId: string;
   topic: string;
-  message: string;
+  message?: string;
   careerGoals?: string;
+  reason?: string;
+  introduction?: string;
   sessionFormat?: string;
+  preferredAvailability?: string;
 }) {
   const student = await requireUser("STUDENT");
 
@@ -483,13 +486,22 @@ export async function sendMentorshipRequest(data: {
     };
   }
 
+  const fallbackMessage =
+    data.message?.trim() ||
+    data.introduction?.trim() ||
+    data.reason?.trim() ||
+    `Mentorship request on ${data.topic.trim()}`;
+
   const req = await db.mentorshipRequest.create({
     data: {
       studentId: student.id,
       mentorId: mentor.id,
       topic: data.topic.trim(),
-      message: data.message.trim().slice(0, 2000),
+      message: fallbackMessage.slice(0, 2000),
       careerGoals: data.careerGoals?.trim().slice(0, 1000) || null,
+      reason: data.reason?.trim().slice(0, 1000) || null,
+      introduction: data.introduction?.trim().slice(0, 1000) || null,
+      preferredAvailability: data.preferredAvailability?.trim().slice(0, 500) || null,
       sessionFormat: data.sessionFormat || mentorProfile?.preferredSessionType || mentor.mentorSessionFormat || "ONLINE",
       status: "PENDING",
     },
@@ -520,6 +532,8 @@ export async function sendMentorshipRequest(data: {
     link: notifyTarget,
   });
 
+  revalidatePath("/student/my-mentors");
+  revalidatePath("/student/mentors");
   revalidatePath("/student/mentorship");
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
@@ -542,25 +556,119 @@ export async function acceptMentorshipRequest(requestId: string, note?: string) 
   const isAuthorized = req.mentorId === user.id || user.role === "ADMIN";
   if (!isAuthorized) return { error: "Unauthorized access to this mentorship request." };
 
+  if (req.status !== "PENDING") {
+    return { error: `Cannot accept a request with status ${req.status}. Only PENDING requests can be accepted.` };
+  }
+
+  // 1. Capacity Enforcement: Check mentor's active mentee count
+  const mentorProfile = await db.mentorProfile.findUnique({
+    where: { userId: req.mentorId },
+  });
+  const maxLimit = mentorProfile?.maxMentees ?? req.mentor.mentorMaxMentees ?? 3;
+
+  const currentActiveCount = await db.mentorshipRequest.count({
+    where: {
+      mentorId: req.mentorId,
+      status: { in: ["ACCEPTED", "SCHEDULED"] },
+    },
+  });
+
+  if (currentActiveCount >= maxLimit) {
+    if (mentorProfile) {
+      await db.mentorProfile.update({
+        where: { id: mentorProfile.id },
+        data: { status: "FULLY_BOOKED" },
+      }).catch(() => {});
+    }
+    return {
+      error: `Cannot accept request: You have reached your maximum active mentee capacity (${maxLimit}). Conclude an existing mentorship session before accepting new ones.`,
+    };
+  }
+
+  const now = new Date();
+
+  // 2. Dedicated Mentorship Conversation (Connection)
+  let connection = await db.connection.findFirst({
+    where: {
+      OR: [
+        { fromId: user.id, toId: req.studentId },
+        { fromId: req.studentId, toId: user.id },
+      ],
+    },
+  });
+
+  if (!connection) {
+    connection = await db.connection.create({
+      data: {
+        fromId: user.id,
+        toId: req.studentId,
+        status: "ACCEPTED",
+        note: `Mentorship: ${req.topic}`,
+      },
+    });
+  } else if (connection.status !== "ACCEPTED") {
+    await db.connection.update({
+      where: { id: connection.id },
+      data: { status: "ACCEPTED" },
+    });
+  }
+
+  // 3. Update Request status to ACCEPTED
   await db.mentorshipRequest.update({
     where: { id: requestId },
     data: {
       status: "ACCEPTED",
+      startedAt: now,
+      connectionId: connection.id,
       mentorNotes: note?.trim() || req.mentorNotes,
-      updatedAt: new Date(),
+      updatedAt: now,
     },
   });
 
-  // Notify student
+  // 4. Create or update MentorshipRelationship
+  await db.mentorshipRelationship.upsert({
+    where: { requestId: req.id },
+    create: {
+      requestId: req.id,
+      studentId: req.studentId,
+      mentorId: user.id,
+      status: "ACTIVE",
+      startedAt: now,
+      connectionId: connection.id,
+    },
+    update: {
+      status: "ACTIVE",
+      startedAt: now,
+      connectionId: connection.id,
+    },
+  });
+
+  // 5. Update Fully Booked status if this fills the last slot
+  if (currentActiveCount + 1 >= maxLimit) {
+    if (mentorProfile) {
+      await db.mentorProfile.update({
+        where: { id: mentorProfile.id },
+        data: { status: "FULLY_BOOKED" },
+      }).catch(() => {});
+    }
+    await db.user.update({
+      where: { id: user.id },
+      data: { mentorAvailable: false },
+    }).catch(() => {});
+  }
+
+  // 6. Notify student
   await dispatchNotification({
     userId: req.studentId,
     actorId: user.id,
     title: `Mentorship Request Accepted! 🎉`,
-    body: `${user.name} accepted your request on "${req.topic}". Check your mentorship schedule for details.`,
+    body: `${user.name} accepted your request on "${req.topic}". You can now communicate directly and view your mentorship under My Mentors.`,
     type: "MENTORSHIP",
-    link: `/student/mentorship`,
+    link: `/student/my-mentors`,
   });
 
+  revalidatePath("/student/my-mentors");
+  revalidatePath("/student/mentors");
   revalidatePath("/student/mentorship");
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
@@ -583,30 +691,33 @@ export async function declineMentorshipRequest(requestId: string, reason?: strin
   const isAuthorized = req.mentorId === user.id || user.role === "ADMIN";
   if (!isAuthorized) return { error: "Unauthorized access to this mentorship request." };
 
+  const now = new Date();
   await db.mentorshipRequest.update({
     where: { id: requestId },
     data: {
       status: "DECLINED",
-      mentorNotes: reason?.trim() || null,
-      updatedAt: new Date(),
+      declinedAt: now,
+      mentorNotes: reason?.trim() || req.mentorNotes,
+      updatedAt: now,
     },
   });
 
-  // Re-check capacity: if was fully booked, declining a pending request frees up a slot!
+  // Re-check capacity: declining frees up any locked state
   await checkAndRestoreAvailability(req.mentorId);
 
   // Notify student
   await dispatchNotification({
     userId: req.studentId,
     actorId: user.id,
-    title: `Mentorship Request Update`,
+    title: `Mentorship Request Declined`,
     body: reason
-      ? `${user.name} was unable to accept your request: "${reason.slice(0, 80)}"`
+      ? `${user.name} was unable to accept your request: "${reason.slice(0, 100)}"`
       : `${user.name} was unable to accept your mentorship request at this time.`,
     type: "MENTORSHIP",
-    link: `/student/mentorship`,
+    link: `/student/my-mentors`,
   });
 
+  revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentorship");
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
@@ -717,8 +828,8 @@ export async function completeMentorshipSession(requestId: string, feedbackNotes
   return { success: true };
 }
 
-/** Cancel a mentorship request (by student or admin) */
-export async function cancelMentorshipRequest(requestId: string) {
+/** Cancel a mentorship request (by student applicant or mentor or admin) */
+export async function cancelMentorshipRequest(requestId: string, reason?: string) {
   const user = await requireUser();
 
   const req = await db.mentorshipRequest.findUnique({
@@ -740,18 +851,30 @@ export async function cancelMentorshipRequest(requestId: string) {
     return { error: "Completed mentorship sessions cannot be cancelled." };
   }
 
+  const now = new Date();
   await db.mentorshipRequest.update({
     where: { id: requestId },
     data: {
       status: "CANCELLED",
-      updatedAt: new Date(),
+      cancelledAt: now,
+      endReason: reason?.trim() || null,
+      updatedAt: now,
     },
   });
+
+  await db.mentorshipRelationship.updateMany({
+    where: { requestId: req.id },
+    data: {
+      status: "CANCELLED",
+      endedAt: now,
+      endReason: reason?.trim() || "Request cancelled",
+    },
+  }).catch(() => {});
 
   // Cancelling frees an active slot!
   await checkAndRestoreAvailability(req.mentorId);
 
-  // If student cancels, notify mentor if request was active
+  // If student cancels, notify mentor
   if (isStudent && (req.status === "PENDING" || req.status === "ACCEPTED" || req.status === "SCHEDULED")) {
     const notifyTarget = req.mentor.role === "TEACHER" ? "/teacher/mentorship" : "/alumni/mentorship";
     await dispatchNotification({
@@ -762,8 +885,77 @@ export async function cancelMentorshipRequest(requestId: string) {
       type: "MENTORSHIP",
       link: notifyTarget,
     });
+  } else if (isMentor) {
+    // If mentor cancels, notify student
+    await dispatchNotification({
+      userId: req.studentId,
+      actorId: user.id,
+      title: `Mentorship Request Cancelled`,
+      body: `${user.name} cancelled the mentorship request on "${req.topic}".`,
+      type: "MENTORSHIP",
+      link: `/student/my-mentors`,
+    });
   }
 
+  revalidatePath("/student/my-mentors");
+  revalidatePath("/student/mentorship");
+  revalidatePath("/alumni/mentorship");
+  revalidatePath("/teacher/mentorship");
+  revalidatePath("/admin/mentorship");
+
+  return { success: true };
+}
+
+/** Mentor or Admin ends an active mentorship relationship with confirmation and optional notes */
+export async function endMentorshipRelationship(requestId: string, endReason?: string) {
+  const user = await requireUser();
+
+  const req = await db.mentorshipRequest.findUnique({
+    where: { id: requestId },
+    include: { student: true, mentor: true },
+  });
+
+  if (!req) return { error: "Mentorship request not found." };
+
+  const isAuthorized = req.mentorId === user.id || user.role === "ADMIN";
+  if (!isAuthorized) return { error: "Unauthorized access to this mentorship relationship." };
+
+  const now = new Date();
+  await db.mentorshipRequest.update({
+    where: { id: requestId },
+    data: {
+      status: "COMPLETED",
+      completedAt: now,
+      endReason: endReason?.trim() || req.endReason,
+      updatedAt: now,
+    },
+  });
+
+  await db.mentorshipRelationship.updateMany({
+    where: { requestId: req.id },
+    data: {
+      status: "COMPLETED",
+      endedAt: now,
+      endReason: endReason?.trim() || "Concluded by mentor",
+    },
+  }).catch(() => {});
+
+  // Free up mentor capacity!
+  await checkAndRestoreAvailability(req.mentorId);
+
+  // Notify student
+  await dispatchNotification({
+    userId: req.studentId,
+    actorId: user.id,
+    title: `Mentorship Ended`,
+    body: endReason
+      ? `Your mentorship with ${user.name} on "${req.topic}" has concluded: "${endReason.slice(0, 100)}"`
+      : `Your mentorship with ${user.name} on "${req.topic}" has concluded.`,
+    type: "MENTORSHIP",
+    link: `/student/my-mentors`,
+  });
+
+  revalidatePath("/student/my-mentors");
   revalidatePath("/student/mentorship");
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
@@ -1126,12 +1318,20 @@ export async function getStudentMentorshipHistory() {
     topic: r.topic,
     message: r.message,
     careerGoals: r.careerGoals,
+    reason: r.reason,
+    introduction: r.introduction,
+    preferredAvailability: r.preferredAvailability,
     status: r.status,
     sessionFormat: r.sessionFormat,
     scheduledAt: r.scheduledAt ? r.scheduledAt.toISOString() : null,
     sessionLink: r.sessionLink,
     mentorNotes: r.mentorNotes,
+    startedAt: r.startedAt ? r.startedAt.toISOString() : null,
     completedAt: r.completedAt ? r.completedAt.toISOString() : null,
+    declinedAt: r.declinedAt ? r.declinedAt.toISOString() : null,
+    cancelledAt: r.cancelledAt ? r.cancelledAt.toISOString() : null,
+    endReason: r.endReason,
+    connectionId: r.connectionId,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     mentor: {
