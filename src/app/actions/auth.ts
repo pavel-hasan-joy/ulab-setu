@@ -16,6 +16,7 @@ import {
   checkLoginRateLimit,
   recordFailedLogin,
   clearLoginRateLimit,
+  checkActionRateLimit,
 } from "@/lib/rate-limit";
 
 export type FormState = { error?: string; fields?: Record<string, string>; at?: number } | undefined;
@@ -48,6 +49,15 @@ export async function requestSignupOtp(
     return { success: false, message: emailCheck.error || "Enter a valid @ulab.edu.bd email." };
   }
   const email = emailCheck.normalizedEmail;
+
+  // Rate limit OTP generation (max 3 per minute per email)
+  const rateLimit = checkActionRateLimit(`otp:signup:${email}`, 3, 60 * 1000);
+  if (!rateLimit.allowed) {
+    return {
+      success: false,
+      message: `Too many OTP requests. Please wait ${rateLimit.retryAfterSeconds || 60} seconds before requesting a new code.`,
+    };
+  }
 
   // Validate public role (block admin)
   const roleCheck = sanitizeAndValidatePublicRole(roleRaw);
@@ -82,11 +92,12 @@ export async function requestSignupOtp(
 
   // Send the actual verification email via Resend/SMTP/Fallback
   const sendRes = await sendOtpEmail(email, code, "signup");
+  const isProd = process.env.NODE_ENV === "production";
   return {
-    success: true,
+    success: sendRes.success,
     message: sendRes.message,
-    isDemo: sendRes.isDemo,
-    code: sendRes.code,
+    isDemo: isProd ? false : sendRes.isDemo,
+    code: isProd ? undefined : sendRes.code,
   };
 }
 
@@ -99,6 +110,15 @@ export async function requestPasswordResetOtp(emailRaw: string): Promise<Request
     return { success: false, message: emailCheck.error || "Enter a valid @ulab.edu.bd email." };
   }
   const email = emailCheck.normalizedEmail;
+
+  // Rate limit password reset requests (max 3 per minute per email)
+  const rateLimit = checkActionRateLimit(`otp:reset:${email}`, 3, 60 * 1000);
+  if (!rateLimit.allowed) {
+    return {
+      success: false,
+      message: `Too many password reset requests. Please wait ${rateLimit.retryAfterSeconds || 60} seconds before requesting another code.`,
+    };
+  }
 
   // Check if account exists
   const user = await db.user.findUnique({ where: { email } });
@@ -127,11 +147,12 @@ export async function requestPasswordResetOtp(emailRaw: string): Promise<Request
 
   // Send the email
   const sendRes = await sendOtpEmail(email, code, "reset");
+  const isProd = process.env.NODE_ENV === "production";
   return {
-    success: true,
+    success: sendRes.success,
     message: sendRes.message,
-    isDemo: sendRes.isDemo,
-    code: sendRes.code,
+    isDemo: isProd ? false : sendRes.isDemo,
+    code: isProd ? undefined : sendRes.code,
   };
 }
 
@@ -385,10 +406,11 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
     };
   }
 
-  // Check account suspension
-  if (user.status === "REJECTED") {
+  // Check account suspension or deactivation
+  const userRecord = user as typeof user & { deletedAt?: Date | null; status?: string };
+  if (userRecord.status === "REJECTED" || userRecord.status === "SUSPENDED" || userRecord.deletedAt != null) {
     return {
-      error: "Your account has been deactivated. Please contact the ULAB administration.",
+      error: "Your account has been deactivated or suspended. Please contact the ULAB administration.",
       fields: { email },
     };
   }
@@ -430,7 +452,27 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   ]).catch(() => {});
 
   const home = homeFor(user.role as Role);
-  redirect(next.startsWith(home) ? next : home);
+  redirect(sanitizeRedirect(next, home));
+}
+
+function sanitizeRedirect(next: string, home: string): string {
+  if (!next || typeof next !== "string") return home;
+  const trimmed = next.trim();
+  // Prevent protocol-relative redirects, javascript schemes, external URLs, backslashes
+  if (
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("/\\") ||
+    trimmed.startsWith("\\") ||
+    trimmed.includes(":") ||
+    trimmed.includes("@")
+  ) {
+    return home;
+  }
+  // Target URL must strictly match authorized user's role prefix or sub-path
+  if (trimmed === home || trimmed.startsWith(`${home}/`) || trimmed.startsWith(`${home}?`)) {
+    return trimmed;
+  }
+  return home;
 }
 
 /**

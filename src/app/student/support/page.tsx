@@ -13,6 +13,7 @@ export default async function StudentSupportPage() {
     include: {
       assignedTo: { select: { id: true, name: true } },
       messages: {
+        where: { isInternal: false },
         orderBy: { createdAt: "asc" },
         include: {
           author: { select: { id: true, name: true, role: true, image: true } },
@@ -33,13 +34,15 @@ export default async function StudentSupportPage() {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
     assignedTo: t.assignedTo,
-    messages: t.messages.map((m) => ({
-      id: m.id,
-      body: m.body,
-      isInternal: m.isInternal,
-      createdAt: m.createdAt.toISOString(),
-      author: m.author,
-    })),
+    messages: t.messages
+      .filter((m) => !m.isInternal)
+      .map((m) => ({
+        id: m.id,
+        body: m.body,
+        isInternal: false,
+        createdAt: m.createdAt.toISOString(),
+        author: m.author,
+      })),
   }));
 
   return (

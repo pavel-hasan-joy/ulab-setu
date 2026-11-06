@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin-auth";
 import { postKinds } from "@/lib/site";
 import { fail, type FormState } from "./auth";
 
@@ -12,7 +13,7 @@ export async function setAdminUserStatus(
   userId: string,
   status: "APPROVED" | "PENDING" | "REJECTED" | "SUSPENDED"
 ) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("users:manage");
   if (currentAdmin.id === userId && status !== "APPROVED") {
     throw new Error("You cannot change your own admin account status.");
   }
@@ -38,7 +39,7 @@ export async function setAdminUserStatus(
 
 /** Admin soft-deletes a user account */
 export async function softDeleteUserByAdmin(userId: string) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("users:manage");
   if (currentAdmin.id === userId) {
     throw new Error("You cannot delete your own admin account.");
   }
@@ -67,7 +68,7 @@ export async function softDeleteUserByAdmin(userId: string) {
 
 /** Admin restores a soft-deleted user account */
 export async function restoreUserByAdmin(userId: string) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("users:manage");
   const user = await db.user.update({
     where: { id: userId },
     data: {
@@ -96,7 +97,7 @@ export async function bulkSetUserStatus(
   userIds: string[],
   status: "APPROVED" | "SUSPENDED" | "REJECTED"
 ) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("users:manage");
   // Prevent operating on oneself
   const targetIds = userIds.filter((id) => id !== currentAdmin.id);
   if (targetIds.length === 0) return 0;
@@ -124,7 +125,7 @@ export async function bulkSetUserStatus(
 
 /** Admin performs bulk soft-delete */
 export async function bulkSoftDeleteUsers(userIds: string[]) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("users:manage");
   const targetIds = userIds.filter((id) => id !== currentAdmin.id);
   if (targetIds.length === 0) return 0;
 
@@ -157,7 +158,7 @@ export async function changeUserRole(
   userId: string,
   role: "STUDENT" | "ALUMNI" | "TEACHER" | "ADMIN"
 ) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission(role === "ADMIN" ? "admins:manage" : "users:manage");
   if (currentAdmin.id === userId && role !== "ADMIN") {
     throw new Error("You cannot remove your own admin privileges.");
   }
@@ -171,7 +172,7 @@ export async function changeUserRole(
 
 /** Admin permanently deletes a user */
 export async function deleteUserByAdmin(userId: string) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("admins:manage");
   if (currentAdmin.id === userId) {
     throw new Error("You cannot delete your own admin account.");
   }
@@ -188,7 +189,7 @@ export async function setJobStatusByAdmin(
   jobId: string,
   status: "PUBLISHED" | "PAUSED" | "CLOSED" | "REMOVED"
 ) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("jobs:manage");
   const job = await db.job.findUnique({ where: { id: jobId } });
   if (!job) return { error: "Job not found" };
 
@@ -224,7 +225,7 @@ export async function setJobStatusByAdmin(
 
 /** Admin toggles job active state */
 export async function toggleJobStatusByAdmin(jobId: string) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("jobs:manage");
   const job = await db.job.findUnique({ where: { id: jobId } });
   if (!job) return;
 
@@ -256,7 +257,7 @@ export async function toggleJobStatusByAdmin(jobId: string) {
 
 /** Admin permanently deletes or removes a job listing */
 export async function deleteJobByAdmin(jobId: string) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("jobs:manage");
   const job = await db.job.findUnique({ where: { id: jobId } });
   if (!job) return;
 
@@ -289,7 +290,7 @@ export async function resolveJobReportByAdmin(
   resolutionNotes?: string,
   removeJob?: boolean
 ) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("reports:manage");
   const report = await db.userReport.findUnique({ where: { id: reportId } });
   if (!report) return { error: "Report not found" };
 
@@ -346,7 +347,7 @@ export async function createAdminNotice(
   _: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("notifications:manage");
   const raw = Object.fromEntries(formData) as Record<string, string>;
   const parsed = adminNoticeSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0].message, raw);
@@ -368,7 +369,7 @@ export async function createAdminNotice(
 
 /** Admin deletes any community or official notice/post */
 export async function deleteNoticeByAdmin(postId: string) {
-  await requireUser("ADMIN");
+  await requireAdminPermission("notifications:manage");
   await db.post.delete({
     where: { id: postId },
   });
@@ -393,7 +394,7 @@ export async function importDirectoryMembers(
   formData: FormData
 ): Promise<ImportDirectoryResult> {
   const XLSX = await import("xlsx");
-  await requireUser("ADMIN");
+  await requireAdminPermission("alumni:manage");
   const file = formData.get("file") as File | null;
   const defaultRole = (formData.get("defaultRole") as string) || "AUTO";
 
@@ -401,6 +402,28 @@ export async function importDirectoryMembers(
     return {
       success: false,
       message: "Please choose an Excel (.xlsx, .xls) or CSV file.",
+      totalParsed: 0,
+      imported: 0,
+      autoApprovedCount: 0,
+    };
+  }
+
+  // Hardened file security: 10MB max limit & extension validation
+  if (file.size > 10 * 1024 * 1024) {
+    return {
+      success: false,
+      message: "File is too large. Maximum supported file size is 10MB.",
+      totalParsed: 0,
+      imported: 0,
+      autoApprovedCount: 0,
+    };
+  }
+
+  const fileName = (file.name || "").toLowerCase();
+  if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls") && !fileName.endsWith(".csv")) {
+    return {
+      success: false,
+      message: "Invalid file format. Please upload a valid .xlsx, .xls, or .csv document.",
       totalParsed: 0,
       imported: 0,
       autoApprovedCount: 0,
@@ -576,7 +599,7 @@ export async function importDirectoryMembers(
 
 /** Admin deletes all records in pre-approved directory */
 export async function clearPreApprovedDirectory() {
-  await requireUser("ADMIN");
+  await requireAdminPermission("alumni:manage");
   await db.preApprovedMember.deleteMany({});
   revalidatePath("/admin");
   revalidatePath("/admin/users");
@@ -588,7 +611,7 @@ export async function resolveUserReport(
   status: "INVESTIGATING" | "RESOLVED" | "DISMISSED",
   resolutionNotes?: string
 ) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("reports:manage");
   const report = await db.userReport.update({
     where: { id: reportId },
     data: {
@@ -623,7 +646,7 @@ export async function updateSupportTicket(
     assignedToId?: string;
   }
 ) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("tickets:manage");
   await db.supportTicket.update({
     where: { id: ticketId },
     data: {
@@ -654,7 +677,7 @@ export async function assignAdminSubRole(
   targetAdminId: string,
   subRoleTitle: string
 ) {
-  const currentAdmin = await requireUser("ADMIN");
+  const { user: currentAdmin } = await requireAdminPermission("admins:manage");
   if (currentAdmin.id === targetAdminId && subRoleTitle !== "Super Admin") {
     throw new Error("You cannot downgrade your own Super Admin privileges.");
   }
@@ -684,7 +707,7 @@ export async function dispatchSystemNotification(
   targetRole: "ALL" | "STUDENT" | "ALUMNI" | "TEACHER",
   link?: string
 ) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("notifications:manage");
   const recipients = await db.user.findMany({
     where: targetRole === "ALL" ? {} : { role: targetRole },
     select: { id: true },
@@ -719,7 +742,7 @@ export async function dispatchSystemNotification(
 
 /** Admin verifies or confirms verified status of an alumni user */
 export async function verifyAlumniStatus(userId: string) {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("alumni:manage");
   await db.user.update({
     where: { id: userId },
     data: {
@@ -748,7 +771,7 @@ export async function verifyAlumniStatus(userId: string) {
 
 /** Admin auto-verifies all alumni in the system to guarantee 100% verification coverage */
 export async function autoVerifyAllAlumni() {
-  const admin = await requireUser("ADMIN");
+  const { user: admin } = await requireAdminPermission("alumni:manage");
   const count = await db.user.updateMany({
     where: { role: "ALUMNI" },
     data: {

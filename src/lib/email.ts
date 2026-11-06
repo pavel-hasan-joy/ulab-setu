@@ -159,13 +159,22 @@ export async function sendOtpEmail(
   }
 
   // 3. Graceful Demo / Dev Fallback
-  // If no email service is configured yet in environment variables,
-  // we log the OTP and provide it so testing / demo never breaks!
+  // In production, never leak plaintext OTP or fall back to demo mode without real delivery
+  const isProd = process.env.NODE_ENV === "production";
+  if (isProd) {
+    console.error(`[CRITICAL] Email transport not configured or delivery failed in production for: ${toEmail}`);
+    return {
+      success: false,
+      message: "Email delivery service is temporarily unavailable. Please try again shortly.",
+    };
+  }
+
+  // Local development / staging logging
   console.log(`[ULAB Setu OTP] ${purpose.toUpperCase()} code for ${toEmail}: ${code}`);
   return {
     success: true,
     isDemo: true,
     code,
-    message: `Verification code sent. (Demo mode: ${code})`,
+    message: `Verification code sent. (Dev mode: ${code})`,
   };
 }

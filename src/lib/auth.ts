@@ -23,13 +23,28 @@ export async function deleteSession() {
 export const getCurrentUser = cache(async () => {
   const session = await decrypt((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return null;
-  return db.user.findUnique({ where: { id: session.userId } });
+  const user = await db.user.findUnique({ where: { id: session.userId } });
+  if (!user) return null;
+
+  // Strict session invalidation for suspended, rejected, or soft-deleted accounts
+  const userRecord = user as typeof user & { deletedAt?: Date | null; status?: string };
+  if (userRecord.status === "SUSPENDED" || userRecord.status === "REJECTED" || userRecord.deletedAt != null) {
+    return null;
+  }
+  return user;
 });
 
 /** Use at the top of every protected page and server action. Pass one role or a list. */
 export async function requireUser(role?: Role | Role[]) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    try {
+      await deleteSession();
+    } catch {
+      // In Server Components headers might be read-only; redirect still clears via cookies or routes
+    }
+    redirect("/login");
+  }
   const allowed = role === undefined ? null : Array.isArray(role) ? role : [role];
   if (allowed && !allowed.includes(user.role as Role)) redirect(homeFor(user.role as Role));
   return user;

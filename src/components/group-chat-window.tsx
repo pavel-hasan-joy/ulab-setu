@@ -303,43 +303,48 @@ export function GroupChatWindow({
                     {/* Attachment rendering */}
                     {m.attachmentUrl && (
                       <div className="mb-2">
-                        {isImage ? (
-                          <div className="overflow-hidden rounded-xl">
-                            <img
-                              src={m.attachmentUrl}
-                              alt={m.attachmentName || "Attached image"}
-                              className="max-h-60 w-auto rounded-xl object-contain"
-                            />
-                          </div>
-                        ) : (
-                          <a
-                            href={m.attachmentUrl}
-                            download={m.attachmentName || "attachment"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={cn(
-                              "flex items-center gap-3 rounded-xl p-2.5 transition",
-                              m.mine
-                                ? "bg-white/15 hover:bg-white/25 text-white"
-                                : "bg-paper hover:bg-mist/40 text-ink border border-mist"
-                            )}
-                          >
-                            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-ulab/10 text-ulab">
-                              <FileText size={18} />
+                        {(() => {
+                          const isSafe = /^(https?:\/\/|data:(image\/(jpeg|png|webp|gif)|application\/pdf);base64,)/i.test(m.attachmentUrl);
+                          if (!isSafe) return null;
+
+                          return isImage ? (
+                            <div className="overflow-hidden rounded-xl">
+                              <img
+                                src={m.attachmentUrl}
+                                alt={m.attachmentName || "Attached image"}
+                                className="max-h-60 w-auto rounded-xl object-contain"
+                              />
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-semibold">
-                                {m.attachmentName || "Document"}
-                              </p>
-                              {m.attachmentSize && (
-                                <p className="text-[10px] opacity-80">
-                                  {m.attachmentSize}
-                                </p>
+                          ) : (
+                            <a
+                              href={m.attachmentUrl}
+                              download={m.attachmentName || "attachment"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={cn(
+                                "flex items-center gap-3 rounded-xl p-2.5 transition",
+                                m.mine
+                                  ? "bg-white/15 hover:bg-white/25 text-white"
+                                  : "bg-paper hover:bg-mist/40 text-ink border border-mist"
                               )}
-                            </div>
-                            <Download size={16} className="shrink-0 opacity-80" />
-                          </a>
-                        )}
+                            >
+                              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-ulab/10 text-ulab">
+                                <FileText size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-semibold">
+                                  {m.attachmentName || "Document"}
+                                </p>
+                                {m.attachmentSize && (
+                                  <p className="text-[10px] opacity-80">
+                                    {m.attachmentSize}
+                                  </p>
+                                )}
+                              </div>
+                              <Download size={16} className="shrink-0 opacity-80" />
+                            </a>
+                          );
+                        })()}
                       </div>
                     )}
 

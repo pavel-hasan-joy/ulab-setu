@@ -80,6 +80,13 @@ export async function sendGroupMessage(
     const trimmed = body.trim();
     if (!trimmed && !attachment) return { error: "Message or attachment is required" };
 
+    if (attachment?.url) {
+      const isSafeUrl = /^(https?:\/\/|data:(image\/(jpeg|png|webp|gif)|application\/pdf);base64,)/i.test(attachment.url);
+      if (!isSafeUrl) {
+        return { error: "Unsafe attachment URL scheme or payload." };
+      }
+    }
+
     // Verify membership
     const member = await db.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId: user.id } },

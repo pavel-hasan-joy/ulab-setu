@@ -491,13 +491,17 @@ export async function setApplicationStatus(
   status: "APPLIED" | "VIEWED" | "SHORTLISTED" | "INTERVIEW" | "SELECTED" | "REJECTED",
   interviewNotes?: string
 ) {
-  const { user, base } = await requirePoster();
+  const user = await requireUser(["ALUMNI", "TEACHER", "ADMIN"]);
+  const base = user.role === "ADMIN" ? "/admin" : user.role === "TEACHER" ? "/teacher" : "/alumni";
+  const whereClause = user.role === "ADMIN"
+    ? { id: applicationId }
+    : { id: applicationId, job: { postedById: user.id } };
+
   const app = await db.application.findFirst({
-    where: { id: applicationId, job: { postedById: user.id } },
-    include: { job: { select: { title: true, id: true } } },
+    where: whereClause,
+    include: { job: { select: { title: true, id: true, postedById: true } } },
   });
-  if (!app && user.role !== "ADMIN") return { error: "Unauthorized" };
-  if (!app) return { error: "Application not found" };
+  if (!app) return { error: "Application not found or unauthorized" };
 
   await db.application.update({
     where: { id: applicationId },
@@ -543,11 +547,15 @@ export async function setApplicationStatus(
 }
 
 export async function updateApplicationHiringNotes(applicationId: string, hiringNotes: string) {
-  const { user } = await requirePoster();
+  const user = await requireUser(["ALUMNI", "TEACHER", "ADMIN"]);
+  const whereClause = user.role === "ADMIN"
+    ? { id: applicationId }
+    : { id: applicationId, job: { postedById: user.id } };
+
   const app = await db.application.findFirst({
-    where: { id: applicationId, job: { postedById: user.id } },
+    where: whereClause,
   });
-  if (!app && user.role !== "ADMIN") return { error: "Unauthorized" };
+  if (!app) return { error: "Application not found or unauthorized" };
 
   await db.application.update({
     where: { id: applicationId },
@@ -558,9 +566,13 @@ export async function updateApplicationHiringNotes(applicationId: string, hiring
 }
 
 export async function markApplicationViewed(applicationId: string) {
-  const { user } = await requirePoster();
+  const user = await requireUser(["ALUMNI", "TEACHER", "ADMIN"]);
+  const whereClause = user.role === "ADMIN"
+    ? { id: applicationId }
+    : { id: applicationId, job: { postedById: user.id } };
+
   const app = await db.application.findFirst({
-    where: { id: applicationId, job: { postedById: user.id } },
+    where: whereClause,
     include: { job: { select: { title: true } } },
   });
   if (!app) return;

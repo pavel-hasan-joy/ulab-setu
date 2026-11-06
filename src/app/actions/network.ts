@@ -267,8 +267,14 @@ export async function sendMessage(
     return { error: "Slow down. Please wait a few seconds before sending another message." };
   }
 
-  // Enforce attachment size and type safety if provided
+  // Enforce attachment size, type, and URL safety if provided
   if (attachment) {
+    if (attachment.url) {
+      const isSafeUrl = /^(https?:\/\/|data:(image\/(jpeg|png|webp|gif)|application\/pdf);base64,)/i.test(attachment.url);
+      if (!isSafeUrl) {
+        return { error: "Unsafe attachment URL scheme or payload." };
+      }
+    }
     const safeTypes = [
       "image/jpeg",
       "image/png",

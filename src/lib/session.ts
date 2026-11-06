@@ -5,7 +5,20 @@ export type Role = "STUDENT" | "ALUMNI" | "TEACHER" | "ADMIN";
 export type SessionPayload = { userId: string; role: Role };
 
 export const SESSION_COOKIE = "setu_session";
-const key = () => new TextEncoder().encode(process.env.AUTH_SECRET);
+
+function getAuthSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("[CRITICAL SECURITY] AUTH_SECRET environment variable is missing in production.");
+    }
+    // Safe deterministic fallback for local development / test suites
+    return new TextEncoder().encode("dev-secret-key-must-be-at-least-32-chars-long-for-setu");
+  }
+  return new TextEncoder().encode(secret);
+}
+
+const key = () => getAuthSecret();
 
 export async function encrypt(payload: SessionPayload) {
   return new SignJWT(payload)
