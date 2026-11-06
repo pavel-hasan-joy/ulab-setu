@@ -376,3 +376,4 @@ console.log("=================================================\n");
 if (passed !== totalTests) {
   process.exit(1);
 }
+

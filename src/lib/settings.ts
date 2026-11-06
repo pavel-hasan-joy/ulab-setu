@@ -347,3 +347,4 @@ export async function getSystemSetting(key: string, defaultValue?: string): Prom
   const def = SYSTEM_SETTING_DEFINITIONS.find((d) => d.key === key);
   return def ? def.defaultValue : "";
 }
+
