@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -39,6 +39,7 @@ export interface DiscoverMentorItem {
   preferredSessionType: string;
   availableDays: string[];
   communicationMethod: string;
+  availabilityNote?: string | null;
   maxMentees: number;
   activeMenteesCount: number;
   status: "AVAILABLE" | "TEMPORARILY_UNAVAILABLE" | "FULLY_BOOKED";
@@ -66,6 +67,19 @@ export function StudentFindMentorView({
   const [sortBy, setSortBy] = useState<"RELEVANT" | "RECENT" | "EXPERIENCE" | "NAME">("RELEVANT");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 9;
+
+  // Dynamically aggregate all unique mentorship topics across all mentors & presets
+  const allAvailableTopics = useMemo(() => {
+    const topicSet = new Set<string>(MENTORSHIP_TOPICS);
+    initialMentors.forEach((m) => {
+      m.topics?.forEach((t) => {
+        if (t && t.toLowerCase() !== "all topics") {
+          topicSet.add(t);
+        }
+      });
+    });
+    return Array.from(topicSet);
+  }, [initialMentors]);
 
   // Filter in memory for immediate interactive responsive feel
   const filtered = initialMentors.filter((m) => {
@@ -96,8 +110,12 @@ export function StudentFindMentorView({
     }
 
     // 4. Topic Filter
-    if (topicFilter !== "ALL" && !m.topics.includes(topicFilter)) {
-      return false;
+    if (topicFilter !== "ALL") {
+      const hasAllTopics = m.topics.some((t) => t.toLowerCase() === "all topics");
+      const hasSpecificTopic = m.topics.includes(topicFilter);
+      if (!hasAllTopics && !hasSpecificTopic) {
+        return false;
+      }
     }
 
     // 5. Session Format Filter
@@ -237,7 +255,7 @@ export function StudentFindMentorView({
                 className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-2.5 py-1.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
               >
                 <option value="ALL">All Topics</option>
-                {MENTORSHIP_TOPICS.map((t) => (
+                {allAvailableTopics.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -424,7 +442,7 @@ export function StudentFindMentorView({
                   </div>
                 )}
 
-                {/* Expertise & Session Format */}
+                {/* Expertise & Session Format & Timing */}
                 <div className="mt-3 space-y-1 text-[11px] text-ink-soft">
                   {m.expertise && (
                     <p className="line-clamp-1">
@@ -434,6 +452,18 @@ export function StudentFindMentorView({
                   <p>
                     <strong className="text-ink">Format:</strong> {m.preferredSessionType} · {m.communicationMethod}
                   </p>
+                  {m.availableDays && m.availableDays.length > 0 && (
+                    <p className="line-clamp-1 text-emerald-700 dark:text-emerald-400 font-medium">
+                      <strong className="text-ink font-semibold">Available:</strong> {m.availableDays.map((d) => d.slice(0, 3)).join(", ")}
+                      {(() => {
+                        const note = m.availabilityNote || "";
+                        const hoursMatch = note.match(/Hours:\s*([^|]+)/i);
+                        const timeMatch = note.match(/Preferred Time:\s*([^|]+)/i);
+                        const timing = hoursMatch ? hoursMatch[1].trim() : timeMatch ? timeMatch[1].trim() : null;
+                        return timing ? ` · ${timing}` : "";
+                      })()}
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -1224,7 +1224,9 @@ export async function findEligibleMentors(filters: FindMentorsFilters = {}) {
     // 5. Topic filter
     if (topic !== "ALL") {
       const mentorTopics = (mp?.topics || m.mentorTopics || "").toLowerCase();
-      if (!mentorTopics.includes(topic.toLowerCase())) return false;
+      const hasSpecificTopic = mentorTopics.includes(topic.toLowerCase());
+      const hasAllTopics = mentorTopics.includes("all topics");
+      if (!hasSpecificTopic && !hasAllTopics) return false;
     }
 
     // 6. Session type filter
@@ -1277,6 +1279,7 @@ export async function findEligibleMentors(filters: FindMentorsFilters = {}) {
       preferredSessionType: mp?.preferredSessionType || m.mentorSessionFormat || "ONLINE",
       availableDays: (mp?.availableDays || "Sunday, Tuesday, Thursday").split(",").map((s) => s.trim()).filter(Boolean),
       communicationMethod: mp?.communicationMethod || "GOOGLE_MEET",
+      availabilityNote: mp?.availabilityNote || m.mentorAvailabilityNote || null,
       maxMentees: mp?.maxMentees ?? m.mentorMaxMentees ?? 3,
       activeMenteesCount: m._count.mentorRequests,
       status: (mp?.status || "AVAILABLE") as MentorAvailabilityStatus,

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Avatar, Badge, Button, Card } from "./ui";
 import { sendMentorshipRequest } from "@/app/actions/mentorship";
+import { MENTORSHIP_TOPICS } from "@/lib/mentorship-constants";
 
 export interface MentorDetailsData {
   id: string;
@@ -65,6 +66,7 @@ export function StudentMentorDetailsView({
 }) {
   const [showRequestModal, setShowRequestModal] = useState(initialOpenRequest);
   const [selectedTopic, setSelectedTopic] = useState(mentor.topics[0] || "Career Guidance");
+  const [customTopicText, setCustomTopicText] = useState("");
   const [careerGoals, setCareerGoals] = useState("");
   const [reason, setReason] = useState("");
   const [introduction, setIntroduction] = useState("");
@@ -81,10 +83,19 @@ export function StudentMentorDetailsView({
     e.preventDefault();
     setFeedback(null);
 
+    const finalTopic = selectedTopic === "__CUSTOM__" ? customTopicText.trim() : selectedTopic.trim();
+    if (!finalTopic) {
+      setFeedback({
+        type: "error",
+        message: "Please choose or enter a valid mentorship topic.",
+      });
+      return;
+    }
+
     startTransition(async () => {
       const res = await sendMentorshipRequest({
         mentorId: mentor.id,
-        topic: selectedTopic,
+        topic: finalTopic,
         careerGoals,
         reason,
         introduction,
@@ -363,14 +374,49 @@ export function StudentMentorDetailsView({
                 </div>
               </div>
 
-              {mentor.availabilityNote && (
-                <div>
-                  <span className="font-semibold text-ink-soft">Scheduling Notes:</span>
-                  <p className="mt-1 rounded-xl bg-paper/60 p-2.5 text-ink-soft leading-relaxed dark:bg-white/5">
-                    {mentor.availabilityNote}
-                  </p>
-                </div>
-              )}
+              {/* Parsed Timing, Hours & Notes */}
+              {(() => {
+                const note = mentor.availabilityNote || "";
+                const timeMatch = note.match(/Preferred Time:\s*([^|]+)/i);
+                const hoursMatch = note.match(/Hours:\s*([^|]+)/i);
+                const cleanNote = note
+                  .replace(/Preferred Time:\s*[^|]+(\||\b)/i, "")
+                  .replace(/Hours:\s*[^|]+(\||\b)/i, "")
+                  .trim();
+
+                return (
+                  <>
+                    {timeMatch && (
+                      <div>
+                        <span className="font-semibold text-ink-soft">Preferred Time Slots:</span>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {timeMatch[1].split(",").map((s) => s.trim()).filter(Boolean).map((slot) => (
+                            <Badge key={slot} tone="sage">
+                              {slot}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {hoursMatch && (
+                      <div>
+                        <span className="font-semibold text-ink-soft">Available Hours (সময়):</span>
+                        <p className="mt-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                          ⏰ {hoursMatch[1].trim()}
+                        </p>
+                      </div>
+                    )}
+                    {cleanNote && (
+                      <div>
+                        <span className="font-semibold text-ink-soft">Scheduling Notes:</span>
+                        <p className="mt-1 rounded-xl bg-paper/60 p-2.5 text-ink-soft leading-relaxed dark:bg-white/5">
+                          {cleanNote}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <div className="mt-6 border-t border-mist/70 pt-4 dark:border-white/10">
@@ -417,12 +463,38 @@ export function StudentMentorDetailsView({
                   onChange={(e) => setSelectedTopic(e.target.value)}
                   className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs font-semibold text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
                 >
-                  {mentor.topics.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
+                  <optgroup label="Mentor's Offered Topics">
+                    {mentor.topics.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="All Common Mentorship Topics">
+                    {MENTORSHIP_TOPICS.filter((t) => !mentor.topics.includes(t)).map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value="__CUSTOM__">✍️ Custom Topic (অন্য যেকোনো বিষয় লিখুন)...</option>
                 </select>
+
+                {selectedTopic === "__CUSTOM__" && (
+                  <div className="mt-2">
+                    <label className="text-[11px] font-semibold text-ink-soft">
+                      Type Your Custom Mentorship Topic <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customTopicText}
+                      onChange={(e) => setCustomTopicText(e.target.value)}
+                      placeholder="e.g. Flutter Development, Research Methodology, GRE/IELTS, etc."
+                      className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs text-ink placeholder:text-ink-soft/60 focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* 2. Career Goal */}

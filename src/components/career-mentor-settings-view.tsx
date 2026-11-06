@@ -53,6 +53,14 @@ const WEEKDAYS = [
   "Saturday",
 ];
 
+const TIME_SLOT_PRESETS = [
+  "Morning (9:00 AM - 12:00 PM)",
+  "Afternoon (2:00 PM - 5:00 PM)",
+  "Evening (6:00 PM - 8:00 PM)",
+  "Night (8:00 PM - 10:00 PM)",
+  "Flexible / Weekend Hours",
+] as const;
+
 export interface MentorProfileItem {
   id?: string;
   userId: string;
@@ -152,6 +160,8 @@ export function CareerMentorSettingsView({
   const [selectedTopics, setSelectedTopics] = useState<string[]>(
     profile.topics ? profile.topics.split(",").map((s) => s.trim()).filter(Boolean) : []
   );
+  const [customTopicInput, setCustomTopicInput] = useState("");
+  const [customSkillInput, setCustomSkillInput] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState<string>(
     profile.yearsOfExperience !== null && profile.yearsOfExperience !== undefined
       ? String(profile.yearsOfExperience)
@@ -161,9 +171,25 @@ export function CareerMentorSettingsView({
   const [selectedDays, setSelectedDays] = useState<string[]>(
     profile.availableDays ? profile.availableDays.split(",").map((s) => s.trim()).filter(Boolean) : ["Sunday", "Tuesday", "Thursday"]
   );
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState<string[]>(() => {
+    if (!profile.availabilityNote) return [];
+    const match = profile.availabilityNote.match(/Preferred Time:\s*([^|]+)/i);
+    return match ? match[1].split(",").map((s) => s.trim()).filter(Boolean) : [];
+  });
+  const [customTimeWindow, setCustomTimeWindow] = useState<string>(() => {
+    if (!profile.availabilityNote) return "";
+    const match = profile.availabilityNote.match(/Hours:\s*([^|]+)/i);
+    return match ? match[1].trim() : "";
+  });
   const [communicationMethod, setCommunicationMethod] = useState(profile.communicationMethod || "GOOGLE_MEET");
   const [maxMentees, setMaxMentees] = useState(profile.maxMentees || 3);
-  const [availabilityNote, setAvailabilityNote] = useState(profile.availabilityNote || "");
+  const [availabilityNote, setAvailabilityNote] = useState<string>(() => {
+    if (!profile.availabilityNote) return "";
+    return profile.availabilityNote
+      .replace(/Preferred Time:\s*[^|]+(\||\b)/i, "")
+      .replace(/Hours:\s*[^|]+(\||\b)/i, "")
+      .trim();
+  });
 
   // Faculty specific fields
   const [academicExpertise, setAcademicExpertise] = useState(profile.academicExpertise || "");
@@ -241,7 +267,11 @@ export function CareerMentorSettingsView({
         availableDays: selectedDays,
         communicationMethod,
         maxMentees: Number(maxMentees),
-        availabilityNote,
+        availabilityNote: [
+          selectedTimeSlots.length > 0 ? `Preferred Time: ${selectedTimeSlots.join(", ")}` : "",
+          customTimeWindow.trim() ? `Hours: ${customTimeWindow.trim()}` : "",
+          availabilityNote.trim(),
+        ].filter(Boolean).join(" | "),
         academicExpertise,
         researchInterests,
         teachingAreas,
@@ -264,12 +294,56 @@ export function CareerMentorSettingsView({
     });
   };
 
+  const isAllTopics = selectedTopics.includes("All Topics") || (
+    MENTORSHIP_TOPICS.every((t) => selectedTopics.includes(t)) && selectedTopics.length >= MENTORSHIP_TOPICS.length
+  );
+
+  const toggleAllTopics = () => {
+    if (isAllTopics) {
+      setSelectedTopics([]);
+    } else {
+      setSelectedTopics(["All Topics", ...MENTORSHIP_TOPICS]);
+    }
+  };
+
   const toggleTopic = (topic: string) => {
     if (selectedTopics.includes(topic)) {
       setSelectedTopics(selectedTopics.filter((t) => t !== topic));
     } else {
       setSelectedTopics([...selectedTopics, topic]);
     }
+  };
+
+  const addCustomTopic = () => {
+    const trimmed = customTopicInput.trim();
+    if (!trimmed) return;
+    if (!selectedTopics.includes(trimmed)) {
+      setSelectedTopics([...selectedTopics, trimmed]);
+    }
+    setCustomTopicInput("");
+  };
+
+  const removeTopic = (topic: string) => {
+    setSelectedTopics(selectedTopics.filter((t) => t !== topic));
+  };
+
+  const toggleTimeSlot = (slot: string) => {
+    if (selectedTimeSlots.includes(slot)) {
+      setSelectedTimeSlots(selectedTimeSlots.filter((s) => s !== slot));
+    } else {
+      setSelectedTimeSlots([...selectedTimeSlots, slot]);
+    }
+  };
+
+  const addSkillChip = (skillText: string) => {
+    const trimmed = skillText.trim();
+    if (!trimmed) return;
+    const existing = skills.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!existing.includes(trimmed)) {
+      const updated = existing.length > 0 ? `${skills.trim()}, ${trimmed}` : trimmed;
+      setSkills(updated);
+    }
+    setCustomSkillInput("");
   };
 
   const toggleDay = (day: string) => {
@@ -713,12 +787,27 @@ export function CareerMentorSettingsView({
                   </h3>
                 </div>
 
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 space-y-5">
                   <div>
-                    <label className="text-xs font-semibold text-ink">
-                      Offered Mentorship Topics (Select all applicable)
-                    </label>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-xs font-semibold text-ink">
+                        Offered Mentorship Topics (পছন্দের টপিক সিলেক্ট করুন অথবা নতুন লিখে যোগ করুন)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={toggleAllTopics}
+                        className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                          isAllTopics
+                            ? "bg-ulab text-white shadow-soft"
+                            : "border border-mist/80 bg-paper/60 text-ink-soft hover:bg-paper dark:border-white/10 dark:bg-white/5"
+                        }`}
+                      >
+                        {isAllTopics ? "✓ All Topics Selected" : "🌐 Select All Topics"}
+                      </button>
+                    </div>
+
+                    {/* Standard Suggested Topics */}
+                    <div className="mt-2.5 flex flex-wrap gap-2">
                       {MENTORSHIP_TOPICS.map((topic) => {
                         const isSelected = selectedTopics.includes(topic);
                         return (
@@ -738,6 +827,56 @@ export function CareerMentorSettingsView({
                         );
                       })}
                     </div>
+
+                    {/* Custom Topics Display */}
+                    {selectedTopics.filter((t) => !MENTORSHIP_TOPICS.includes(t as any) && t !== "All Topics").length > 0 && (
+                      <div className="mt-3">
+                        <span className="text-[11px] font-semibold text-ink-soft">Custom Topics Added:</span>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {selectedTopics
+                            .filter((t) => !MENTORSHIP_TOPICS.includes(t as any) && t !== "All Topics")
+                            .map((ct) => (
+                              <span
+                                key={ct}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-300"
+                              >
+                                {ct}
+                                <button
+                                  type="button"
+                                  onClick={() => removeTopic(ct)}
+                                  className="text-emerald-700 hover:text-rose-600 dark:text-emerald-400"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Topic Input */}
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={customTopicInput}
+                        onChange={(e) => setCustomTopicInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addCustomTopic();
+                          }
+                        }}
+                        placeholder="Type any custom topic (e.g. Cloud Architecture, Fintech, GRE)..."
+                        className="flex-1 rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                      />
+                      <button
+                        type="button"
+                        onClick={addCustomTopic}
+                        className="rounded-xl border border-ulab/30 bg-ulab/10 px-3 py-1.5 text-xs font-semibold text-ulab hover:bg-ulab hover:text-white transition"
+                      >
+                        + Add Topic
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -752,7 +891,10 @@ export function CareerMentorSettingsView({
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-ink">Relevant Technical & Professional Skills</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-ink">Relevant Technical & Professional Skills</label>
+                      <span className="text-[11px] text-ink-soft">Type freely or click tags below</span>
+                    </div>
                     <input
                       type="text"
                       value={skills}
@@ -760,6 +902,30 @@ export function CareerMentorSettingsView({
                       placeholder="e.g. React, Next.js, TypeScript, PostgreSQL, Docker, AWS"
                       className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-2 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
                     />
+
+                    {/* Skill tag adder */}
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={customSkillInput}
+                        onChange={(e) => setCustomSkillInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addSkillChip(customSkillInput);
+                          }
+                        }}
+                        placeholder="Type single skill and click Add (e.g. Python, Figma, Kubernetes)..."
+                        className="flex-1 rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addSkillChip(customSkillInput)}
+                        className="rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-paper hover:text-ink transition dark:border-white/10"
+                      >
+                        + Add Skill
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -914,6 +1080,49 @@ export function CareerMentorSettingsView({
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Preferred Time Slots & Hours (কখন কয়টার সময় থাকবেন) */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-ink">
+                        Preferred Time Slots & Timing (কখন থাকবেন)
+                      </label>
+                      <span className="text-[11px] text-ink-soft">Select one or more</span>
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {TIME_SLOT_PRESETS.map((slot) => {
+                        const isSlotSelected = selectedTimeSlots.includes(slot);
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => toggleTimeSlot(slot)}
+                            className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
+                              isSlotSelected
+                                ? "bg-ulab text-white shadow-soft"
+                                : "border border-mist/80 bg-paper/60 text-ink-soft hover:bg-paper dark:border-white/10 dark:bg-white/5"
+                            }`}
+                          >
+                            {isSlotSelected ? `✓ ${slot}` : slot}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Specific Hours */}
+                    <div className="mt-2.5">
+                      <label className="text-[11px] font-medium text-ink-soft">
+                        Specific Hours / Window (নির্দিষ্ট সময়সূচি)
+                      </label>
+                      <input
+                        type="text"
+                        value={customTimeWindow}
+                        onChange={(e) => setCustomTimeWindow(e.target.value)}
+                        placeholder="e.g. 7:30 PM - 9:30 PM BST or Every Friday 4:00 PM - 6:00 PM"
+                        className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs text-ink placeholder:text-ink-soft/60 focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                      />
                     </div>
                   </div>
 
@@ -1288,6 +1497,16 @@ export function CareerMentorSettingsView({
                     <span>
                       <strong className="text-ink">Days:</strong> {selectedDays.join(", ")}
                     </span>
+                    {selectedTimeSlots.length > 0 && (
+                      <span>
+                        <strong className="text-ink">Time:</strong> {selectedTimeSlots.join("; ")}
+                      </span>
+                    )}
+                    {customTimeWindow && (
+                      <span>
+                        <strong className="text-ink">Hours:</strong> {customTimeWindow}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
