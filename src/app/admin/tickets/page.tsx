@@ -78,8 +78,8 @@ export default async function AdminTicketsPage({
                           t.priority === "URGENT" || t.priority === "HIGH"
                             ? "rose"
                             : t.priority === "MEDIUM"
-                            ? "gold"
-                            : "sage"
+                              ? "gold"
+                              : "sage"
                         }
                       >
                         {t.priority}

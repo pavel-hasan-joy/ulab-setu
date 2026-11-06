@@ -91,19 +91,32 @@ The platform strictly recognizes **four user roles**:
 
 ---
 
-## 6. Engineering Standards, Migrations & CI/CD Protocol
+## 6. Engineering Standards, Safe Migrations & CI/CD Deployment Protocol
 - **Production Data Preservation:** Never run destructive schema operations against live databases. Do not execute `prisma db push --accept-data-loss` in production pipelines.
-- **Safe Database Migrations:** All schema evolutions must use versioned, backward-compatible Prisma migrations (`prisma migrate dev` locally, `prisma migrate deploy` in production).
+- **Safe Database Migrations:** All schema evolutions must use versioned, backward-compatible Prisma migrations (`prisma migrate dev` locally, `prisma migrate deploy` in production). If database migrations could cause production data loss, stop and report the risk before deploying.
 - **Deep Reverse Engineering Before Modification:**
   - Thoroughly inspect existing component contracts, schema relations, and server actions before refactoring or writing new code.
-  - Prevent regressions on existing core features: Connection lifecycle, 1-on-1 and Group chats, Internal/External Jobs, Community Tuitions, and Admin Analytics.
-- **Mandatory Static Analysis:** Always verify code locally before committing:
-  - Run TypeScript compiler check: `pnpm exec tsc --noEmit`.
-  - Verify linting and build stability: `pnpm lint` and `pnpm next build`.
-- **Git Push & CI/CD Verification Protocol:**
-  - Every completed task must be committed with clean conventional commit messages (e.g. `feat:`, `fix:`, `refactor:`, `docs:`) and pushed to `origin main`.
-  - Explicitly verify that the GitHub Actions CI pipeline passes with 100% success (`conclusion: success`).
-  - Confirm live production health on Vercel (`https://ulab-setu.vercel.app`) returning HTTP 200 OK.
+  - Prevent regressions on existing core features: Connection lifecycle, 1-on-1 and Group chats, Internal/External Jobs, Community Tuitions, Admin Dashboard & CRM, and Directory.
+
+### Permanent GitHub Push & Vercel Production Deployment Protocol
+For every future development prompt and implementation stage, strictly execute this 3-step protocol:
+1. **STEP 1 — Verify Code Locally:**
+   - Run relevant test suites (`scripts/test-*.mjs`).
+   - Run TypeScript checks: `pnpm exec tsc --noEmit`.
+   - Run production build: `pnpm next build`.
+   - Resolve all compile, build, and syntax errors prior to committing.
+2. **STEP 2 — GitHub Commit & Push:**
+   - Inspect `git status` and changed files.
+   - Strictly ensure no secrets, passwords, tokens, private keys, or `.env` files are included.
+   - Formulate a clear, conventional commit message (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).
+   - Push completed changes cleanly to `origin main` (`https://github.com/pavel-hasan-joy/ulab-setu`).
+   - Never force-push (`--force`) and never overwrite external work.
+3. **STEP 3 — Vercel Production Deployment Verification:**
+   - Verify deployment status through the GitHub-Vercel integration on the existing production domain (`https://ulab-setu.vercel.app/`).
+   - Preserve existing production domain and settings (do not create duplicate Vercel projects).
+   - Verify that the production build succeeds and state is `READY`.
+   - Verify live website health (HTTP 200 OK, asset loading, and route stability).
+   - Report deployment URL and status transparently; never claim deployment succeeded without verification.
 
 ---
 
