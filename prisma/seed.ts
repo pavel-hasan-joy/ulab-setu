@@ -128,7 +128,7 @@ async function main() {
   });
   await db.connection.create({ data: { fromId: student.id, toId: nusrat.id, status: "PENDING", note: "Hello apu, I'd love to hear about the MT program." } });
 
-  console.log("Seeded. Log in with password: password123");
+  console.log("Seeded database with initial demonstration profiles successfully.");
 }
 
 main().finally(() => db.$disconnect());

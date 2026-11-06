@@ -383,17 +383,12 @@ In `package.json`:
 ```
 *Running `node scripts/db-sync.mjs` executes `prisma db push --skip-generate --accept-data-loss` on live PostgreSQL databases (Vercel/Neon/Supabase) ensuring that schema changes, table drops, and new models (`Group`, `GroupMember`, `GroupMessage`) are synchronized with zero manual downtime.*
 
-### Pre-Configured Demo Credentials:
-| Account Role | Full Name | Email Address | Password | Access Level |
-|---|---|---|---|---|
-| **Student** | Farhana Akter | `student@ulab.edu.bd` | `password123` | Student Workspace (`/student`) |
-| **Teacher** | Dr. Kamrul Karim | `teacher@ulab.edu.bd` | `password123` | Faculty Workspace (`/teacher`) |
-| **Alumni** | Tanvir Hasan | `alumni@ulab.edu.bd` | `password123` | Approved Alumni Workspace (`/alumni`) |
-| **Admin** | Alumni Office | `admin@ulab.edu.bd` | `password123` | Full Admin Center (`/admin`) |
+### Pre-Configured Seed Profiles:
+*Role-based profiles for Student, Teacher, Alumni, and Admin are managed dynamically via secure environment configurations and internal seed routines. Plaintext passwords and credentials are strictly excluded from public repository documentation to enforce zero-trust security standards.*
 
 #### Demonstration Messenger Group:
 - **Group Name:** `ULAB CSE Tech & Project Hub`
-- **Enrolled Members:** Dr. Kamrul Karim (Faculty Admin), Farhana Akter (Student Member), Tanvir Hasan (Alumni Member).
+- **Enrolled Members:** Faculty Admin, Student Member, and Alumni Member.
 - **Features:** Real-time multi-role discussion feed, role badges, attachment sharing, and group roster controls.
 
 ---

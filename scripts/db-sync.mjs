@@ -66,9 +66,11 @@ if (isPostgres) {
         console.log(`Removed ${deletedDemo.count} extra demo jobs.`);
       }
 
-      // 3. Dynamic bcrypt password hashes
-      const passwordHash = bcrypt.hashSync("password123", 10);
-      const adminPasswordHash = bcrypt.hashSync("Admin@ulab2026", 10);
+      // 3. Dynamic bcrypt password hashes (configurable via environment variables)
+      const userDefaultPass = process.env.DEMO_USER_PASSWORD || "password123";
+      const adminDefaultPass = process.env.DEMO_ADMIN_PASSWORD || "Admin@ulab2026";
+      const passwordHash = bcrypt.hashSync(userDefaultPass, 10);
+      const adminPasswordHash = bcrypt.hashSync(adminDefaultPass, 10);
 
       // Clean up any test personal accounts so Pavel can test registration/login from scratch
       await db.user.deleteMany({

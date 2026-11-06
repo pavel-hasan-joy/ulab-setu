@@ -256,23 +256,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔐 Seed & Demo Accounts
+## 🔐 Seed & Testing Configuration
 
-For local and staging testing, ready-to-use profiles across all roles are provisioned:
+For local development and automated staging validation, test seeds are provisioned through environment variables and isolated database seed scripts.
 
-| Role | Name | Email | Password | Status |
-|---|---|---|---|---|
-| **Student** | Farhana Akter | `student@ulab.edu.bd` | `password123` | Approved |
-| **Teacher** | Dr. Kamrul Karim | `teacher@ulab.edu.bd` | `password123` | Approved |
-| **Alumni** | Tanvir Hasan | `alumni@ulab.edu.bd` | `password123` | Approved |
-| **Admin** | Alumni Office | `admin@ulab.edu.bd` | `password123` | Administrator |
+> 🔒 **Security Standard:** Plaintext passwords and sample credentials must never be committed to public documentation or source control. Administrators configure access via environment variables or through the authorized Admin Management Center.
 
 #### 💬 Demonstration Messenger Group:
 - **Group Name:** `ULAB CSE Tech & Project Hub`
-- **Members:** Dual-enrolled with Teacher (Dr. Kamrul Karim), Student (Farhana Akter), and Alumni (Tanvir Hasan).
+- **Members:** Dual-enrolled with Teacher, Student, and Alumni roles.
 - **Features:** Real-time discussion feed, role badges, attachment sharing, and group info controls.
-
-> 🔒 **Security Notice:** Default seed passwords are strictly meant for local evaluation and feature verification. For production deployments, always create unique credentials with strong passwords.
 
 ---
 
