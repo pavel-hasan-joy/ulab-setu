@@ -47,6 +47,14 @@ model User {
   notifyEmailApplications Boolean   @default(true)
   notifyEmailMentorship   Boolean   @default(true)
   notifyEmailSystem       Boolean   @default(true)
+  // Alumni Mentorship Settings
+  isMentor                Boolean   @default(false)
+  mentorAvailable         Boolean   @default(true)
+  mentorTopics            String?
+  mentorExpertise         String?
+  mentorSessionFormat     String?   @default("ONLINE")
+  mentorAvailabilityNote  String?
+  mentorMaxMentees        Int       @default(3)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt @default(now())
   deletedAt          DateTime?
@@ -388,18 +396,22 @@ model Notification {
 
 /** Student to Alumni / Teacher mentorship connections */
 model MentorshipRequest {
-  id          String    @id @default(cuid())
-  studentId   String
-  student     User      @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
-  mentorId    String
-  mentor      User      @relation("MentorRequests", fields: [mentorId], references: [id], onDelete: Cascade)
-  topic       String    // Career Guidance | Resume Review | Technical Interview | Industry Transition | Research
-  message     String
-  status      String    @default("PENDING") // PENDING | ACCEPTED | DECLINED | COMPLETED | CANCELLED
-  mentorNotes String?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt @default(now())
+  id            String    @id @default(cuid())
+  studentId     String
+  student       User      @relation("StudentMentorships", fields: [studentId], references: [id], onDelete: Cascade)
+  mentorId      String
+  mentor        User      @relation("MentorRequests", fields: [mentorId], references: [id], onDelete: Cascade)
+  topic         String    // Career Guidance | Resume Review | Technical Interview | Industry Transition | Research | Startup
+  message       String
+  careerGoals   String?   // Student's specified career goals
+  status        String    @default("PENDING") // PENDING | ACCEPTED | DECLINED | SCHEDULED | COMPLETED | CANCELLED
+  sessionFormat String?   // ONLINE | IN_PERSON | FLEXIBLE
+  scheduledAt   DateTime? // When session is scheduled
+  sessionLink   String?   // Virtual meeting URL or physical location
+  mentorNotes   String?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt @default(now())
 
   @@index([studentId])
   @@index([mentorId])
