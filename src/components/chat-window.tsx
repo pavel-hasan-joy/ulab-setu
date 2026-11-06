@@ -55,15 +55,16 @@ export function ChatWindow({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Poll for new messages every 3.5 seconds while chat is active
+  // Poll for new messages while chat is active and tab is visible
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const m = await fetchMessages(connectionId);
       if (alive) setMessages(m);
     };
     load();
-    const t = setInterval(load, 3500);
+    const t = setInterval(load, 5000);
     return () => {
       alive = false;
       clearInterval(t);

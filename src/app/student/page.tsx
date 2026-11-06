@@ -9,7 +9,7 @@ import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 
 export default async function StudentHome() {
   const user = await requireUser("STUDENT");
-  await cleanExpiredJobs();
+  cleanExpiredJobs().catch(() => {});
   const [applications, connections, jobs, alumni, notices] = await Promise.all([
     db.application.count({ where: { studentId: user.id } }),
     db.connection.count({ where: { status: "ACCEPTED", OR: [{ fromId: user.id }, { toId: user.id }] } }),

@@ -58,12 +58,13 @@ export function CornerBalls() {
         el.addEventListener("pointerdown", (e) => {
           e.preventDefault();
           e.stopPropagation();
+          wake();
           // launch toward the far side, with some variety
-          const dir = ball.x < (leftWall() + W()) / 2 ? 1 : -1;
+          const dir = ball.x < (lw + w) / 2 ? 1 : -1;
           // aim to land near the far corner: flight time for vy under gravity G is 2·vy/G frames
           const vy = 17 + Math.random() * 3;
           const frames = (2 * vy) / 0.55;
-          const target = dir > 0 ? W() - 60 - Math.random() * 80 : leftWall() + 60 + Math.random() * 80;
+          const target = dir > 0 ? w - 60 - Math.random() * 80 : lw + 60 + Math.random() * 80;
           ball.vy = -vy;
           ball.vx = (target - ball.x) / frames;
           ball.squash = 0.35;
@@ -73,24 +74,50 @@ export function CornerBalls() {
       }
     }
 
+    let lw = leftWall();
+    let fl = floor();
+    let w = W();
+
+    const updateBounds = () => {
+      lw = leftWall();
+      fl = floor();
+      w = W();
+    };
+
+    let frame = 0;
+    let isAwake = true;
+    let idleFrames = 0;
+    let last = performance.now();
+
+    const wake = () => {
+      if (!isAwake) {
+        isAwake = true;
+        idleFrames = 0;
+        updateBounds();
+        last = performance.now();
+        frame = requestAnimationFrame(step);
+      }
+    };
+
     const pointer = { x: -999, y: -999 };
     const onMove = (e: PointerEvent) => {
       pointer.x = e.clientX;
       pointer.y = e.clientY;
+      for (const b of balls) {
+        if (Math.hypot(b.x - pointer.x, b.y - pointer.y) < b.r + 70) {
+          wake();
+          break;
+        }
+      }
     };
-    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointermove", onMove, { passive: true });
 
     const G = 0.55;
-    let frame = 0;
-    let last = performance.now();
     const step = (now: number) => {
-      frame = requestAnimationFrame(step);
       const k = Math.min((now - last) / 16.67, 2); // normalise to 60fps
       last = now;
-      const fl = floor();
-      const w = W();
-      const lw = leftWall();
 
+      let moving = false;
       for (const b of balls) {
         if (!reduce) {
           // pointer gently pushes balls away
@@ -101,6 +128,7 @@ export function CornerBalls() {
             const f = ((b.r + 40 - d) / (b.r + 40)) * 0.9;
             b.vx += (dx / d) * f;
             b.vy += (dy / d) * f * 0.5;
+            moving = true;
           }
         }
         b.vy += G * k;
@@ -118,6 +146,10 @@ export function CornerBalls() {
         }
         if (b.x - b.r < lw) { b.x = lw + b.r; b.vx = Math.abs(b.vx) * 0.7; }
         if (b.x + b.r > w) { b.x = w - b.r; b.vx = -Math.abs(b.vx) * 0.7; }
+
+        if (Math.abs(b.vx) > 0.1 || Math.abs(b.vy) > 0.1 || b.squash > 0.02 || b.ghost > 0) {
+          moving = true;
+        }
       }
 
       // ball-to-ball collisions (mass ~ area)
@@ -139,6 +171,7 @@ export function CornerBalls() {
               const impulse = (-(1 + 0.6) * rel) / (1 / ma + 1 / mc);
               a.vx -= (impulse / ma) * nx; a.vy -= (impulse / ma) * ny;
               c.vx += (impulse / mc) * nx; c.vy += (impulse / mc) * ny;
+              moving = true;
             }
           }
         }
@@ -147,16 +180,29 @@ export function CornerBalls() {
       for (const b of balls) {
         b.squash *= 0.85;
         const sx = 1 + b.squash, sy = 1 - b.squash;
-        // no rotation: the highlight stays put, like light on a real ball
         b.el.style.transform = `translate(${b.x - b.r}px, ${b.y - b.r}px) scale(${sx}, ${sy})`;
       }
+
+      if (!moving) {
+        idleFrames++;
+        if (idleFrames > 45) {
+          isAwake = false;
+          return; // sleep loop until next wake()
+        }
+      } else {
+        idleFrames = 0;
+      }
+
+      frame = requestAnimationFrame(step);
     };
     frame = requestAnimationFrame(step);
 
     const onResize = () => {
+      updateBounds();
       for (const b of balls) b.x = Math.min(b.x, W() - b.r);
+      wake();
     };
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", onResize, { passive: true });
 
     return () => {
       cancelAnimationFrame(frame);

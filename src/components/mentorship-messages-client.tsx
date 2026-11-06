@@ -284,11 +284,12 @@ function MentorshipChatPane({
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const m = await fetchMessages(connection.id);
       if (alive) setMessages(m);
     };
     load();
-    const interval = setInterval(load, 3500);
+    const interval = setInterval(load, 5000);
     return () => {
       alive = false;
       clearInterval(interval);

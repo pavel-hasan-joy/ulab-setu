@@ -87,11 +87,12 @@ export function GroupChatWindow({
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const ms = await fetchGroupMessages(groupId);
       if (alive) setMessages(ms);
     };
     load();
-    const interval = setInterval(load, 3500);
+    const interval = setInterval(load, 5000);
     return () => {
       alive = false;
       clearInterval(interval);

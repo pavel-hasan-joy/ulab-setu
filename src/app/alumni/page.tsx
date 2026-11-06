@@ -13,7 +13,7 @@ export default async function AlumniHome({
   searchParams?: Promise<{ verified?: string; posted?: string }>;
 }) {
   const { user, base } = await requirePoster();
-  await cleanExpiredJobs();
+  cleanExpiredJobs().catch(() => {});
 
   const params = await searchParams;
   const isNewlyVerified = params?.verified === "1";

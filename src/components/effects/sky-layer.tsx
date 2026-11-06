@@ -86,9 +86,17 @@ function Stars({ dark }: { dark: boolean }) {
     let t = 0;
     let nextMeteor = 3 + Math.random() * 5;
     let last = performance.now();
+    let isVisible = true;
+
     const draw = (now: number) => {
+      if (!isVisible) return;
       frame = requestAnimationFrame(draw);
-      const dt = Math.min((now - last) / 1000, 0.05);
+
+      // Throttle canvas render to ~35ms (~30 FPS) to keep browser thread completely smooth & lag-free
+      const elapsed = now - last;
+      if (elapsed < 30) return;
+
+      const dt = Math.min(elapsed / 1000, 0.05);
       last = now;
       t += dt;
       const isDark = darkRef.current;
@@ -135,16 +143,11 @@ function Stars({ dark }: { dark: boolean }) {
           ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          // daytime: small blue and gold sparkles, softer
+          // daytime: lightweight soft sparkles, zero layout drag
           const a = (0.18 + s.z * 0.4) * twinkle;
           ctx.fillStyle = s.hue < 0.55 ? `rgba(90,169,222,${a})` : `rgba(233,185,58,${a})`;
-          const k = s.r * 2.2;
           ctx.beginPath();
-          ctx.moveTo(s.x, s.y - k);
-          ctx.quadraticCurveTo(s.x, s.y, s.x + k, s.y);
-          ctx.quadraticCurveTo(s.x, s.y, s.x, s.y + k);
-          ctx.quadraticCurveTo(s.x, s.y, s.x - k, s.y);
-          ctx.quadraticCurveTo(s.x, s.y, s.x, s.y - k);
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -178,10 +181,23 @@ function Stars({ dark }: { dark: boolean }) {
         }
       }
     };
+    const onVisibility = () => {
+      if (document.hidden) {
+        isVisible = false;
+        cancelAnimationFrame(frame);
+      } else if (!isVisible) {
+        isVisible = true;
+        last = performance.now();
+        frame = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     frame = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", resize);
       window.removeEventListener("scroll", onScroll);
     };

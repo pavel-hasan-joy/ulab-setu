@@ -11,12 +11,21 @@ export const JOB_STATUS_LABELS: Record<JobStatus, { label: string; tone: "emeral
   REMOVED: { label: "Removed", tone: "rose" },
 };
 
+let lastSyncTimestamp = 0;
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown to prevent blocking DB writes on page navigation
+
 /**
  * Automatically transitions any published job whose application deadline has passed
  * to EXPIRED status, setting active to false so students can no longer apply while
  * preserving application data and metrics for the posting alumni.
  */
 export async function syncExpiredJobs(): Promise<number> {
+  const nowMs = Date.now();
+  if (nowMs - lastSyncTimestamp < SYNC_COOLDOWN_MS) {
+    return 0; // Skip redundant DB writes
+  }
+  lastSyncTimestamp = nowMs;
+
   const now = new Date();
   try {
     const result = await db.job.updateMany({

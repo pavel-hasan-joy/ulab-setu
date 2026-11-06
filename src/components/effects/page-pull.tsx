@@ -9,8 +9,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 // transitions anywhere on the site.
 
 const HOMES = new Set(["/student", "/teacher", "/alumni"]);
-const PULL_S = 0.42;
-const EXIT_S = 0.22;
+const PULL_S = 0.28;
+const EXIT_S = 0.16;
 
 export function PagePull({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

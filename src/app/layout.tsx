@@ -5,8 +5,8 @@ import { themeScript } from "@/components/theme";
 import { site } from "@/lib/site";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage" });
-const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", display: "swap" });
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: `${site.name} | ${site.universityShort} — ${site.universityTagline}`, template: `%s | ${site.name}` },
