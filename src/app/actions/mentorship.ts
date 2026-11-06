@@ -851,7 +851,7 @@ export async function scheduleMentorshipSession(
   return { success: true };
 }
 
-/** Complete a mentorship session with feedback notes */
+/** Complete a mentorship session with feedback notes without terminating the overall mentorship */
 export async function completeMentorshipSession(requestId: string, feedbackNotes?: string) {
   const user = await requireUser();
 
@@ -868,39 +868,33 @@ export async function completeMentorshipSession(requestId: string, feedbackNotes
   await db.mentorshipRequest.update({
     where: { id: requestId },
     data: {
-      status: "COMPLETED",
+      status: "ACCEPTED", // Remains ACTIVE so further sessions and chatting can happen
       completedAt: new Date(),
+      scheduledAt: null, // Clears the current schedule so next session can be set
       mentorNotes: feedbackNotes?.trim() || req.mentorNotes,
       updatedAt: new Date(),
     },
   });
 
-  if (req.connectionId) {
-    await db.connection.update({
-      where: { id: req.connectionId },
-      data: { isCompleted: true },
-    }).catch(() => {});
-  }
-
-  // Completing a session frees an active slot!
-  await checkAndRestoreAvailability(req.mentorId);
+  // Note: We DO NOT set connection.isCompleted = true here,
+  // so messaging and further sessions remain fully open!
 
   // Notify student
   await dispatchNotification({
     userId: req.studentId,
     actorId: user.id,
     title: `Mentorship Session Completed 🌟`,
-    body: `Thank you for completing your career mentorship session on "${req.topic}" with ${user.name}! Please leave your review and feedback.`,
+    body: `Your mentorship session on "${req.topic}" with ${user.name} is complete! You can continue chatting and schedule more sessions together anytime.`,
     type: "MENTORSHIP",
-    link: `/student/my-mentors`,
+    link: `/student/mentorship-messages`,
   });
 
   await logMentorshipAudit(
     user.id,
-    "RELATIONSHIP_COMPLETION",
+    "SESSION_COMPLETED",
     "MENTORSHIP_REQUEST",
     req.id,
-    `Completed mentorship session on "${req.topic}" for student ${req.student.name}`
+    `Completed mentorship session on "${req.topic}" for student ${req.student.name}. Relationship remains active for further sessions.`
   );
 
   revalidatePath("/student/my-mentors");
@@ -908,6 +902,9 @@ export async function completeMentorshipSession(requestId: string, feedbackNotes
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
   revalidatePath("/admin/mentorship");
+  revalidatePath("/student/mentorship-messages");
+  revalidatePath("/alumni/messages");
+  revalidatePath("/teacher/messages");
 
   return { success: true };
 }
@@ -1005,8 +1002,11 @@ export async function cancelMentorshipRequest(requestId: string, reason?: string
   return { success: true };
 }
 
-/** Mentor or Admin ends an active mentorship relationship with confirmation and optional notes */
-export async function endMentorshipRelationship(requestId: string, endReason?: string) {
+/**
+ * Either party (Student, Mentor, or Admin) can delete / remove a mentorship relationship.
+ * Cleans up the active relationship, archives the connection, frees up capacity, and notifies both parties.
+ */
+export async function deleteMentorshipRelationship(requestId: string, reason?: string) {
   const user = await requireUser();
 
   const req = await db.mentorshipRequest.findUnique({
@@ -1014,31 +1014,36 @@ export async function endMentorshipRelationship(requestId: string, endReason?: s
     include: { student: true, mentor: true },
   });
 
-  if (!req) return { error: "Mentorship request not found." };
+  if (!req) return { error: "Mentorship record not found." };
 
-  const isAuthorized = req.mentorId === user.id || user.role === "ADMIN";
-  if (!isAuthorized) return { error: "Unauthorized access to this mentorship relationship." };
+  const isStudent = req.studentId === user.id;
+  const isMentor = req.mentorId === user.id;
+  const isAdmin = user.role === "ADMIN";
+
+  if (!isStudent && !isMentor && !isAdmin) {
+    return { error: "Unauthorized access. You cannot delete this mentorship." };
+  }
 
   const now = new Date();
+  const deleteReason = reason?.trim() || (isStudent ? "Removed by student" : "Removed by mentor");
+
+  // 1. Delete associated MentorshipRelationship
+  await db.mentorshipRelationship.deleteMany({
+    where: { requestId: req.id },
+  }).catch(() => {});
+
+  // 2. Mark request as CANCELLED so it moves out of active views
   await db.mentorshipRequest.update({
     where: { id: requestId },
     data: {
-      status: "COMPLETED",
-      completedAt: now,
-      endReason: endReason?.trim() || req.endReason,
+      status: "CANCELLED",
+      cancelledAt: now,
+      endReason: deleteReason,
       updatedAt: now,
     },
   });
 
-  await db.mentorshipRelationship.updateMany({
-    where: { requestId: req.id },
-    data: {
-      status: "COMPLETED",
-      endedAt: now,
-      endReason: endReason?.trim() || "Concluded by mentor",
-    },
-  }).catch(() => {});
-
+  // 3. Mark connection as completed/archived
   if (req.connectionId) {
     await db.connection.update({
       where: { id: req.connectionId },
@@ -1046,27 +1051,37 @@ export async function endMentorshipRelationship(requestId: string, endReason?: s
     }).catch(() => {});
   }
 
-  // Free up mentor capacity!
+  // 4. Free up mentor capacity!
   await checkAndRestoreAvailability(req.mentorId);
 
-  // Notify student
-  await dispatchNotification({
-    userId: req.studentId,
-    actorId: user.id,
-    title: `Mentorship Ended`,
-    body: endReason
-      ? `Your mentorship with ${user.name} on "${req.topic}" has concluded: "${endReason.slice(0, 100)}"`
-      : `Your mentorship with ${user.name} on "${req.topic}" has concluded.`,
-    type: "MENTORSHIP",
-    link: `/student/my-mentors`,
-  });
+  // 5. Notify the other party
+  if (isStudent) {
+    const notifyTarget = req.mentor.role === "TEACHER" ? "/teacher/mentorship" : "/alumni/mentorship";
+    await dispatchNotification({
+      userId: req.mentorId,
+      actorId: user.id,
+      title: `Mentorship Removed`,
+      body: `Student ${user.name} has deleted/removed the mentorship on "${req.topic}".`,
+      type: "MENTORSHIP",
+      link: notifyTarget,
+    });
+  } else if (isMentor) {
+    await dispatchNotification({
+      userId: req.studentId,
+      actorId: user.id,
+      title: `Mentorship Concluded`,
+      body: `Mentor ${user.name} has concluded/removed the mentorship on "${req.topic}".`,
+      type: "MENTORSHIP",
+      link: `/student/my-mentors`,
+    });
+  }
 
   await logMentorshipAudit(
     user.id,
     "RELATIONSHIP_CANCELLATION",
     "MENTORSHIP_RELATIONSHIP",
     req.id,
-    `Mentor ${user.name} ended mentorship relationship ${req.id}. Reason: ${endReason || "None"}`
+    `Mentorship ${req.id} deleted by ${user.name} (${user.role}). Reason: ${deleteReason}`
   );
 
   revalidatePath("/student/my-mentors");
@@ -1074,8 +1089,16 @@ export async function endMentorshipRelationship(requestId: string, endReason?: s
   revalidatePath("/alumni/mentorship");
   revalidatePath("/teacher/mentorship");
   revalidatePath("/admin/mentorship");
+  revalidatePath("/student/mentorship-messages");
+  revalidatePath("/alumni/messages");
+  revalidatePath("/teacher/messages");
 
   return { success: true };
+}
+
+/** Mentor or Admin ends an active mentorship relationship with confirmation and optional notes */
+export async function endMentorshipRelationship(requestId: string, endReason?: string) {
+  return deleteMentorshipRelationship(requestId, endReason);
 }
 
 /**
@@ -1525,8 +1548,12 @@ export async function submitMentorshipFeedback(input: {
     return { error: "Only the participating student can submit feedback for this mentorship." };
   }
 
-  if (relationship.status !== "COMPLETED" && relationship.request.status !== "COMPLETED") {
-    return { error: "Feedback can only be submitted after the mentorship session is completed." };
+  if (
+    relationship.status !== "COMPLETED" &&
+    relationship.request.status !== "COMPLETED" &&
+    !relationship.request.completedAt
+  ) {
+    return { error: "Feedback can only be submitted after at least one mentorship session is completed." };
   }
 
   if (relationship.feedback) {

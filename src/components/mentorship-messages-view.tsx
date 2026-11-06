@@ -39,6 +39,40 @@ export async function MentorshipMessagesView({
     connectionsData = [];
   }
 
+  // Fetch associated requests to detect if a session was conducted/completed
+  const connIds = connectionsData.map((c) => c.id);
+  const reqIds = connectionsData
+    .map((c) => c.mentorshipRequestId)
+    .filter((id): id is string => Boolean(id));
+
+  const [reqsByConnId, reqsById] = await Promise.all([
+    connIds.length > 0
+      ? db.mentorshipRequest.findMany({
+          where: { connectionId: { in: connIds } },
+          select: { connectionId: true, completedAt: true },
+        })
+      : Promise.resolve([]),
+    reqIds.length > 0
+      ? db.mentorshipRequest.findMany({
+          where: { id: { in: reqIds } },
+          select: { id: true, completedAt: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const connCompletedMap = new Map<string, boolean>();
+  for (const r of reqsByConnId) {
+    if (r.connectionId && r.completedAt) {
+      connCompletedMap.set(r.connectionId, true);
+    }
+  }
+  for (const r of reqsById) {
+    if (r.completedAt) {
+      const c = connectionsData.find((item) => item.mentorshipRequestId === r.id);
+      if (c) connCompletedMap.set(c.id, true);
+    }
+  }
+
   // Safe serialize connections
   const connections: SerializedMentorshipConnection[] = [];
   for (const c of connectionsData) {
@@ -59,6 +93,7 @@ export async function MentorshipMessagesView({
       toId: c.toId,
       topic: c.topic ?? null,
       isCompleted: Boolean(c.isCompleted),
+      hasCompletedSession: Boolean(connCompletedMap.get(c.id)),
       createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
       unreadCount,
       otherUser: {

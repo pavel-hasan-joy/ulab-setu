@@ -34,6 +34,7 @@ export interface SerializedMentorshipConnection {
   toId: string;
   topic: string | null;
   isCompleted: boolean;
+  hasCompletedSession?: boolean;
   createdAt: string;
   unreadCount: number;
   otherUser: {
@@ -409,13 +410,32 @@ function MentorshipChatPane({
             </span>
           )}
           <Badge tone={connection.isCompleted ? "gray" : "sage"}>
-            {connection.isCompleted ? "Concluded" : "Active Mentorship"}
+            {connection.isCompleted
+              ? "Concluded"
+              : connection.hasCompletedSession
+              ? "1 Session Done · Active"
+              : "Active Mentorship"}
           </Badge>
         </div>
       </div>
 
       {/* Message Feed */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-paper/20 dark:bg-white/[0.02]">
+        {/* Completed Session Indicator Banner */}
+        {connection.hasCompletedSession && !connection.isCompleted && (
+          <div className="mx-auto max-w-lg rounded-2xl border border-emerald-300/80 bg-emerald-50/90 p-3 text-center text-xs shadow-soft dark:border-emerald-800 dark:bg-emerald-950/40">
+            <div className="flex items-center justify-center gap-1.5 font-bold text-emerald-900 dark:text-emerald-200">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px]">
+                ✓
+              </span>
+              <span>1 Session Completed!</span>
+            </div>
+            <p className="mt-1 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+              ১টি সেশন সম্পন্ন হয়েছে · আপনারা চ্যাট চালিয়ে যেতে পারেন এবং চাইলে আরও সেশন করতে পারেন।
+            </p>
+          </div>
+        )}
+
         {/* Topic Banner */}
         {connection.topic && (
           <div className="mx-auto max-w-md rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-center text-xs dark:border-emerald-900/40 dark:bg-emerald-950/20">

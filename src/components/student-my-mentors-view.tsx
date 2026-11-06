@@ -17,11 +17,13 @@ import {
   Sparkles,
   MessageSquare,
   Star,
+  Trash2,
 } from "lucide-react";
 import { Avatar, Badge, Button, Card, cn } from "./ui";
 import {
   cancelMentorshipRequest,
   submitMentorshipFeedback,
+  deleteMentorshipRelationship,
 } from "@/app/actions/mentorship";
 
 export interface StudentMentorshipRecord {
@@ -87,6 +89,11 @@ export function StudentMyMentorsView({
   const [isAnonymousReview, setIsAnonymousReview] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Delete Mentor modal state
+  const [deletingReq, setDeletingReq] = useState<StudentMentorshipRecord | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Filter lists
   const pendingList = requests.filter((r) => r.status === "PENDING");
   const activeList = requests.filter(
@@ -122,6 +129,34 @@ export function StudentMyMentorsView({
         );
       }
     });
+  };
+
+  const handleDeleteMentor = async () => {
+    if (!deletingReq) return;
+    setIsDeleting(true);
+    setFeedback(null);
+    const res = await deleteMentorshipRelationship(deletingReq.id, deleteReason);
+    setIsDeleting(false);
+    if (res.success) {
+      setFeedback({
+        type: "success",
+        message: "Mentor relationship deleted and removed successfully.",
+      });
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === deletingReq.id
+            ? { ...r, status: "CANCELLED", endReason: deleteReason || "Removed by student" }
+            : r
+        )
+      );
+      setDeletingReq(null);
+      setDeleteReason("");
+    } else {
+      setFeedback({
+        type: "error",
+        message: res.error || "Failed to delete mentorship relationship.",
+      });
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -364,6 +399,23 @@ export function StudentMyMentorsView({
                     </div>
                   )}
 
+                  {/* Completed Session Indicator Banner - Mentorship stays active and open */}
+                  {req.completedAt && (req.status === "ACCEPTED" || req.status === "SCHEDULED") && (
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-3 text-xs text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-[11px] font-bold">
+                          ✓
+                        </span>
+                        <span>
+                          <strong>1 Session Completed!</strong> Active Guidance · You can continue chatting and schedule more sessions together.
+                        </span>
+                      </div>
+                      <Badge tone="sage" className="shrink-0 text-[10px]">
+                        Session Done
+                      </Badge>
+                    </div>
+                  )}
+
                   {/* Mentor Feedback / Completion Notes */}
                   {req.status === "COMPLETED" && req.mentorNotes && (
                     <div className="mt-3 rounded-2xl border border-purple-200 bg-purple-50/70 p-3.5 dark:border-purple-900/40 dark:bg-purple-950/30">
@@ -433,13 +485,42 @@ export function StudentMyMentorsView({
                 )}
 
                 {(req.status === "ACCEPTED" || req.status === "SCHEDULED") && (
-                  <Link
-                    href="/student/mentorship-messages"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-ulab py-1.5 px-3 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft"
-                  >
-                    <MessageSquare size={13} />
-                    Mentorship Chat
-                  </Link>
+                  <div className="flex flex-col gap-1.5 items-end">
+                    <Link
+                      href="/student/mentorship-messages"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-ulab py-1.5 px-3 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft"
+                    >
+                      <MessageSquare size={13} />
+                      Mentorship Chat
+                    </Link>
+
+                    {req.completedAt && !req.feedback && req.relationshipId && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setReviewingReq(req);
+                          setRatingStars(5);
+                          setReviewComment("");
+                        }}
+                        className="gap-1 bg-amber-500 hover:bg-amber-600 text-white py-1 px-3 text-xs font-semibold"
+                      >
+                        <Star size={13} className="fill-white" />
+                        Rate & Review
+                      </Button>
+                    )}
+
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setDeletingReq(req);
+                        setDeleteReason("");
+                      }}
+                      className="inline-flex items-center gap-1 rounded-xl border border-rose-200/80 bg-rose-50/60 py-1 px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300"
+                    >
+                      <Trash2 size={12} />
+                      Delete Mentor
+                    </Button>
+                  </div>
                 )}
 
                 {req.status === "COMPLETED" && (
@@ -466,6 +547,18 @@ export function StudentMyMentorsView({
                       <MessageSquare size={13} />
                       View Chat History
                     </Link>
+
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setDeletingReq(req);
+                        setDeleteReason("");
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:underline"
+                    >
+                      <Trash2 size={11} />
+                      Remove Record
+                    </Button>
                   </div>
                 )}
 
@@ -568,6 +661,67 @@ export function StudentMyMentorsView({
                 className="py-1.5 px-5 text-xs font-semibold bg-ulab text-white hover:bg-ulab-deep shadow-soft"
               >
                 {submittingReview ? "Submitting..." : "Submit Review"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Mentor Confirmation Modal */}
+      {deletingReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-mist/80 bg-surface p-6 shadow-2xl dark:border-white/10">
+            <div className="flex items-center justify-between border-b border-mist/70 pb-3 dark:border-white/10">
+              <div className="flex items-center gap-2 text-rose-600">
+                <Trash2 size={18} />
+                <h3 className="font-bold text-ink">Delete / Remove Mentor</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingReq(null)}
+                className="rounded-lg p-1 text-ink-soft hover:bg-paper"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <p className="text-xs text-ink leading-relaxed">
+                আপনি কি নিশ্চিত যে আপনি <strong>{deletingReq.mentor.name}</strong>-কে আপনার মেন্টর তালিকা থেকে ডিলিট/রিমুভ করতে চান?
+              </p>
+              <p className="text-[11px] text-ink-soft leading-relaxed">
+                এর ফলে এই মেন্টরশিপ সম্পর্কটি সমাপ্ত হবে এবং মেন্টরের একটি ক্যাপাসিটি স্লট খালি হবে যাতে অন্য শিক্ষার্থীরা সুযোগ পায়।
+              </p>
+
+              <div>
+                <label className="text-[11px] font-semibold text-ink-soft">
+                  কারণ / মন্তব্য (ঐচ্ছিক):
+                </label>
+                <input
+                  type="text"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="e.g. Completed goals, Schedule mismatch, etc."
+                  className="mt-1 w-full rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs text-ink placeholder:text-ink-soft/60 focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2 border-t border-mist/70 pt-3.5 dark:border-white/10">
+              <Button
+                type="button"
+                onClick={() => setDeletingReq(null)}
+                className="border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs text-ink hover:bg-paper"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDeleteMentor}
+                disabled={isDeleting}
+                className="bg-rose-600 py-1.5 px-3 text-xs font-semibold text-white hover:bg-rose-700 shadow-soft"
+              >
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
               </Button>
             </div>
           </div>

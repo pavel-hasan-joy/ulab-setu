@@ -28,6 +28,7 @@ import {
   StopCircle,
   ShieldCheck,
   BookOpen,
+  Trash2,
 } from "lucide-react";
 import {
   toggleMentorActivation,
@@ -37,6 +38,7 @@ import {
   scheduleMentorshipSession,
   completeMentorshipSession,
   endMentorshipRelationship,
+  deleteMentorshipRelationship,
   type MentorshipTopic,
   type MentorAvailabilityStatus,
 } from "@/app/actions/mentorship";
@@ -416,7 +418,7 @@ export function CareerMentorSettingsView({
     if (!endingReq) return;
     setIsEnding(true);
     setFeedback(null);
-    const res = await endMentorshipRelationship(endingReq.id, endReason);
+    const res = await deleteMentorshipRelationship(endingReq.id, endReason);
     setIsEnding(false);
     if (res.success) {
       setRequests((prev) =>
@@ -424,9 +426,8 @@ export function CareerMentorSettingsView({
           r.id === endingReq.id
             ? {
                 ...r,
-                status: "COMPLETED",
+                status: "CANCELLED",
                 endReason: endReason || null,
-                completedAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               }
             : r
@@ -436,12 +437,13 @@ export function CareerMentorSettingsView({
       setEndReason("");
       setFeedback({
         type: "success",
-        message: "Mentorship relationship successfully ended and archived.",
+        message: "Mentorship relationship successfully deleted and removed.",
       });
+      setActiveMenteesCount((c) => Math.max(c - 1, 0));
     } else {
       setFeedback({
         type: "error",
-        message: res.error || "Failed to end mentorship relationship.",
+        message: res.error || "Failed to delete mentorship relationship.",
       });
     }
   };
@@ -488,8 +490,9 @@ export function CareerMentorSettingsView({
           r.id === completingReq.id
             ? {
                 ...r,
-                status: "COMPLETED",
+                status: "ACCEPTED", // Remains active so mentor and mentee can have more sessions!
                 completedAt: new Date().toISOString(),
+                scheduledAt: null, // Ready for next session
                 mentorNotes: completeNotes || r.mentorNotes,
                 updatedAt: new Date().toISOString(),
               }
@@ -497,9 +500,17 @@ export function CareerMentorSettingsView({
         )
       );
       setCompletedSessionsCount((c) => c + 1);
-      setActiveMenteesCount((c) => Math.max(c - 1, 0));
       setCompletingReq(null);
       setCompleteNotes("");
+      setFeedback({
+        type: "success",
+        message: "Session marked completed! You and your student can continue chatting and schedule more sessions together anytime.",
+      });
+    } else {
+      setFeedback({
+        type: "error",
+        message: res.error || "Failed to complete session.",
+      });
     }
   };
 
@@ -1323,6 +1334,13 @@ export function CareerMentorSettingsView({
                           </a>
                         )}
 
+                        {req.completedAt && (
+                          <span className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            <CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400" />
+                            1 Session Completed · Ready for more sessions
+                          </span>
+                        )}
+
                         {req.mentorNotes && (
                           <span className="italic text-ink-soft">
                             Note: {req.mentorNotes}
@@ -1391,10 +1409,10 @@ export function CareerMentorSettingsView({
                             setCompletingReq(req);
                             setCompleteNotes("");
                           }}
-                          className="bg-purple-700 py-1.5 px-3 text-xs text-white hover:bg-purple-800"
+                          className="bg-emerald-700 py-1.5 px-3 text-xs text-white hover:bg-emerald-800"
                         >
                           <CheckCircle2 size={14} className="mr-1" />
-                          Complete
+                          Mark Session Done
                         </Button>
 
                         <Button
@@ -1403,12 +1421,26 @@ export function CareerMentorSettingsView({
                             setEndingReq(req);
                             setEndReason("");
                           }}
-                          className="border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                          className="border border-rose-200 bg-rose-50/50 py-1.5 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300"
                         >
-                          <StopCircle size={14} className="mr-1" />
-                          End Mentorship
+                          <Trash2 size={13} className="mr-1" />
+                          Delete Mentorship
                         </Button>
                       </>
+                    )}
+
+                    {(req.status === "COMPLETED" || req.status === "DECLINED" || req.status === "CANCELLED") && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setEndingReq(req);
+                          setEndReason("");
+                        }}
+                        className="border border-mist/80 bg-paper/60 py-1.5 px-3 text-xs text-rose-600 hover:bg-paper"
+                      >
+                        <Trash2 size={12} className="mr-1" />
+                        Delete Record
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1672,20 +1704,20 @@ export function CareerMentorSettingsView({
         </div>
       )}
 
-      {/* End Mentorship Modal */}
+      {/* Delete / End Mentorship Modal */}
       {endingReq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-mist/80 bg-surface p-6 shadow-2xl dark:border-white/10">
-            <h3 className="font-bold text-ink flex items-center gap-2">
-              <StopCircle size={18} className="text-rose-600" />
-              End Mentorship Relationship
+            <h3 className="font-bold text-ink flex items-center gap-2 text-rose-600">
+              <Trash2 size={18} />
+              Delete / End Mentorship
             </h3>
             <p className="text-xs text-ink-soft mt-1.5 leading-relaxed">
-              Are you sure you want to conclude your active mentorship with <strong className="text-ink">{endingReq.student.name}</strong> on <span className="font-semibold text-ink">&quot;{endingReq.topic}&quot;</span>? This will free up 1 mentee slot in your capacity and archive the relationship.
+              আপনি কি নিশ্চিত যে আপনি <strong className="text-ink">{endingReq.student.name}</strong>-এর সাথে মেন্টরশিপ সম্পর্কটি সমাপ্ত/ডিলিট করতে চান? এর ফলে আপনার ১টি মেন্টি স্লট খালি হবে।
             </p>
 
             <div className="mt-4">
-              <label className="text-xs font-semibold text-ink">Conclusive Note / Reason (Optional)</label>
+              <label className="text-xs font-semibold text-ink">Reason / Conclusive Note (Optional)</label>
               <textarea
                 rows={3}
                 placeholder="e.g. Completed initial career consultation and resume feedback goals."
@@ -1709,7 +1741,7 @@ export function CareerMentorSettingsView({
                 onClick={handleEndSubmit}
                 className="bg-rose-600 text-xs text-white hover:bg-rose-700 shadow-soft"
               >
-                {isEnding ? "Ending..." : "Confirm & End Mentorship"}
+                {isEnding ? "Deleting..." : "Confirm Delete"}
               </Button>
             </div>
           </div>
