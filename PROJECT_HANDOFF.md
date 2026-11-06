@@ -226,18 +226,52 @@
 
 ---
 
+### PROMPT 13 — Comprehensive Analytics, Enterprise Reports & System Settings
+- **Status:** **COMPLETED**
+- **Evidence:**
+  - **Dynamic System Settings Architecture (`prisma/schema.prisma` & `src/lib/settings.ts`):**
+    - `model SystemSetting` with category grouping, scalar/JSON values, and administrator audit linkages.
+    - 7 fully-functional operational categories:
+      1. `PLATFORM`: Platform branding, domain policies, contact points, global broadcast banner, maintenance mode.
+      2. `NOTIFICATION`: Master email dispatch gateway, in-app retention window, activity digest cadences.
+      3. `PRIVACY`: Default profile visibility scopes, directory indexing, phone number masking, messaging policies.
+      4. `ROLES`: Alumni zero-delay auto-approval, student monthly application quota, faculty mentor eligibility.
+      5. `JOBS`: Default job lifespans, external link allowances, compensation transparency rules, auto-expiry.
+      6. `SUPPORT`: Inactive ticket auto-close days, concurrent open ticket limits, escalation contact emails.
+      7. `SECURITY`: Brute-force lockout thresholds, lockout cooldowns, session token TTL, password complexity rules.
+    - Zero decorative/fake settings: All 25+ settings persist to the database with `saveSystemSettings` and `resetSystemSettingsCategory` in `src/app/actions/settings.ts`.
+    - Live console at `/admin/settings` (`src/components/admin-system-settings-view.tsx`) with category navigation, real-time dirty state detection, and audit timestamps.
+  - **Multi-Dimensional Database Analytics Dashboard (`/admin/analytics`):**
+    - Executive Overview with 6 live KPI cards, interactive 7-day multi-metric velocity charts (Logins, Applications, Jobs), and academic department distribution.
+    - User Analytics: Total users, students, alumni, faculty, active accounts ratio, email-verified accounts, and verified alumni metrics.
+    - Job Analytics: Total, published, expired (status or passed deadline), referral opportunities, and top jobs by application volume.
+    - ATS Application Analytics: 7-stage recruitment funnel (`APPLIED`, `VIEWED`, `SHORTLISTED`, `INTERVIEW`, `SELECTED`, `REJECTED`, `WITHDRAWN`).
+    - Mentorship Analytics: Active mentors, total requests, completed sessions, and completion ratios.
+    - Support & Safety Analytics: Open vs resolved tickets, average resolution time calculation in hours, ticket category breakdown, and moderation report statistics.
+  - **Enterprise Audit & Privacy-Sanitized CSV Reports Center:**
+    - 5 client-side downloadable datasets with date scope filters (7d, 30d, 90d, all-time):
+      1. Users & Member Registry CSV (`ulab_setu_users_registry.csv`).
+      2. Jobs & Opportunities CSV (`ulab_setu_jobs_report.csv`).
+      3. Job Applications (ATS) CSV (`ulab_setu_ats_applications.csv`).
+      4. Mentorship Engagements CSV (`ulab_setu_mentorship_sessions.csv`).
+      5. Support & Moderation CSV (`ulab_setu_support_and_tickets.csv`).
+    - Passwords, tokens, and sensitive private contact records strictly omitted and sanitized.
+  - **Automated test suite:** `scripts/test-analytics-and-settings.mjs` — **10/10 tests PASS**.
+
+---
+
 ## 4. Current Git, Build & Deployment Status
 
 - **Git Branch:** `main`
 - **TypeScript Static Check:** `pnpm exec tsc --noEmit` — **0 errors (PASS)**.
-- **Production Build:** `pnpm next build` — **52 static/dynamic routes successfully compiled via Turbopack (PASS)**.
-- **Test Suites Passed:** 9 complete test suites (73/73 tests passed).
+- **Production Build:** `pnpm next build` — **51 static/dynamic routes successfully compiled via Turbopack (PASS)**.
+- **Test Suites Passed:** 10 complete test suites (83/83 tests passed).
 - **Production URL:** `https://ulab-setu.vercel.app/` — **HTTP 200 OK (LIVE & READY)**.
 
 ---
 
-## 5. Upcoming Implementation: PROMPT 13
+## 5. Upcoming Implementation
 
-### Next Immediate Stage: PROMPT 13 — Notice Board & Campus Opportunity Feeds
+### Next Immediate Stage: Notice Board & Campus Opportunity Feeds
 - **Objective:** Institutional Notice Board & Campus Opportunity Feed for announcements, events, scholarships, and research calls from teachers, departments, and alumni with category filters and author verification.
 

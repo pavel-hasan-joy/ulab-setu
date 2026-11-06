@@ -469,3 +469,4 @@ export function AdminReportsManager({ initialReports }: AdminReportsManagerProps
     </div>
   );
 }
+

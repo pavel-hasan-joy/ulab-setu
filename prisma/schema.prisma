@@ -89,6 +89,7 @@ model User {
   blockedUsers           BlockedUser[]         @relation("BlockerUsers")
   blockedByUsers         BlockedUser[]         @relation("BlockedUsers")
   ticketMessages         TicketMessage[]       @relation("UserTicketMessages")
+  updatedSettings        SystemSetting[]       @relation("UpdatedSettings")
 
   @@index([role])
   @@index([status])
@@ -505,4 +506,18 @@ model AdminAuditLog {
   @@index([action])
   @@index([targetType])
   @@index([createdAt])
+}
+
+/** Dynamic platform configurations, institutional policies and security thresholds */
+model SystemSetting {
+  key         String   @id
+  value       String   // JSON string or scalar value
+  category    String   // PLATFORM | NOTIFICATION | PRIVACY | ROLES | JOBS | SUPPORT | SECURITY
+  label       String
+  description String?
+  updatedById String?
+  updatedBy   User?    @relation("UpdatedSettings", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt @default(now())
+
+  @@index([category])
 }

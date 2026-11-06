@@ -1,601 +1,1083 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
-  GraduationCap, Search, ShieldCheck, TrendingUp, UserCheck, Users,
-  Briefcase, FileText, MessageCircle, Megaphone, Download,
+  Users,
+  GraduationCap,
+  Briefcase,
+  FileText,
+  Compass,
+  LifeBuoy,
+  Download,
+  Calendar,
+  Search,
+  Filter,
+  TrendingUp,
+  ShieldCheck,
+  UserCheck,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ArrowUpRight,
+  BarChart3,
+  Layers,
+  Sparkles,
 } from "lucide-react";
-import { Avatar, Badge, Card, timeAgo } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 
-export type AnalyticsUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  department: string | null;
-  company: string | null;
-  designation: string | null;
-  createdAt: string;
-  lastLoginAt: string | null;
+export type FullAnalyticsData = {
+  users: {
+    total: number;
+    students: number;
+    alumni: number;
+    teachers: number;
+    admins: number;
+    pending: number;
+    emailVerified: number;
+    verifiedAlumni: number;
+    activeAccounts: number;
+    departmentStats: Array<{ department: string; count: number; percentage: number }>;
+    monthlyTrends: Array<{
+      month: string;
+      label: string;
+      registrations: number;
+      jobs: number;
+      applications: number;
+    }>;
+    list: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      status: string;
+      emailVerified: boolean;
+      alumniVerified: boolean;
+      department: string | null;
+      company: string | null;
+      designation: string | null;
+      createdAt: string;
+      lastLoginAt: string | null;
+    }>;
+  };
+  jobs: {
+    total: number;
+    published: number;
+    expired: number;
+    referralOpportunities: number;
+    topJobs: Array<{
+      id: string;
+      title: string;
+      company: string;
+      applicationCount: number;
+      percentage: number;
+    }>;
+    list: Array<{
+      id: string;
+      title: string;
+      company: string;
+      location: string;
+      type: string;
+      status: string;
+      referral: boolean;
+      viewsCount: number;
+      applicationsCount: number;
+      deadline: string | null;
+      createdAt: string;
+    }>;
+  };
+  applications: {
+    total: number;
+    byStatus: Record<string, number>;
+    list: Array<{
+      id: string;
+      jobTitle: string;
+      company: string;
+      studentName: string;
+      department: string | null;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  };
+  mentorship: {
+    availableMentors: number;
+    totalRequests: number;
+    completedSessions: number;
+    byStatus: Record<string, number>;
+    list: Array<{
+      id: string;
+      topic: string;
+      status: string;
+      sessionFormat: string | null;
+      mentorName: string;
+      mentorCompany: string | null;
+      studentName: string;
+      studentDepartment: string | null;
+      scheduledAt: string | null;
+      completedAt: string | null;
+      createdAt: string;
+    }>;
+  };
+  support: {
+    openTickets: number;
+    resolvedTickets: number;
+    avgResolutionHours: number;
+    byCategory: Record<string, number>;
+    totalReports: number;
+    reportsByStatus: Record<string, number>;
+    reportsByTarget: Record<string, number>;
+    ticketsList: Array<{
+      id: string;
+      ticketNumber: string;
+      subject: string;
+      category: string;
+      priority: string;
+      status: string;
+      userName: string;
+      createdAt: string;
+      resolvedAt: string | null;
+    }>;
+    reportsList: Array<{
+      id: string;
+      targetType: string;
+      reason: string;
+      status: string;
+      createdAt: string;
+      resolvedAt: string | null;
+    }>;
+  };
+  activity: {
+    daily: Array<{
+      date: string;
+      label: string;
+      logins: number;
+      applications: number;
+      jobs: number;
+    }>;
+    monthly: Array<{
+      month: string;
+      label: string;
+      registrations: number;
+      jobs: number;
+      applications: number;
+    }>;
+    recentLogins: Array<{
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      createdAt: string;
+    }>;
+    totalConnections: number;
+    totalPosts: number;
+  };
 };
 
-export type LoginLogItem = {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  createdAt: string;
-};
+// Backwards compatibility types for other callers if any
+export type AnalyticsUser = FullAnalyticsData["users"]["list"][0];
+export type LoginLogItem = FullAnalyticsData["activity"]["recentLogins"][0];
+export type DailyData = { date: string; label: string; count: number };
+export type DepartmentStat = FullAnalyticsData["users"]["departmentStats"][0];
 
-export type DailyData = {
-  date: string;
-  label: string;
-  count: number;
-};
+type TabKey =
+  | "overview"
+  | "users"
+  | "jobs"
+  | "applications"
+  | "mentorship"
+  | "support"
+  | "reports";
 
-export type DepartmentStat = {
-  department: string;
-  count: number;
-  percentage: number;
-};
+export function AdminAnalyticsView({ data }: { data: FullAnalyticsData }) {
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
+  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
+  const [chartMetric, setChartMetric] = useState<"logins" | "applications" | "jobs">("logins");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reportDateRange, setReportDateRange] = useState<"7d" | "30d" | "90d" | "all">("all");
+  const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
 
-export function AdminAnalyticsView({
-  totalUsers,
-  studentCount,
-  alumniCount,
-  teacherCount,
-  adminCount,
-  pendingCount,
-  totalJobs = 0,
-  totalApplications = 0,
-  totalConnections = 0,
-  totalPosts = 0,
-  dailyLogins,
-  departmentStats,
-  recentLogins,
-  allUsers,
-}: {
-  totalUsers: number;
-  studentCount: number;
-  alumniCount: number;
-  teacherCount: number;
-  adminCount: number;
-  pendingCount: number;
-  totalJobs?: number;
-  totalApplications?: number;
-  totalConnections?: number;
-  totalPosts?: number;
-  dailyLogins: DailyData[];
-  departmentStats: DepartmentStat[];
-  recentLogins: LoginLogItem[];
-  allUsers: AnalyticsUser[];
-}) {
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("ALL");
-  const [activeTab, setActiveTab] = useState<"logins" | "users">("logins");
-
-  const handleExportCSV = () => {
-    if (activeTab === "logins") {
-      const headers = ["ID", "Name", "Email", "Role", "Timestamp"];
-      const rows = filteredLogs.map((l) => [
-        `"${l.id}"`,
-        `"${l.name.replace(/"/g, '""')}"`,
-        `"${l.email}"`,
-        `"${l.role}"`,
-        `"${new Date(l.createdAt).toISOString()}"`,
-      ]);
-      const csv =
-        "data:text/csv;charset=utf-8," +
-        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-      const link = document.createElement("a");
-      link.href = encodeURI(csv);
-      link.download = `ulab_logins_audit_${Date.now()}.csv`;
-      link.click();
-    } else {
-      const headers = ["ID", "Name", "Email", "Role", "Status", "Department", "Company", "Designation", "Joined Date", "Last Login"];
-      const rows = filteredUsers.map((u) => [
-        `"${u.id}"`,
-        `"${u.name.replace(/"/g, '""')}"`,
-        `"${u.email}"`,
-        `"${u.role}"`,
-        `"${u.status}"`,
-        `"${(u.department || "").replace(/"/g, '""')}"`,
-        `"${(u.company || "").replace(/"/g, '""')}"`,
-        `"${(u.designation || "").replace(/"/g, '""')}"`,
-        `"${new Date(u.createdAt).toISOString()}"`,
-        `"${u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : "Never"}"`,
-      ]);
-      const csv =
-        "data:text/csv;charset=utf-8," +
-        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-      const link = document.createElement("a");
-      link.href = encodeURI(csv);
-      link.download = `ulab_users_audit_${Date.now()}.csv`;
-      link.click();
-    }
+  // Helper to filter list by date range
+  const filterByDate = <T extends { createdAt: string }>(items: T[], range: typeof reportDateRange) => {
+    if (range === "all") return items;
+    const now = new Date();
+    const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
+    const cutoff = new Date();
+    cutoff.setDate(now.getDate() - days);
+    return items.filter((item) => new Date(item.createdAt) >= cutoff);
   };
 
-  const filteredUsers = allUsers.filter((u) => {
-    const matchesSearch =
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.department?.toLowerCase() || "").includes(search.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  // CSV Generator Utility
+  const triggerCSVDownload = (filename: string, headers: string[], rows: (string | number)[][]) => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        headers.join(","),
+        ...rows.map((row) =>
+          row
+            .map((val) => {
+              const str = String(val ?? "").replace(/"/g, '""');
+              return `"${str}"`;
+            })
+            .join(",")
+        ),
+      ].join("\n");
 
-  const filteredLogs = recentLogins.filter((l) => {
-    const matchesSearch =
-      l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || l.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `${filename}_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-  // Calculate highest login day for scale
-  const maxDayLogins = Math.max(...dailyLogins.map((d) => d.count), 1);
+    setDownloadSuccess(filename);
+    setTimeout(() => setDownloadSuccess(null), 4000);
+  };
+
+  // 1. Export Users CSV
+  const handleExportUsers = () => {
+    const filtered = filterByDate(data.users.list, reportDateRange);
+    const headers = [
+      "User ID",
+      "Full Name",
+      "Official Email",
+      "Campus Role",
+      "Account Status",
+      "Email Verified",
+      "Alumni Verified",
+      "Department",
+      "Company / Employer",
+      "Designation / Title",
+      "Registered Date",
+      "Last Authentication",
+    ];
+    const rows = filtered.map((u) => [
+      u.id,
+      u.name,
+      u.email,
+      u.role,
+      u.status,
+      u.emailVerified ? "Yes" : "No",
+      u.alumniVerified ? "Yes" : "No",
+      u.department || "N/A",
+      u.company || "N/A",
+      u.designation || "N/A",
+      new Date(u.createdAt).toISOString(),
+      u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : "Never",
+    ]);
+    triggerCSVDownload("ulab_setu_users_registry", headers, rows);
+  };
+
+  // 2. Export Jobs CSV
+  const handleExportJobs = () => {
+    const filtered = filterByDate(data.jobs.list, reportDateRange);
+    const headers = [
+      "Job ID",
+      "Job Title",
+      "Company Name",
+      "Work Location",
+      "Employment Type",
+      "Publication Status",
+      "Referral Opportunity",
+      "Application Volume",
+      "Total Page Views",
+      "Application Deadline",
+      "Posted Date",
+    ];
+    const rows = filtered.map((j) => [
+      j.id,
+      j.title,
+      j.company,
+      j.location,
+      j.type,
+      j.status,
+      j.referral ? "Available" : "Standard",
+      j.applicationsCount,
+      j.viewsCount,
+      j.deadline ? new Date(j.deadline).toISOString() : "Open",
+      new Date(j.createdAt).toISOString(),
+    ]);
+    triggerCSVDownload("ulab_setu_jobs_report", headers, rows);
+  };
+
+  // 3. Export Applications (ATS) CSV
+  const handleExportApplications = () => {
+    const filtered = filterByDate(data.applications.list, reportDateRange);
+    const headers = [
+      "Application ID",
+      "Job Title",
+      "Hiring Company",
+      "Applicant Name",
+      "Applicant Department",
+      "ATS Status",
+      "Applied Date",
+      "Last Status Update",
+    ];
+    const rows = filtered.map((a) => [
+      a.id,
+      a.jobTitle,
+      a.company,
+      a.studentName,
+      a.department || "N/A",
+      a.status,
+      new Date(a.createdAt).toISOString(),
+      new Date(a.updatedAt).toISOString(),
+    ]);
+    triggerCSVDownload("ulab_setu_ats_applications", headers, rows);
+  };
+
+  // 4. Export Mentorship Engagements CSV
+  const handleExportMentorship = () => {
+    const filtered = filterByDate(data.mentorship.list, reportDateRange);
+    const headers = [
+      "Session ID",
+      "Mentorship Topic",
+      "Mentor Name",
+      "Mentor Organization",
+      "Mentee Student Name",
+      "Mentee Department",
+      "Session Format",
+      "Engagement Status",
+      "Scheduled Date",
+      "Completed Date",
+      "Requested Date",
+    ];
+    const rows = filtered.map((m) => [
+      m.id,
+      m.topic,
+      m.mentorName,
+      m.mentorCompany || "N/A",
+      m.studentName,
+      m.studentDepartment || "N/A",
+      m.sessionFormat || "ONLINE",
+      m.status,
+      m.scheduledAt ? new Date(m.scheduledAt).toISOString() : "Unscheduled",
+      m.completedAt ? new Date(m.completedAt).toISOString() : "Pending",
+      new Date(m.createdAt).toISOString(),
+    ]);
+    triggerCSVDownload("ulab_setu_mentorship_sessions", headers, rows);
+  };
+
+  // 5. Export Support & Moderation CSV
+  const handleExportSupport = () => {
+    const filteredTickets = filterByDate(data.support.ticketsList, reportDateRange);
+    const headers = [
+      "Record ID",
+      "Reference Number",
+      "Record Type",
+      "Subject / Description",
+      "Category",
+      "Priority / Severity",
+      "Current Status",
+      "Initiated By",
+      "Created Date",
+      "Resolution Date",
+    ];
+    const rows = filteredTickets.map((t) => [
+      t.id,
+      t.ticketNumber,
+      "Support Ticket",
+      t.subject,
+      t.category,
+      t.priority,
+      t.status,
+      t.userName,
+      new Date(t.createdAt).toISOString(),
+      t.resolvedAt ? new Date(t.resolvedAt).toISOString() : "Open",
+    ]);
+    triggerCSVDownload("ulab_setu_support_and_tickets", headers, rows);
+  };
+
+  // Max value for 7-day daily chart scaling
+  const maxDailyVal = Math.max(
+    ...data.activity.daily.map((d) => d[chartMetric]),
+    1
+  );
 
   return (
-    <div className="space-y-8">
-      {/* Top KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Users */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <Card className="relative overflow-hidden p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Total Network</span>
-              <span className="grid size-8 place-items-center rounded-lg bg-sky text-ulab-deep">
-                <Users size={18} />
-              </span>
-            </div>
-            <p className="mt-3 font-display text-3xl font-bold text-ink">{totalUsers}</p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-ink-soft">
-              <span className="flex items-center text-emerald-600 font-medium">
-                <TrendingUp size={14} className="mr-0.5" /> Active
-              </span>
-              <span>across all 4 campus roles</span>
-            </div>
-            <div className="absolute -bottom-6 -right-6 size-24 rounded-full bg-sky/30 blur-2xl" />
-          </Card>
-        </motion.div>
+    <div className="space-y-6">
+      {/* Top Navigation Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-mist/80 pb-3 dark:border-white/10">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-mist/80 bg-paper/60 p-1.5 dark:border-white/5 dark:bg-white/5">
+          {[
+            { id: "overview", label: "Executive Overview", icon: BarChart3 },
+            { id: "users", label: "Users & Demographics", icon: Users },
+            { id: "jobs", label: "Jobs & Opportunities", icon: Briefcase },
+            { id: "applications", label: "ATS Applications", icon: FileText },
+            { id: "mentorship", label: "Mentorship Outcomes", icon: Compass },
+            { id: "support", label: "Support & Safety", icon: LifeBuoy },
+            { id: "reports", label: "Enterprise CSV Reports", icon: Download },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as TabKey)}
+                className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  isActive
+                    ? "bg-ulab text-white shadow-soft"
+                    : "text-ink-soft hover:bg-surface hover:text-ink"
+                }`}
+              >
+                <Icon size={14} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Students */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.08 }}
+        {/* Global CSV Download Pill */}
+        <Button
+          type="button"
+          onClick={() => setActiveTab("reports")}
+          className="flex items-center gap-1.5 bg-paper/80 text-xs font-semibold text-ink border border-mist/80 hover:bg-paper"
         >
-          <Card className="relative overflow-hidden p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Students</span>
-              <span className="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
-                <GraduationCap size={18} />
-              </span>
-            </div>
-            <p className="mt-3 font-display text-3xl font-bold text-ink">{studentCount}</p>
-            <div className="mt-2 flex items-center justify-between text-xs text-ink-soft">
-              <span>{Math.round((studentCount / (totalUsers || 1)) * 100)}% of members</span>
-              <Badge tone="sage">Verified domain</Badge>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Alumni */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.16 }}
-        >
-          <Card className="relative overflow-hidden p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Alumni</span>
-              <span className="grid size-8 place-items-center rounded-lg bg-gold-wash text-gold-ink">
-                <UserCheck size={18} />
-              </span>
-            </div>
-            <p className="mt-3 font-display text-3xl font-bold text-ink">{alumniCount}</p>
-            <div className="mt-2 flex items-center justify-between text-xs text-ink-soft">
-              <span>{pendingCount > 0 ? `${pendingCount} awaiting approval` : "All verified"}</span>
-              <Badge tone="gold">Mentors</Badge>
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Faculty / Teachers */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.24 }}
-        >
-          <Card className="relative overflow-hidden p-5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Faculty & Admins</span>
-              <span className="grid size-8 place-items-center rounded-lg bg-lilac-wash text-lilac-ink">
-                <ShieldCheck size={18} />
-              </span>
-            </div>
-            <p className="mt-3 font-display text-3xl font-bold text-ink">{teacherCount + adminCount}</p>
-            <div className="mt-2 flex items-center justify-between text-xs text-ink-soft">
-              <span>{teacherCount} Teachers · {adminCount} Admins</span>
-              <Badge tone="lilac">Official</Badge>
-            </div>
-          </Card>
-        </motion.div>
+          <Download size={13} />
+          Export Datasets
+        </Button>
       </div>
 
-      {/* Platform Activity & Opportunity Highlights */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card className="flex items-center gap-3 p-4">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-sky text-ulab-deep">
-            <Briefcase size={20} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-ink-soft">Jobs Posted</p>
-            <p className="text-xl font-bold text-ink">{totalJobs}</p>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-3 p-4">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <FileText size={20} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-ink-soft">Job Applications</p>
-            <p className="text-xl font-bold text-ink">{totalApplications}</p>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-3 p-4">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-gold-wash text-gold-ink">
-            <MessageCircle size={20} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-ink-soft">Connections</p>
-            <p className="text-xl font-bold text-ink">{totalConnections}</p>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-3 p-4">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-lilac-wash text-lilac-ink">
-            <Megaphone size={20} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-ink-soft">Broadcasts & Events</p>
-            <p className="text-xl font-bold text-ink">{totalPosts}</p>
-          </div>
-        </Card>
-      </div>
+      {/* Download Alert Toast */}
+      <AnimatePresence>
+        {downloadSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
+            <CheckCircle2 size={16} />
+            <span>Audited CSV export generated successfully: {downloadSuccess}.csv</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Main Graphs Grid: 7-Day Login Activity & Department Distribution */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* 7-Day Login Activity Graph */}
-        <Card className="p-6 lg:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold text-ink">Login Activity Trend</h2>
-                <Badge tone="blue">Last 7 Days</Badge>
+      {/* TAB 1: EXECUTIVE OVERVIEW */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
+          {/* Top 6 KPI Metric Cards */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <Card className="p-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Total Members
+              </span>
+              <p className="mt-2 font-display text-2xl font-bold text-ink">
+                {data.users.total}
+              </p>
+              <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+                <TrendingUp size={12} />
+                <span>{data.users.activeAccounts} Active</span>
               </div>
-              <p className="mt-1 text-xs text-ink-soft">Daily logins and authentication volume across the network</p>
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live Sync
-            </div>
+            </Card>
+
+            <Card className="p-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Students
+              </span>
+              <p className="mt-2 font-display text-2xl font-bold text-ink">
+                {data.users.students}
+              </p>
+              <p className="mt-1 text-[11px] text-ink-soft">
+                {Math.round((data.users.students / (data.users.total || 1)) * 100)}% of community
+              </p>
+            </Card>
+
+            <Card className="p-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Verified Alumni
+              </span>
+              <p className="mt-2 font-display text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {data.users.verifiedAlumni}
+              </p>
+              <p className="mt-1 text-[11px] text-ink-soft">
+                {data.users.alumni} total alumni
+              </p>
+            </Card>
+
+            <Card className="p-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Live Jobs
+              </span>
+              <p className="mt-2 font-display text-2xl font-bold text-ulab">
+                {data.jobs.published}
+              </p>
+              <p className="mt-1 text-[11px] text-ink-soft">
+                {data.jobs.referralOpportunities} with referral
+              </p>
+            </Card>
+
+            <Card className="p-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Applications
+              </span>
+              <p className="mt-2 font-display text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                {data.applications.total}
+              </p>
+              <p className="mt-1 text-[11px] text-ink-soft">
+                Across {data.jobs.total} jobs
+              </p>
+            </Card>
+
+            <Card className="p-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-soft">
+                Mentors Active
+              </span>
+              <p className="mt-2 font-display text-2xl font-bold text-purple-700 dark:text-purple-400">
+                {data.mentorship.availableMentors}
+              </p>
+              <p className="mt-1 text-[11px] text-ink-soft">
+                {data.mentorship.completedSessions} completed sessions
+              </p>
+            </Card>
           </div>
 
-          {/* Interactive Bar & Sparkline Chart */}
-          <div className="mt-8">
-            <div className="grid grid-cols-7 items-end gap-3 h-48 border-b border-mist/80 pb-3">
-              {dailyLogins.map((d, index) => {
-                const heightPercent = Math.max((d.count / maxDayLogins) * 100, 8);
-                return (
-                  <div key={d.date} className="group relative flex flex-col items-center justify-end h-full">
-                    {/* Tooltip */}
-                    <div className="pointer-events-none absolute -top-10 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:-top-12 z-20">
-                      <div className="rounded-lg bg-slate-900 px-2.5 py-1 text-center shadow-lg">
-                        <p className="text-[11px] font-bold text-white">{d.count} logins</p>
-                        <p className="text-[9px] text-slate-300 whitespace-nowrap">{d.date}</p>
-                      </div>
-                      <div className="mx-auto size-1.5 -rotate-45 bg-slate-900 -mt-1" />
-                    </div>
+          {/* Interactive 7-Day Trend Chart with Metric Switcher */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="p-6 lg:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-base font-bold text-ink">
+                      7-Day Activity Velocity
+                    </h3>
+                    <Badge tone="blue">Real-Time DB Sync</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    Daily engagement trajectory across authentications, job submissions, and career applications
+                  </p>
+                </div>
 
-                    {/* Bar */}
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: `${heightPercent}%` }}
-                      transition={{ duration: 0.7, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                      className="relative w-full max-w-[42px] rounded-t-xl bg-gradient-to-t from-ulab to-sky hover:from-ulab-deep hover:to-ulab transition-colors cursor-pointer shadow-sm"
+                {/* Metric switcher */}
+                <div className="inline-flex rounded-xl border border-mist/80 bg-paper/60 p-1">
+                  {[
+                    { key: "logins", label: "User Logins" },
+                    { key: "applications", label: "Applications" },
+                    { key: "jobs", label: "Jobs Posted" },
+                  ].map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setChartMetric(m.key as any)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                        chartMetric === m.key
+                          ? "bg-surface text-ink shadow-soft"
+                          : "text-ink-soft hover:text-ink"
+                      }`}
                     >
-                      <span className="absolute inset-x-0 top-1.5 text-center text-[10px] font-bold text-white drop-shadow-sm opacity-90">
-                        {d.count > 0 ? d.count : ""}
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bar visualization */}
+              <div className="mt-8">
+                <div className="grid grid-cols-7 items-end gap-3 h-44 border-b border-mist/80 pb-3">
+                  {data.activity.daily.map((d, index) => {
+                    const val = d[chartMetric];
+                    const heightPercent = Math.max((val / maxDailyVal) * 100, 8);
+                    return (
+                      <div
+                        key={d.date}
+                        className="group relative flex flex-col items-center justify-end h-full"
+                      >
+                        {/* Hover Tooltip */}
+                        <div className="pointer-events-none absolute -top-10 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:-top-12 z-20">
+                          <div className="rounded-lg bg-slate-900 px-2.5 py-1 text-center shadow-lg">
+                            <p className="text-[11px] font-bold text-white">
+                              {val} {chartMetric}
+                            </p>
+                            <p className="text-[9px] text-slate-300 whitespace-nowrap">
+                              {d.date}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Bar */}
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{ height: `${heightPercent}%` }}
+                          transition={{ duration: 0.6, delay: index * 0.05 }}
+                          className={`relative w-full max-w-[42px] rounded-t-xl transition-colors cursor-pointer shadow-sm ${
+                            chartMetric === "logins"
+                              ? "bg-gradient-to-t from-ulab to-sky"
+                              : chartMetric === "applications"
+                              ? "bg-gradient-to-t from-emerald-600 to-emerald-400"
+                              : "bg-gradient-to-t from-amber-600 to-amber-400"
+                          }`}
+                        >
+                          <span className="absolute inset-x-0 top-1 text-center text-[10px] font-bold text-white">
+                            {val > 0 ? val : ""}
+                          </span>
+                        </motion.div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Day Labels */}
+                <div className="mt-3 grid grid-cols-7 text-center">
+                  {data.activity.daily.map((d) => (
+                    <div key={d.date} className="text-xs font-semibold text-ink-soft">
+                      {d.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Department Breakdown */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-base font-bold text-ink">
+                  Top Departments
+                </h3>
+                <Badge tone="gray">Distribution</Badge>
+              </div>
+              <p className="mt-1 text-xs text-ink-soft">
+                Member composition by academic discipline
+              </p>
+
+              <div className="mt-5 space-y-3.5">
+                {data.users.departmentStats.map((dept, i) => (
+                  <div key={dept.department} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-medium text-ink truncate max-w-[170px]">
+                        {dept.department}
                       </span>
-                    </motion.div>
+                      <span className="font-semibold text-ink-soft">
+                        {dept.count} ({dept.percentage}%)
+                      </span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/5">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${dept.percentage}%` }}
+                        transition={{ duration: 0.6, delay: i * 0.05 }}
+                        className="h-full rounded-full bg-gradient-to-r from-ulab to-ulab-deep"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: USERS & DEMOGRAPHICS */}
+      {activeTab === "users" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Total Users</span>
+              <p className="mt-1 text-2xl font-bold text-ink">{data.users.total}</p>
+              <p className="mt-1 text-xs text-ink-soft">{data.users.activeAccounts} active accounts</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Email-Verified Accounts</span>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{data.users.emailVerified}</p>
+              <p className="mt-1 text-xs text-ink-soft">
+                {Math.round((data.users.emailVerified / (data.users.total || 1)) * 100)}% verified rate
+              </p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Verified Alumni</span>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{data.users.verifiedAlumni}</p>
+              <p className="mt-1 text-xs text-ink-soft">Out of {data.users.alumni} alumni</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Faculty & Staff</span>
+              <p className="mt-1 text-2xl font-bold text-purple-600">{data.users.teachers + data.users.admins}</p>
+              <p className="mt-1 text-xs text-ink-soft">{data.users.teachers} Teachers · {data.users.admins} Admins</p>
+            </Card>
+          </div>
+
+          {/* Member Registry Table with Search */}
+          <Card className="p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-ink">Member Registry Directory</h3>
+                <p className="text-xs text-ink-soft">Audited production user records</p>
+              </div>
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
+                <input
+                  type="text"
+                  placeholder="Search name, email, department..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 rounded-xl border border-mist/80 bg-paper/60 pl-8 pr-3 py-1.5 text-xs text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-mist/80 text-[11px] font-semibold text-ink-soft dark:border-white/10">
+                  <tr>
+                    <th className="py-2.5 px-3">Name</th>
+                    <th className="py-2.5 px-3">Email</th>
+                    <th className="py-2.5 px-3">Role</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Department</th>
+                    <th className="py-2.5 px-3">Joined</th>
+                    <th className="py-2.5 px-3">Last Login</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-mist/50 dark:divide-white/5">
+                  {data.users.list
+                    .filter((u) => {
+                      const q = searchQuery.toLowerCase();
+                      return (
+                        u.name.toLowerCase().includes(q) ||
+                        u.email.toLowerCase().includes(q) ||
+                        (u.department?.toLowerCase() || "").includes(q)
+                      );
+                    })
+                    .slice(0, 15)
+                    .map((u) => (
+                      <tr key={u.id} className="hover:bg-paper/40 dark:hover:bg-white/5 transition">
+                        <td className="py-2.5 px-3 font-semibold text-ink">{u.name}</td>
+                        <td className="py-2.5 px-3 font-mono text-ink-soft">{u.email}</td>
+                        <td className="py-2.5 px-3">
+                          <Badge tone={u.role === "STUDENT" ? "blue" : u.role === "ALUMNI" ? "gold" : "lilac"}>
+                            {u.role}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <Badge tone={u.status === "APPROVED" ? "sage" : "gray"}>
+                            {u.status}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 px-3 text-ink-soft">{u.department || "—"}</td>
+                        <td className="py-2.5 px-3 text-ink-soft">
+                          {new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </td>
+                        <td className="py-2.5 px-3 text-ink-soft">
+                          {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Never"}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 3: JOBS & RECRUITMENT */}
+      {activeTab === "jobs" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Total Jobs</span>
+              <p className="mt-1 text-2xl font-bold text-ink">{data.jobs.total}</p>
+              <p className="mt-1 text-xs text-ink-soft">Opportunities in system</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Published Jobs</span>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{data.jobs.published}</p>
+              <p className="mt-1 text-xs text-ink-soft">Active and accepting applications</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Expired Jobs</span>
+              <p className="mt-1 text-2xl font-bold text-rose-600">{data.jobs.expired}</p>
+              <p className="mt-1 text-xs text-ink-soft">Passed deadline or closed</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Referral Opportunities</span>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{data.jobs.referralOpportunities}</p>
+              <p className="mt-1 text-xs text-ink-soft">Alumni employee referrals</p>
+            </Card>
+          </div>
+
+          {/* Top Jobs by Applications */}
+          <Card className="p-6">
+            <h3 className="font-display text-base font-bold text-ink">Most Applied Opportunities</h3>
+            <p className="text-xs text-ink-soft">Jobs attracting highest student interest</p>
+
+            <div className="mt-5 space-y-4">
+              {data.jobs.topJobs.map((job) => (
+                <div key={job.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-ink">{job.title}</span>
+                      <span className="ml-2 text-ink-soft">at {job.company}</span>
+                    </div>
+                    <span className="font-semibold text-ink">
+                      {job.applicationCount} applications ({job.percentage}%)
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/5">
+                    <div
+                      style={{ width: `${Math.max(job.percentage, 5)}%` }}
+                      className="h-full rounded-full bg-gradient-to-r from-sky to-ulab"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* TAB 4: ATS APPLICATIONS */}
+      {activeTab === "applications" && (
+        <div className="space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-ink">Application Lifecycle Funnel</h3>
+                <p className="text-xs text-ink-soft">Distribution across 7 ATS recruitment stages</p>
+              </div>
+              <Badge tone="blue">{data.applications.total} Total Submissions</Badge>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+              {[
+                { status: "APPLIED", label: "Applied", tone: "blue" },
+                { status: "VIEWED", label: "Viewed", tone: "lilac" },
+                { status: "SHORTLISTED", label: "Shortlisted", tone: "gold" },
+                { status: "INTERVIEW", label: "Interview", tone: "gold" },
+                { status: "SELECTED", label: "Selected", tone: "sage" },
+                { status: "REJECTED", label: "Rejected", tone: "gray" },
+                { status: "WITHDRAWN", label: "Withdrawn", tone: "gray" },
+              ].map((stage) => {
+                const count = data.applications.byStatus[stage.status] || 0;
+                return (
+                  <div
+                    key={stage.status}
+                    className="rounded-2xl border border-mist/80 bg-paper/60 p-4 text-center dark:border-white/5 dark:bg-white/5"
+                  >
+                    <Badge tone={stage.tone as any}>{stage.label}</Badge>
+                    <p className="mt-3 text-2xl font-bold text-ink">{count}</p>
+                    <p className="mt-1 text-[11px] text-ink-soft">
+                      {Math.round((count / (data.applications.total || 1)) * 100)}%
+                    </p>
                   </div>
                 );
               })}
             </div>
+          </Card>
+        </div>
+      )}
 
-            {/* Day Labels */}
-            <div className="mt-3 grid grid-cols-7 text-center">
-              {dailyLogins.map((d) => (
-                <div key={d.date} className="text-xs font-semibold text-ink-soft">
-                  {d.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Role Proportion Bar */}
-          <div className="mt-8 border-t border-mist/70 pt-5">
-            <div className="flex items-center justify-between text-xs text-ink-soft">
-              <span className="font-semibold text-ink">Member Breakdown by Role</span>
-              <span>{totalUsers} Total Accounts</span>
-            </div>
-            <div className="mt-2.5 flex h-3 w-full overflow-hidden rounded-full bg-slate-100">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(studentCount / (totalUsers || 1)) * 100}%` }}
-                transition={{ duration: 0.8 }}
-                className="bg-sky"
-                title={`Students: ${studentCount}`}
-              />
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(alumniCount / (totalUsers || 1)) * 100}%` }}
-                transition={{ duration: 0.8, delay: 0.1 }}
-                className="bg-amber-400"
-                title={`Alumni: ${alumniCount}`}
-              />
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(teacherCount / (totalUsers || 1)) * 100}%` }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="bg-purple-400"
-                title={`Teachers: ${teacherCount}`}
-              />
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(adminCount / (totalUsers || 1)) * 100}%` }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                className="bg-emerald-500"
-                title={`Admins: ${adminCount}`}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs">
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-sky" /> Students ({studentCount})</span>
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-amber-400" /> Alumni ({alumniCount})</span>
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-purple-400" /> Teachers ({teacherCount})</span>
-              <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-emerald-500" /> Admins ({adminCount})</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Academic Department Distribution */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-ink">Departments</h2>
-            <Badge tone="gray">Distribution</Badge>
-          </div>
-          <p className="mt-1 text-xs text-ink-soft">Registered members by university academic discipline</p>
-
-          <div className="mt-6 space-y-4">
-            {departmentStats.map((dept, i) => (
-              <div key={dept.department} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className="font-medium text-ink truncate max-w-[180px]">{dept.department}</span>
-                  <span className="font-semibold text-ink-soft">{dept.count} ({dept.percentage}%)</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${dept.percentage}%` }}
-                    transition={{ duration: 0.6, delay: i * 0.05 }}
-                    className="h-full rounded-full bg-gradient-to-r from-ulab to-ulab-deep"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* User Login Audit & Member Registry */}
-      <Card className="p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-ink">Activity & Member Logs</h2>
-              <div className="inline-flex rounded-xl border border-mist bg-paper/60 p-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("logins")}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    activeTab === "logins" ? "bg-surface text-ink shadow-soft" : "text-ink-soft hover:text-ink"
-                  }`}
-                >
-                  Recent Logins ({recentLogins.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("users")}
-                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                    activeTab === "users" ? "bg-surface text-ink shadow-soft" : "text-ink-soft hover:text-ink"
-                  }`}
-                >
-                  All Users ({allUsers.length})
-                </button>
-              </div>
-            </div>
-            <p className="mt-1 text-xs text-ink-soft">Real-time user authentication audit trail and login history</p>
-          </div>
-
-          {/* Filter & Search Bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
-              <input
-                type="text"
-                placeholder="Search name, email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-48 sm:w-56 rounded-xl border border-mist/80 bg-surface pl-8 pr-3 py-1.5 text-xs text-ink placeholder:text-ink-soft focus:border-ulab focus:outline-none"
-              />
-            </div>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="rounded-xl border border-mist/80 bg-surface px-2.5 py-1.5 text-xs font-medium text-ink focus:border-ulab focus:outline-none"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="STUDENT">Students</option>
-              <option value="ALUMNI">Alumni</option>
-              <option value="TEACHER">Teachers</option>
-              <option value="ADMIN">Admins</option>
-            </select>
-            <button
-              type="button"
-              onClick={handleExportCSV}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink shadow-sm transition hover:bg-mist/40"
-              title="Download table data as CSV"
-            >
-              <Download size={13} /> Export CSV
-            </button>
+      {/* TAB 5: MENTORSHIP OUTCOMES */}
+      {activeTab === "mentorship" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Registered Mentors</span>
+              <p className="mt-1 text-2xl font-bold text-ink">{data.mentorship.availableMentors}</p>
+              <p className="mt-1 text-xs text-ink-soft">Verified alumni mentors</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Total Requests</span>
+              <p className="mt-1 text-2xl font-bold text-ulab">{data.mentorship.totalRequests}</p>
+              <p className="mt-1 text-xs text-ink-soft">From student mentees</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Completed Sessions</span>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{data.mentorship.completedSessions}</p>
+              <p className="mt-1 text-xs text-ink-soft">Finished with mentor notes</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Completion Ratio</span>
+              <p className="mt-1 text-2xl font-bold text-purple-600">
+                {Math.round((data.mentorship.completedSessions / (data.mentorship.totalRequests || 1)) * 100)}%
+              </p>
+              <p className="mt-1 text-xs text-ink-soft">Engagement success rate</p>
+            </Card>
           </div>
         </div>
+      )}
 
-        {/* Table / List */}
-        <div className="mt-6 overflow-x-auto">
-          {activeTab === "logins" ? (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-mist/80 text-ink-soft font-semibold">
-                  <th className="pb-3 pl-1">User</th>
-                  <th className="pb-3">Role</th>
-                  <th className="pb-3">Email Address</th>
-                  <th className="pb-3">Login Time</th>
-                  <th className="pb-3 text-right pr-2">Relative</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-mist/50">
-                {filteredLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-ink-soft">
-                      No matching login activities found.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 pl-1">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar name={log.name} size={30} />
-                          <span className="font-semibold text-ink">{log.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <Badge
-                          tone={
-                            log.role === "STUDENT"
-                              ? "blue"
-                              : log.role === "ALUMNI"
-                              ? "gold"
-                              : log.role === "TEACHER"
-                              ? "lilac"
-                              : "sage"
-                          }
-                        >
-                          {log.role}
-                        </Badge>
-                      </td>
-                      <td className="py-3 text-ink-soft font-mono text-[11px]">{log.email}</td>
-                      <td className="py-3 text-ink-soft">
-                        {new Date(log.createdAt).toLocaleString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                      <td className="py-3 text-right pr-2 font-medium text-emerald-600">
-                        {timeAgo(log.createdAt)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-mist/80 text-ink-soft font-semibold">
-                  <th className="pb-3 pl-1">Member</th>
-                  <th className="pb-3">Role</th>
-                  <th className="pb-3">Department</th>
-                  <th className="pb-3">Last Active</th>
-                  <th className="pb-3 text-right pr-2">Joined Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-mist/50">
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-ink-soft">
-                      No matching registered users found.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/60 transition">
-                      <td className="py-3 pl-1">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar name={u.name} size={30} />
-                          <div>
-                            <p className="font-semibold text-ink">{u.name}</p>
-                            <p className="text-[11px] text-ink-soft font-mono">{u.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <Badge
-                          tone={
-                            u.role === "STUDENT"
-                              ? "blue"
-                              : u.role === "ALUMNI"
-                              ? "gold"
-                              : u.role === "TEACHER"
-                              ? "lilac"
-                              : "sage"
-                          }
-                        >
-                          {u.role}
-                        </Badge>
-                      </td>
-                      <td className="py-3 text-ink-soft">{u.department ?? "—"}</td>
-                      <td className="py-3">
-                        {u.lastLoginAt ? (
-                          <span className="font-medium text-emerald-600">{timeAgo(u.lastLoginAt)}</span>
-                        ) : (
-                          <span className="text-ink-soft/70">Joined {timeAgo(u.createdAt)}</span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right pr-2 text-ink-soft">
-                        {new Date(u.createdAt).toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
+      {/* TAB 6: SUPPORT & SAFETY */}
+      {activeTab === "support" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Open Support Tickets</span>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{data.support.openTickets}</p>
+              <p className="mt-1 text-xs text-ink-soft">Awaiting resolution</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Resolved Tickets</span>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">{data.support.resolvedTickets}</p>
+              <p className="mt-1 text-xs text-ink-soft">Closed helpdesk inquiries</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Avg Resolution Time</span>
+              <p className="mt-1 text-2xl font-bold text-ink">{data.support.avgResolutionHours} hrs</p>
+              <p className="mt-1 text-xs text-ink-soft">From ticket submission</p>
+            </Card>
+            <Card className="p-4">
+              <span className="text-xs text-ink-soft">Safety Reports</span>
+              <p className="mt-1 text-2xl font-bold text-rose-600">{data.support.totalReports}</p>
+              <p className="mt-1 text-xs text-ink-soft">{data.support.reportsByStatus.RESOLVED || 0} investigated</p>
+            </Card>
+          </div>
         </div>
-      </Card>
+      )}
+
+      {/* TAB 7: ENTERPRISE CSV REPORTS */}
+      {activeTab === "reports" && (
+        <div className="space-y-6">
+          <Card className="p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-mist/70 pb-4 dark:border-white/10">
+              <div>
+                <h3 className="font-display text-base font-bold text-ink">
+                  Enterprise Audit & Compliance Reports
+                </h3>
+                <p className="text-xs text-ink-soft">
+                  Export structured, privacy-sanitized CSV datasets directly from the production database.
+                </p>
+              </div>
+
+              {/* Date range filter for exports */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-ink-soft">Date Scope:</span>
+                <select
+                  value={reportDateRange}
+                  onChange={(e) => setReportDateRange(e.target.value as any)}
+                  className="rounded-xl border border-mist/80 bg-paper/60 px-3 py-1.5 text-xs font-semibold text-ink focus:border-ulab focus:outline-none dark:border-white/10 dark:bg-white/5"
+                >
+                  <option value="all">All-Time Historical</option>
+                  <option value="90d">Past 90 Days</option>
+                  <option value="30d">Past 30 Days</option>
+                  <option value="7d">Past 7 Days</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 5 Dataset Export Cards */}
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Report 1: Users */}
+              <div className="flex flex-col justify-between rounded-2xl border border-mist/80 bg-paper/60 p-5 dark:border-white/5 dark:bg-white/5">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-xl bg-sky/20 text-ulab-deep">
+                      <Users size={18} />
+                    </span>
+                    <Badge tone="blue">Audited</Badge>
+                  </div>
+                  <h4 className="mt-3 font-bold text-ink">Users & Member Registry</h4>
+                  <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                    Student, alumni, faculty, and administrative profiles with verification and activity timestamps.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleExportUsers}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 bg-ulab text-xs text-white hover:bg-ulab-deep"
+                >
+                  <Download size={14} />
+                  Export Users CSV
+                </Button>
+              </div>
+
+              {/* Report 2: Jobs */}
+              <div className="flex flex-col justify-between rounded-2xl border border-mist/80 bg-paper/60 p-5 dark:border-white/5 dark:bg-white/5">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                      <Briefcase size={18} />
+                    </span>
+                    <Badge tone="gold">Recruitment</Badge>
+                  </div>
+                  <h4 className="mt-3 font-bold text-ink">Jobs & Opportunities</h4>
+                  <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                    All company listings, employment types, referral availability, application counts, and deadlines.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleExportJobs}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 bg-amber-600 text-xs text-white hover:bg-amber-700"
+                >
+                  <Download size={14} />
+                  Export Jobs CSV
+                </Button>
+              </div>
+
+              {/* Report 3: Applications */}
+              <div className="flex flex-col justify-between rounded-2xl border border-mist/80 bg-paper/60 p-5 dark:border-white/5 dark:bg-white/5">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                      <FileText size={18} />
+                    </span>
+                    <Badge tone="sage">ATS Pipeline</Badge>
+                  </div>
+                  <h4 className="mt-3 font-bold text-ink">Job Applications (ATS)</h4>
+                  <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                    Submission records, hiring stages (Applied to Selected/Rejected), and review timelines.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleExportApplications}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 bg-emerald-700 text-xs text-white hover:bg-emerald-800"
+                >
+                  <Download size={14} />
+                  Export Applications CSV
+                </Button>
+              </div>
+
+              {/* Report 4: Mentorship */}
+              <div className="flex flex-col justify-between rounded-2xl border border-mist/80 bg-paper/60 p-5 dark:border-white/5 dark:bg-white/5">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                      <Compass size={18} />
+                    </span>
+                    <Badge tone="lilac">Mentorship</Badge>
+                  </div>
+                  <h4 className="mt-3 font-bold text-ink">Mentorship Sessions</h4>
+                  <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                    Student-alumni mentorship pairings, topics, scheduling details, and completion records.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleExportMentorship}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 bg-purple-700 text-xs text-white hover:bg-purple-800"
+                >
+                  <Download size={14} />
+                  Export Mentorship CSV
+                </Button>
+              </div>
+
+              {/* Report 5: Support & Moderation */}
+              <div className="flex flex-col justify-between rounded-2xl border border-mist/80 bg-paper/60 p-5 dark:border-white/5 dark:bg-white/5">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="grid size-9 place-items-center rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+                      <LifeBuoy size={18} />
+                    </span>
+                    <Badge tone="gray">Support & Safety</Badge>
+                  </div>
+                  <h4 className="mt-3 font-bold text-ink">Support & Moderation</h4>
+                  <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                    User helpdesk tickets, categories, resolution durations, and community safety enforcement reports.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleExportSupport}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 bg-slate-800 text-xs text-white hover:bg-slate-900"
+                >
+                  <Download size={14} />
+                  Export Support CSV
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
