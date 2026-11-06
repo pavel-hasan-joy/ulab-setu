@@ -16,22 +16,39 @@ import {
   Building,
   GraduationCap,
   ShieldCheck,
+  User as UserIcon,
 } from "lucide-react";
 import { Stagger, StaggerItem } from "./motion";
 import { DeletePost } from "./delete-post";
 import { Avatar, Badge, Button, Card, EmptyState, cn, formatDate, timeAgo } from "./ui";
+import { ProfileModal } from "./profile-modal";
 
 export interface SerializedPostAuthor {
   id: string;
   name: string;
   email: string;
   role: string;
+  status?: string;
   department: string | null;
   designation: string | null;
   company: string | null;
+  batch?: string | null;
   graduationYear: number | string | null;
+  location?: string | null;
   image: string | null;
   bio: string | null;
+  skills?: string | null;
+  linkedin?: string | null;
+  github?: string | null;
+  socialLinks?: string | null;
+  phone?: string | null;
+  phonePublic?: boolean;
+  whatsapp?: string | null;
+  whatsappPublic?: boolean;
+  facebook?: string | null;
+  facebookPublic?: boolean;
+  isPrivate?: boolean;
+  alumniVerified?: boolean;
 }
 
 export interface SerializedPost {
@@ -79,6 +96,7 @@ export function BoardFeed({
   });
 
   const [copiedLink, setCopiedLink] = useState(false);
+  const [viewingAuthor, setViewingAuthor] = useState<SerializedPostAuthor | null>(null);
 
   // Auto-open if query param noticeId changes
   useEffect(() => {
@@ -146,11 +164,25 @@ export function BoardFeed({
               >
                 {/* Author row */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <Avatar name={p.author.name} src={p.author.image} size={42} />
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingAuthor(p.author);
+                    }}
+                    className="flex items-start gap-3 min-w-0 flex-1 group/author cursor-pointer"
+                    title="Click to view full profile (সম্পূর্ণ প্রোফাইল দেখুন)"
+                  >
+                    <Avatar
+                      name={p.author.name}
+                      src={p.author.image}
+                      size={42}
+                      className="ring-2 ring-mist group-hover/author:ring-ulab transition shrink-0"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="font-semibold text-ink group-hover:text-ulab transition">
+                        <p className="font-semibold text-ink group-hover/author:text-ulab group-hover/author:underline transition truncate">
                           {p.author.name}
                         </p>
                         <Badge tone={p.author.role === "TEACHER" ? "lilac" : "gold"}>
@@ -159,7 +191,7 @@ export function BoardFeed({
                             : `Alumni, ${p.author.graduationYear ?? "ULAB"}`}
                         </Badge>
                       </div>
-                      <p className="text-xs text-ink-soft">
+                      <p className="text-xs text-ink-soft truncate">
                         {p.author.department ? `${p.author.department} · ` : ""}
                         {timeAgo(p.createdAt)}
                       </p>
@@ -284,16 +316,23 @@ export function BoardFeed({
 
                 {/* Notice Author / Publisher Card (নোটিশদাতা ও বিভাগ) */}
                 <div className="rounded-2xl border border-mist/80 bg-paper/60 p-4 dark:border-white/5 dark:bg-white/5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setViewingAuthor(selectedNotice.author)}
+                      className="flex items-center gap-3.5 cursor-pointer group"
+                      title="Click to view full profile (সম্পূর্ণ প্রোফাইল দেখুন)"
+                    >
                       <Avatar
                         name={selectedNotice.author.name}
                         src={selectedNotice.author.image}
                         size={48}
+                        className="ring-2 ring-mist group-hover:ring-ulab transition shrink-0"
                       />
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-bold text-sm text-ink">
+                          <h4 className="font-bold text-sm text-ink group-hover:text-ulab transition">
                             {selectedNotice.author.name}
                           </h4>
                           <Badge
@@ -307,6 +346,15 @@ export function BoardFeed({
                               ? "Faculty Member"
                               : "Verified Alumni"}
                           </Badge>
+                          {selectedNotice.author.isPrivate ? (
+                            <Badge tone="gray" className="text-[10px] py-0 px-1.5">
+                              🔒 Private
+                            </Badge>
+                          ) : (
+                            <Badge tone="sage" className="text-[10px] py-0 px-1.5">
+                              🌐 Public
+                            </Badge>
+                          )}
                         </div>
 
                         <p className="text-xs text-ink-soft mt-0.5">
@@ -331,16 +379,27 @@ export function BoardFeed({
                       </div>
                     </div>
 
-                    {/* Direct message button if not viewing own notice */}
-                    {selectedNotice.authorId !== viewerId && (
-                      <Link
-                        href={getMessageHref(selectedNotice.authorId)}
-                        className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-paper shadow-xs transition dark:border-white/10 dark:bg-white/5"
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setViewingAuthor(selectedNotice.author)}
+                        className="py-1.5 px-3 text-xs font-semibold gap-1.5 hover:border-ulab hover:text-ulab"
                       >
-                        <MessageSquare size={13} className="text-ulab" />
-                        Message Author
-                      </Link>
-                    )}
+                        <UserIcon size={13} /> View Profile
+                      </Button>
+
+                      {/* Direct message button if not viewing own notice */}
+                      {selectedNotice.authorId !== viewerId && (
+                        <Link
+                          href={getMessageHref(selectedNotice.authorId)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-mist/80 bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-paper shadow-xs transition dark:border-white/10 dark:bg-white/5"
+                        >
+                          <MessageSquare size={13} className="text-ulab" />
+                          Message
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -420,6 +479,15 @@ export function BoardFeed({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Author Profile Modal */}
+      {viewingAuthor && (
+        <ProfileModal
+          person={viewingAuthor as any}
+          onClose={() => setViewingAuthor(null)}
+          messagesHref={getMessageHref(viewingAuthor.id)}
+        />
+      )}
     </>
   );
 }

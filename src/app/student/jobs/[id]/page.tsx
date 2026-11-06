@@ -20,6 +20,7 @@ import { PageIn } from "@/components/motion";
 import { Avatar, Badge, Card, formatDate, posterLabel, timeAgo } from "@/components/ui";
 import { ApplyPanel } from "./apply-panel";
 import { ReportJobModal } from "@/components/report-job-modal";
+import { JobPosterCard } from "@/components/job-poster-card";
 
 export const metadata: Metadata = { title: "Job Opportunity | ULAB Setu" };
 
@@ -201,25 +202,10 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
             student={user}
           />
 
-          <Card className="p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Posted by</p>
-            <div className="mt-3 flex items-center gap-3">
-              <Avatar name={job.postedBy.name} size={44} />
-              <div>
-                <p className="font-semibold text-ink">{job.postedBy.name}</p>
-                <p className="text-xs text-ink-soft">
-                  {job.postedBy.department}, {posterLabel(job.postedBy)}
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href={`/student/people?q=${encodeURIComponent(job.postedBy.name)}`}
-              className="mt-4 block rounded-xl bg-sky px-4 py-2.5 text-center text-sm font-semibold text-ulab-deep transition hover:bg-mist"
-            >
-              Ask {job.postedBy.name.split(" ")[0]} a question
-            </Link>
-          </Card>
+          <JobPosterCard
+            poster={job.postedBy}
+            messagesHref="/student/messages"
+          />
         </aside>
       </div>
     </PageIn>

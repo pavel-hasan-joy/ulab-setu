@@ -46,11 +46,18 @@ export function AlumniJobCard({ job, href }: { job: Job & { postedBy: User }; hr
             </div>
           )}
           <div className="mt-auto pt-5">
-            <div className="flex items-center gap-2.5 border-t border-mist/70 pt-3.5">
-              <Avatar name={job.postedBy.name} size={28} />
-              <p className="text-xs text-ink-soft">
-                <span className="font-medium text-ink">{job.postedBy.name}</span>, {posterLabel(job.postedBy)}
-              </p>
+            <div className="flex items-center justify-between gap-2 border-t border-mist/70 pt-3.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar name={job.postedBy.name} src={job.postedBy.image} size={28} className="shrink-0" />
+                <p className="text-xs text-ink-soft truncate">
+                  <span className="font-medium text-ink">{job.postedBy.name}</span>, {posterLabel(job.postedBy)}
+                </p>
+              </div>
+              {job.postedBy.isPrivate ? (
+                <span className="text-[10px] text-ink-soft shrink-0">🔒 Private</span>
+              ) : (
+                <span className="text-[10px] text-sage font-medium shrink-0">🌐 Public Profile</span>
+              )}
             </div>
           </div>
         </Card>
