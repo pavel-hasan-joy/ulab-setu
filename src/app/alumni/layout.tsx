@@ -29,6 +29,7 @@ export default async function AlumniLayout({ children }: { children: React.React
         { href: "/alumni/messages", label: "Messages", icon: "MessageCircle", badge: unreadMessages > 0 ? unreadMessages : undefined },
         { href: "/alumni/notifications", label: "Alerts", icon: "Bell", badge: unreadNotifs > 0 ? unreadNotifs : undefined },
         { href: "/alumni/profile", label: "Profile", icon: "User" },
+        { href: "/alumni/support", label: "Helpdesk", icon: "LifeBuoy" },
         { href: "/alumni/jobs/new", label: "Post job", icon: "PlusCircle" },
       ]}
     >

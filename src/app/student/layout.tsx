@@ -30,6 +30,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
         { href: "/student/notifications", label: "Alerts", icon: "Bell", badge: unreadNotifs > 0 ? unreadNotifs : undefined },
         { href: "/student/applications", label: "Applications", icon: "FileText" },
         { href: "/student/profile", label: "Profile", icon: "User" },
+        { href: "/student/support", label: "Helpdesk", icon: "LifeBuoy" },
       ]}
     >
       {children}

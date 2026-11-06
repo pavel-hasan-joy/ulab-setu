@@ -177,18 +177,43 @@
 
 ---
 
+### PROMPT 11 — Complete Support Ticket & User Reporting System
+- **Status:** **COMPLETED**
+- **Evidence:**
+  - **User Helpdesk & Support Ticketing:**
+    - Dedicated portal routes: `/student/support`, `/alumni/support`, `/teacher/support`.
+    - Ticket submission covering 8 key categories: `LOGIN`, `VERIFICATION`, `PROFILE`, `JOB_POSTING`, `JOB_APPLICATION`, `MESSAGING`, `TECHNICAL`, `OTHER`.
+    - Sequential human-readable ticket numbers (`TICK-1001`, `TICK-1002`).
+    - 5-stage status lifecycle: `OPEN`, `IN_PROGRESS`, `WAITING_FOR_USER`, `RESOLVED`, `CLOSED`.
+    - Full ticket messaging thread via `model TicketMessage`: bidirectional conversation between users and support agents.
+  - **Admin Support Dashboard (`/admin/tickets`):**
+    - Multi-criteria real-time search across ticket number, subject, user, email, and description.
+    - Status, category, and priority dropdown filters.
+    - Staff agent assignment (`assignTicket`).
+    - Public responses to users with automatic state transition to `WAITING_FOR_USER`.
+    - Internal staff notes (`isInternal: true`) strictly isolated from regular users.
+    - Official resolution remarks and audit logging.
+  - **Community Safety & User Reporting System:**
+    - In-app reporting for fake jobs, abusive members, inappropriate messages, suspicious accounts, and misleading profiles.
+    - Admin Moderation Desk (`/admin/reports`): investigate reported content with target context without exposing private conversations.
+    - Concrete enforcement actions: Warning (`WARNED`), Account Suspension (`SUSPENDED`), and Content Removal (`CONTENT_REMOVED`).
+    - Resolution records & audit trail via `model AdminAuditLog`.
+  - **Automated test suite:** `scripts/test-support-and-reporting.mjs` — **10/10 tests PASS**.
+
+---
+
 ## 4. Current Git, Build & Deployment Status
 
 - **Git Branch:** `main`
 - **TypeScript Static Check:** `pnpm exec tsc --noEmit` — **0 errors (PASS)**.
-- **Production Build:** `pnpm next build` — **47 static/dynamic routes successfully compiled via Turbopack (PASS)**.
-- **Test Suites Passed:** 7 complete test suites (53/53 tests passed).
+- **Production Build:** `pnpm next build` — **50 static/dynamic routes successfully compiled via Turbopack (PASS)**.
+- **Test Suites Passed:** 8 complete test suites (63/63 tests passed).
 - **Production URL:** `https://ulab-setu.vercel.app/` — **HTTP 200 OK (LIVE & READY)**.
 
 ---
 
-## 5. Upcoming Implementation: PROMPT 11
+## 5. Upcoming Implementation: PROMPT 12
 
-### Next Immediate Stage: PROMPT 11 — Notice Board & Campus Opportunity Feeds
+### Next Immediate Stage: PROMPT 12 — Notice Board & Campus Opportunity Feeds
 - **Objective:** Institutional Notice Board & Campus Opportunity Feed for announcements, events, scholarships, and research calls from teachers, departments, and alumni with category filters and author verification.
 

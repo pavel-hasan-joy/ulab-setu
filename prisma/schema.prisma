@@ -80,6 +80,7 @@ model User {
   adminAuditLogs         AdminAuditLog[]       @relation("AdminAuditActions")
   blockedUsers           BlockedUser[]         @relation("BlockerUsers")
   blockedByUsers         BlockedUser[]         @relation("BlockedUsers")
+  ticketMessages         TicketMessage[]       @relation("UserTicketMessages")
 
   @@index([role])
   @@index([status])
@@ -408,21 +409,23 @@ model MentorshipRequest {
 
 /** Support and Helpdesk ticketing system */
 model SupportTicket {
-  id           String    @id @default(cuid())
-  ticketNumber String    @unique // Sequential human-readable ticket reference e.g. "TICK-1001"
-  userId       String
-  user         User      @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
-  subject      String
-  description  String
-  category     String    // ACCOUNT | VERIFICATION | JOB_PORTAL | MESSAGING | TECHNICAL | OTHER
-  priority     String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
-  status       String    @default("OPEN")   // OPEN | IN_PROGRESS | RESOLVED | CLOSED
-  assignedToId String?
-  assignedTo   User?     @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
-  resolution   String?
-  resolvedAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt @default(now())
+  id            String          @id @default(cuid())
+  ticketNumber  String          @unique // Sequential human-readable ticket reference e.g. "TICK-1001"
+  userId        String
+  user          User            @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  subject       String
+  description   String
+  category      String          // LOGIN | VERIFICATION | PROFILE | JOB_POSTING | JOB_APPLICATION | MESSAGING | TECHNICAL | OTHER
+  priority      String          @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status        String          @default("OPEN")   // OPEN | IN_PROGRESS | WAITING_FOR_USER | RESOLVED | CLOSED
+  assignedToId  String?
+  assignedTo    User?           @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolution    String?
+  internalNotes String?
+  resolvedAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt @default(now())
+  messages      TicketMessage[]
 
   @@index([userId])
   @@index([status])
@@ -431,24 +434,41 @@ model SupportTicket {
   @@index([assignedToId])
 }
 
+/** Ticket communication thread between user and support team */
+model TicketMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User          @relation("UserTicketMessages", fields: [authorId], references: [id], onDelete: Cascade)
+  body       String
+  isInternal Boolean       @default(false) // Visible only to admins for internal staff notes
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([authorId])
+}
+
 /** Trust, safety and moderation reports */
 model UserReport {
-  id              String    @id @default(cuid())
-  reporterId      String
-  reporter        User      @relation("SubmittedReports", fields: [reporterId], references: [id], onDelete: Cascade)
-  reportedUserId  String?
-  reportedUser    User?     @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
-  targetType      String    // USER | JOB | POST | MESSAGE | TUITION
-  targetId        String?
-  reason          String    // SPAM | HARASSMENT | FAKE_IDENTITY | FRAUD | INAPPROPRIATE | OTHER
-  details         String?
-  status          String    @default("PENDING") // PENDING | INVESTIGATING | RESOLVED | DISMISSED
-  resolvedById    String?
-  resolvedBy      User?     @relation("ResolvedReports", fields: [resolvedById], references: [id], onDelete: SetNull)
-  resolutionNotes String?
-  resolvedAt      DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt @default(now())
+  id                 String    @id @default(cuid())
+  reporterId         String
+  reporter           User      @relation("SubmittedReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUserId     String?
+  reportedUser       User?     @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  targetType         String    // USER | JOB | POST | MESSAGE | TUITION | PROFILE
+  targetId           String?
+  reason             String    // SPAM | HARASSMENT | FAKE_IDENTITY | FRAUD | INAPPROPRIATE | FAKE_JOB | SUSPICIOUS_ACCOUNT | MISLEADING_PROFILE | OTHER
+  details            String?
+  status             String    @default("PENDING") // PENDING | INVESTIGATING | RESOLVED | DISMISSED
+  actionTaken        String?   // WARNED | SUSPENDED | CONTENT_REMOVED | DISMISSED | NONE
+  investigationNotes String?
+  resolvedById       String?
+  resolvedBy         User?     @relation("ResolvedReports", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolutionNotes    String?
+  resolvedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt @default(now())
 
   @@index([reporterId])
   @@index([reportedUserId])
