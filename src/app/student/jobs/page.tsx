@@ -72,7 +72,14 @@ async function AlumniJobs({ q, category, type }: { q: string; category?: string;
       ...activeDeadlineCondition(),
       ...(category && { category }),
       ...(type && { type }),
-      ...(q && { OR: [{ title: { contains: q } }, { company: { contains: q } }, { description: { contains: q } }] }),
+      ...(q && {
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { company: { contains: q, mode: "insensitive" } },
+          { description: { contains: q, mode: "insensitive" } },
+          { skills: { contains: q, mode: "insensitive" } },
+        ],
+      }),
     },
     include: { postedBy: true },
     orderBy: [{ referral: "desc" }, { createdAt: "desc" }],

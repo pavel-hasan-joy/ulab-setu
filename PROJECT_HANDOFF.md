@@ -108,22 +108,37 @@
   - Contact sanitation in `src/lib/contact.ts`.
   - Automated test suite: `scripts/test-profiles-directory.mjs` — **5/5 test suites PASS**.
 
+### PROMPT 08 — Job Management CRM
+- **Status:** **COMPLETED**
+- **Evidence:**
+  - Full Job Creation and Management Lifecycle:
+    - Post a Job: `src/app/alumni/jobs/new/page.tsx` & `src/app/alumni/jobs/new/new-job-form.tsx` supporting title, company, location, type, category, skills, salary, experience level, deadline, external application URL, referral availability, contact info, and status (Draft/Published).
+    - Edit Job: `src/app/alumni/jobs/[id]/edit/page.tsx` & `src/components/edit-job-form.tsx` (with strict authorization enforcing owner or super admin only).
+    - Status state machine: `PUBLISHED`, `DRAFT`, `PAUSED`, `CLOSED`, `EXPIRED`, `REMOVED`.
+    - Automatic deadline synchronization: `syncExpiredJobs()` transitions past-deadline jobs to `EXPIRED` status without deleting history.
+    - 1-click referral toggle: `toggleJobReferral()`.
+  - Job Application Pipeline & Candidate Overview:
+    - `src/app/alumni/jobs/[id]/page.tsx` with metrics (total applicants, shortlisted, pending review), quick controls (`src/app/alumni/jobs/[id]/job-detail-controls.tsx`), and candidate CV/note review cards.
+  - Student Job Details & Safety Reporting:
+    - `src/app/student/jobs/[id]/page.tsx` displaying complete qualifications, skills tags, salary, company portal redirect links, and `src/components/report-job-modal.tsx` allowing students to flag spam/fraudulent jobs directly into `UserReport`.
+  - Admin Job Moderation CRM:
+    - `src/app/admin/jobs/page.tsx` & `src/components/admin-jobs-view.tsx` with search, company/type/status filtering, reported postings tab, inspect drawer, 1-click Pause/Resume/Remove, report investigation resolution, and CSV export.
+  - Automated test suite: `scripts/test-jobs-crm.mjs` — **8/8 tests PASS**.
+
 ---
 
 ## 4. Current Git, Build & Deployment Status
 
 - **Git Branch:** `main`
-- **Latest Commit on Remote:** `fc6ad4b`
-- **Working Tree:** Clean (all Prompt 01–07 code committed and pushed).
 - **TypeScript Static Check:** `pnpm exec tsc --noEmit` — **0 errors (PASS)**.
-- **Production Build:** `pnpm next build` — **45 static/dynamic routes successfully compiled via Turbopack (PASS)**.
+- **Production Build:** `pnpm next build` — **47 static/dynamic routes successfully compiled via Turbopack (PASS)**.
+- **Test Suites Passed:** 5 complete test suites (39/39 tests passed).
 - **Production URL:** `https://ulab-setu.vercel.app/` — **HTTP 200 OK (LIVE & READY)**.
 
 ---
 
-## 5. Upcoming Implementation: PROMPT 08
+## 5. Upcoming Implementation: PROMPT 09
 
-### Next Immediate Stage: PROMPT 08 — Job Management CRM
-- **Objective:** Production-grade Job Management system allowing Alumni and Faculty to post opportunities (with referral badges, deadlines, and requirements), and Admin moderation/CRM controls.
-- **Ready to proceed:** All prerequisite tables (`Job`, `Application`, `User`, `RolePermission`, `AdminAuditLog`), database relations, authentication boundaries, and UI shells are in place.
+### Next Immediate Stage: PROMPT 09 — Student Job Application Management
+- **Objective:** Complete candidate application portal for students: multi-step CV application workflow, cover note generator, application tracking dashboard (`/student/applications`), real-time status updates (Applied, Shortlisted, Selected, Rejected), withdrawal option, and interviewer feedback.
 

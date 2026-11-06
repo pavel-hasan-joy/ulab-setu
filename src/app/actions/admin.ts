@@ -183,25 +183,152 @@ export async function deleteUserByAdmin(userId: string) {
   revalidatePath("/admin/analytics");
 }
 
-/** Admin toggles job active state */
-export async function toggleJobStatusByAdmin(jobId: string) {
-  await requireUser("ADMIN");
+/** Admin sets or moderates job status */
+export async function setJobStatusByAdmin(
+  jobId: string,
+  status: "PUBLISHED" | "PAUSED" | "CLOSED" | "REMOVED"
+) {
+  const admin = await requireUser("ADMIN");
   const job = await db.job.findUnique({ where: { id: jobId } });
-  if (!job) return;
+  if (!job) return { error: "Job not found" };
+
+  const active = status === "PUBLISHED";
   await db.job.update({
     where: { id: jobId },
-    data: { active: !job.active },
+    data: {
+      status,
+      active,
+      ...(status === "REMOVED" ? { deletedAt: new Date() } : {}),
+    },
   });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "JOB_STATUS_CHANGE",
+      targetType: "JOB",
+      targetId: jobId,
+      details: JSON.stringify({
+        title: job.title,
+        company: job.company,
+        previousStatus: job.status,
+        newStatus: status,
+      }),
+    },
+  }).catch(() => {});
+
   revalidatePath("/admin/jobs");
+  revalidatePath("/student/jobs");
+  return { success: true };
 }
 
-/** Admin deletes a job listing */
+/** Admin toggles job active state */
+export async function toggleJobStatusByAdmin(jobId: string) {
+  const admin = await requireUser("ADMIN");
+  const job = await db.job.findUnique({ where: { id: jobId } });
+  if (!job) return;
+
+  const nextActive = !job.active;
+  const nextStatus = nextActive ? "PUBLISHED" : "PAUSED";
+
+  await db.job.update({
+    where: { id: jobId },
+    data: { active: nextActive, status: nextStatus },
+  });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "JOB_STATUS_CHANGE",
+      targetType: "JOB",
+      targetId: jobId,
+      details: JSON.stringify({
+        title: job.title,
+        company: job.company,
+        toggledTo: nextStatus,
+      }),
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin/jobs");
+  revalidatePath("/student/jobs");
+}
+
+/** Admin permanently deletes or removes a job listing */
 export async function deleteJobByAdmin(jobId: string) {
-  await requireUser("ADMIN");
+  const admin = await requireUser("ADMIN");
+  const job = await db.job.findUnique({ where: { id: jobId } });
+  if (!job) return;
+
   await db.job.delete({
     where: { id: jobId },
   });
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "JOB_DELETE",
+      targetType: "JOB",
+      targetId: jobId,
+      details: JSON.stringify({
+        title: job.title,
+        company: job.company,
+        postedById: job.postedById,
+      }),
+    },
+  }).catch(() => {});
+
   revalidatePath("/admin/jobs");
+  revalidatePath("/student/jobs");
+}
+
+/** Admin resolves or dismisses a user report on a job */
+export async function resolveJobReportByAdmin(
+  reportId: string,
+  resolution: "RESOLVED" | "DISMISSED",
+  resolutionNotes?: string,
+  removeJob?: boolean
+) {
+  const admin = await requireUser("ADMIN");
+  const report = await db.userReport.findUnique({ where: { id: reportId } });
+  if (!report) return { error: "Report not found" };
+
+  await db.userReport.update({
+    where: { id: reportId },
+    data: {
+      status: resolution,
+      resolvedById: admin.id,
+      resolutionNotes: resolutionNotes || null,
+      resolvedAt: new Date(),
+    },
+  });
+
+  if (removeJob && report.targetType === "JOB" && report.targetId) {
+    await db.job.update({
+      where: { id: report.targetId },
+      data: { status: "REMOVED", active: false, deletedAt: new Date() },
+    }).catch(() => {});
+  }
+
+  await db.adminAuditLog.create({
+    data: {
+      adminId: admin.id,
+      action: "REPORT_RESOLVE",
+      targetType: "USER_REPORT",
+      targetId: reportId,
+      details: JSON.stringify({
+        resolution,
+        resolutionNotes,
+        removeJob: !!removeJob,
+        targetType: report.targetType,
+        targetId: report.targetId,
+      }),
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin/jobs");
+  revalidatePath("/admin/reports");
+  return { success: true };
 }
 
 const adminNoticeSchema = z.object({

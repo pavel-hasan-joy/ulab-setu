@@ -17,6 +17,7 @@ export function AlumniJobCard({ job, href }: { job: Job & { postedBy: User }; hr
         <Card className="flex h-full flex-col p-5 transition-shadow group-hover:shadow-lift">
           <div className="flex flex-wrap gap-1.5">
             <Badge>{job.type}</Badge>
+            {job.experienceLevel && <Badge tone="gray">{job.experienceLevel}</Badge>}
             {job.referral && <Badge tone="gold">Referral available</Badge>}
             {closingSoon && <Badge tone="rose">Closing soon</Badge>}
           </div>
@@ -27,6 +28,23 @@ export function AlumniJobCard({ job, href }: { job: Job & { postedBy: User }; hr
             {job.salary && <span className="inline-flex items-center gap-1"><Wallet size={13} />{job.salary}</span>}
             {job.deadline && <span className="inline-flex items-center gap-1"><CalendarClock size={13} />Apply by {formatDate(job.deadline)}</span>}
           </div>
+          {job.skills && (
+            <div className="mt-2.5 flex flex-wrap gap-1">
+              {job.skills
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .slice(0, 3)
+                .map((skill) => (
+                  <span
+                    key={skill}
+                    className="rounded bg-surface px-1.5 py-0.5 text-[10px] font-medium text-ink-soft border border-mist/70"
+                  >
+                    {skill}
+                  </span>
+                ))}
+            </div>
+          )}
           <div className="mt-auto pt-5">
             <div className="flex items-center gap-2.5 border-t border-mist/70 pt-3.5">
               <Avatar name={job.postedBy.name} size={28} />

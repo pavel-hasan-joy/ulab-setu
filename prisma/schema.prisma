@@ -87,11 +87,16 @@ model Job {
   category        String
   description     String
   requirements    String?
+  skills          String?       // comma-separated required skills
   salary          String?
   deadline        DateTime?
   referral        Boolean       @default(false)
   active          Boolean       @default(true)
+  status          String        @default("PUBLISHED") // DRAFT | PUBLISHED | PAUSED | CLOSED | EXPIRED | REMOVED
   experienceLevel String?       // Entry | Mid-level | Senior
+  externalUrl     String?       // optional direct application URL
+  contactEmail    String?       // relevant hiring contact email or info
+  viewsCount      Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt @default(now())
   deletedAt       DateTime?
@@ -101,6 +106,7 @@ model Job {
   applications    Application[]
 
   @@index([postedById])
+  @@index([status])
   @@index([active])
   @@index([category])
   @@index([createdAt])

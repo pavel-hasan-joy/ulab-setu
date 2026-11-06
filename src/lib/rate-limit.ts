@@ -83,3 +83,37 @@ export function clearLoginRateLimit(identifier: string): void {
   loginAttempts.delete(identifier.trim().toLowerCase());
 }
 
+/**
+ * Generic sliding-window action rate limiter to protect mutations (jobs, reports, tickets)
+ * from abuse, script spamming, or denial-of-service.
+ */
+const globalActionLimits = global as unknown as { actionAttempts?: Map<string, number[]> };
+const actionAttempts = globalActionLimits.actionAttempts ?? new Map<string, number[]>();
+if (process.env.NODE_ENV !== "production") {
+  globalActionLimits.actionAttempts = actionAttempts;
+}
+
+export function checkActionRateLimit(
+  actionKey: string,
+  maxAllowed: number = 10,
+  windowMs: number = 60 * 1000
+): { allowed: boolean; retryAfterSeconds?: number; error?: string } {
+  const key = actionKey.trim().toLowerCase();
+  const now = Date.now();
+  const timestamps = (actionAttempts.get(key) ?? []).filter((ts) => now - ts < windowMs);
+
+  if (timestamps.length >= maxAllowed) {
+    const oldest = timestamps[0];
+    const retryAfterSeconds = Math.max(1, Math.ceil((windowMs - (now - oldest)) / 1000));
+    return {
+      allowed: false,
+      retryAfterSeconds,
+      error: `Action rate limit reached. Please wait ${retryAfterSeconds} second(s) before trying again.`,
+    };
+  }
+
+  timestamps.push(now);
+  actionAttempts.set(key, timestamps);
+  return { allowed: true };
+}
+
