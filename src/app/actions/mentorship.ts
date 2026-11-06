@@ -6,34 +6,15 @@ import { getCurrentUser, requireUser } from "@/lib/auth";
 import { requireAdminPermission } from "@/lib/admin-auth";
 import { dispatchNotification } from "./notifications";
 
-export const MENTORSHIP_TOPICS = [
-  "Career Guidance",
-  "Resume & CV Review",
-  "Technical Interview Preparation",
-  "Software Engineering Best Practices",
-  "Industry & Role Transition",
-  "Higher Studies & Scholarships",
-  "Academic Research & Publications",
-  "Startup & Entrepreneurship",
-  "Networking & Communication",
-] as const;
+import {
+  MENTORSHIP_TOPICS,
+  type MentorshipTopic,
+  type MentorshipStatus,
+  type SessionFormat,
+  type MentorAvailabilityStatus,
+} from "@/lib/mentorship-constants";
 
-export type MentorshipTopic = (typeof MENTORSHIP_TOPICS)[number];
-
-export type MentorshipStatus =
-  | "PENDING"
-  | "ACCEPTED"
-  | "DECLINED"
-  | "SCHEDULED"
-  | "COMPLETED"
-  | "CANCELLED";
-
-export type SessionFormat = "ONLINE" | "IN_PERSON" | "HYBRID";
-
-export type MentorAvailabilityStatus =
-  | "AVAILABLE"
-  | "TEMPORARILY_UNAVAILABLE"
-  | "FULLY_BOOKED";
+export type { MentorshipTopic, MentorshipStatus, SessionFormat, MentorAvailabilityStatus };
 
 export type CareerMentorProfileData = {
   isActive: boolean;
@@ -823,4 +804,356 @@ async function checkAndRestoreAvailability(mentorId: string) {
   } catch (err) {
     console.error("Error restoring mentor availability:", err);
   }
+}
+
+export type FindMentorsFilters = {
+  searchQuery?: string;
+  role?: "ALL" | "ALUMNI" | "TEACHER";
+  department?: string;
+  topic?: string;
+  sessionType?: string;
+  experienceLevel?: "ALL" | "ENTRY" | "MID" | "SENIOR";
+  sortBy?: "RECENT" | "EXPERIENCE" | "NAME" | "RELEVANT";
+  page?: number;
+  pageSize?: number;
+};
+
+/**
+ * Find eligible and available Career Mentors for student discovery.
+ * Strictly enforces:
+ * - Verified Alumni or Faculty accounts
+ * - Activated Mentor mode (isActive: true)
+ * - Available status (not temporarily paused, not fully booked)
+ * - Has not reached maximum active mentee capacity
+ */
+export async function findEligibleMentors(filters: FindMentorsFilters = {}) {
+  const user = await requireUser("STUDENT");
+
+  const {
+    searchQuery = "",
+    role = "ALL",
+    department = "ALL",
+    topic = "ALL",
+    sessionType = "ALL",
+    experienceLevel = "ALL",
+    sortBy = "RELEVANT",
+    page = 1,
+    pageSize = 9,
+  } = filters;
+
+  // Query eligible users with mentor mode enabled
+  const rawMentors = await db.user.findMany({
+    where: {
+      status: "APPROVED",
+      isMentor: true,
+      deletedAt: null,
+      id: { not: user.id },
+      ...(role !== "ALL"
+        ? role === "ALUMNI"
+          ? { role: "ALUMNI", alumniVerified: true }
+          : { role: "TEACHER" }
+        : {
+            OR: [
+              { role: "ALUMNI", alumniVerified: true },
+              { role: "TEACHER" },
+            ],
+          }),
+    },
+    include: {
+      mentorProfile: true,
+      _count: {
+        select: {
+          mentorRequests: {
+            where: {
+              status: { in: ["PENDING", "ACCEPTED", "SCHEDULED"] },
+            },
+          },
+        },
+      },
+    },
+    orderBy:
+      sortBy === "NAME"
+        ? { name: "asc" }
+        : sortBy === "RECENT"
+        ? { updatedAt: "desc" }
+        : { createdAt: "desc" },
+  });
+
+  // Filter in memory for rich multi-model criteria & availability capacity
+  const eligible = rawMentors.filter((m) => {
+    const mp = m.mentorProfile;
+
+    // 1. Must be active & available
+    const isActive = mp ? mp.isActive : m.isMentor;
+    if (!isActive) return false;
+
+    const status = mp ? mp.status : m.mentorAvailable ? "AVAILABLE" : "TEMPORARILY_UNAVAILABLE";
+    if (status !== "AVAILABLE") return false;
+
+    // 2. Must not exceed maximum active mentee capacity
+    const maxCapacity = mp?.maxMentees ?? m.mentorMaxMentees ?? 3;
+    const activeCount = m._count.mentorRequests;
+    if (activeCount >= maxCapacity) return false;
+
+    // 3. Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchName = m.name.toLowerCase().includes(q);
+      const matchCompany = (m.company || "").toLowerCase().includes(q) || (mp?.company || "").toLowerCase().includes(q);
+      const matchPosition = (m.designation || "").toLowerCase().includes(q) || (mp?.position || "").toLowerCase().includes(q);
+      const matchDept = (m.department || "").toLowerCase().includes(q);
+      const matchSkills = (m.skills || "").toLowerCase().includes(q) || (mp?.skills || "").toLowerCase().includes(q);
+      const matchExpertise = (mp?.expertise || "").toLowerCase().includes(q) || (m.mentorExpertise || "").toLowerCase().includes(q);
+      const matchField = (mp?.careerField || "").toLowerCase().includes(q);
+      if (!matchName && !matchCompany && !matchPosition && !matchDept && !matchSkills && !matchExpertise && !matchField) {
+        return false;
+      }
+    }
+
+    // 4. Department filter
+    if (department !== "ALL" && m.department !== department && mp?.department !== department) {
+      return false;
+    }
+
+    // 5. Topic filter
+    if (topic !== "ALL") {
+      const mentorTopics = (mp?.topics || m.mentorTopics || "").toLowerCase();
+      if (!mentorTopics.includes(topic.toLowerCase())) return false;
+    }
+
+    // 6. Session type filter
+    if (sessionType !== "ALL") {
+      const sType = mp?.preferredSessionType || m.mentorSessionFormat || "ONLINE";
+      if (sType !== sessionType) return false;
+    }
+
+    // 7. Experience level filter
+    if (experienceLevel !== "ALL") {
+      const yrs = mp?.yearsOfExperience ?? 0;
+      if (experienceLevel === "ENTRY" && (yrs < 1 || yrs > 3)) return false;
+      if (experienceLevel === "MID" && (yrs < 3 || yrs > 5)) return false;
+      if (experienceLevel === "SENIOR" && yrs < 5) return false;
+    }
+
+    return true;
+  });
+
+  // Sorting
+  if (sortBy === "EXPERIENCE") {
+    eligible.sort((a, b) => (b.mentorProfile?.yearsOfExperience ?? 0) - (a.mentorProfile?.yearsOfExperience ?? 0));
+  }
+
+  // Pagination calculation
+  const totalCount = eligible.length;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+  const currentPage = Math.min(Math.max(Number(page) || 1, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginated = eligible.slice(startIndex, startIndex + pageSize);
+
+  const formattedMentors = paginated.map((m) => {
+    const mp = m.mentorProfile;
+    return {
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      image: m.image,
+      role: m.role,
+      alumniVerified: m.alumniVerified,
+      company: mp?.company || m.company || (m.role === "TEACHER" ? "ULAB Faculty" : "Alumni Network"),
+      position: mp?.position || m.designation || (m.role === "TEACHER" ? "Faculty Member" : "Professional"),
+      department: mp?.department || m.department || "General",
+      careerField: mp?.careerField || (m.role === "TEACHER" ? "Academia & Research" : "Industry"),
+      yearsOfExperience: mp?.yearsOfExperience ?? null,
+      bio: mp?.bio || m.bio || "",
+      expertise: mp?.expertise || m.mentorExpertise || "",
+      skills: mp?.skills || m.skills || "",
+      topics: (mp?.topics || m.mentorTopics || "").split(",").map((s) => s.trim()).filter(Boolean),
+      preferredSessionType: mp?.preferredSessionType || m.mentorSessionFormat || "ONLINE",
+      availableDays: (mp?.availableDays || "Sunday, Tuesday, Thursday").split(",").map((s) => s.trim()).filter(Boolean),
+      communicationMethod: mp?.communicationMethod || "GOOGLE_MEET",
+      maxMentees: mp?.maxMentees ?? m.mentorMaxMentees ?? 3,
+      activeMenteesCount: m._count.mentorRequests,
+      status: (mp?.status || "AVAILABLE") as MentorAvailabilityStatus,
+      // Faculty specific
+      academicExpertise: mp?.academicExpertise || "",
+      researchInterests: mp?.researchInterests || "",
+      teachingAreas: mp?.teachingAreas || "",
+      academicGuidanceTopics: mp?.academicGuidanceTopics || "",
+    };
+  });
+
+  return {
+    mentors: formattedMentors,
+    totalCount,
+    totalPages,
+    currentPage,
+    pageSize,
+  };
+}
+
+/**
+ * Retrieve a specific mentor's complete public profile for the details page.
+ */
+export async function getMentorPublicProfile(mentorId: string) {
+  const user = await requireUser("STUDENT");
+
+  const mentor = await db.user.findFirst({
+    where: {
+      id: mentorId,
+      status: "APPROVED",
+      isMentor: true,
+      deletedAt: null,
+      OR: [
+        { role: "ALUMNI", alumniVerified: true },
+        { role: "TEACHER" },
+      ],
+    },
+    include: {
+      mentorProfile: true,
+      _count: {
+        select: {
+          mentorRequests: {
+            where: {
+              status: { in: ["PENDING", "ACCEPTED", "SCHEDULED"] },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!mentor) {
+    return { error: "Mentor not found or is currently not enrolled as an active mentor." };
+  }
+
+  const mp = mentor.mentorProfile;
+
+  // Check viewing student's existing request with this mentor
+  const existingRequest = await db.mentorshipRequest.findFirst({
+    where: {
+      studentId: user.id,
+      mentorId: mentor.id,
+      status: { in: ["PENDING", "ACCEPTED", "SCHEDULED"] },
+    },
+    select: {
+      id: true,
+      status: true,
+      topic: true,
+      createdAt: true,
+    },
+  });
+
+  const activeMenteesCount = mentor._count.mentorRequests;
+  const maxCapacity = mp?.maxMentees ?? mentor.mentorMaxMentees ?? 3;
+  const isAvailable =
+    (mp ? mp.isActive && mp.status === "AVAILABLE" : mentor.mentorAvailable) &&
+    activeMenteesCount < maxCapacity;
+
+  return {
+    id: mentor.id,
+    name: mentor.name,
+    email: mentor.email,
+    image: mentor.image,
+    role: mentor.role,
+    alumniVerified: mentor.alumniVerified,
+    company: mp?.company || mentor.company || (mentor.role === "TEACHER" ? "University of Liberal Arts Bangladesh" : ""),
+    position: mp?.position || mentor.designation || (mentor.role === "TEACHER" ? "Faculty Member" : ""),
+    department: mp?.department || mentor.department || "General",
+    careerField: mp?.careerField || "",
+    yearsOfExperience: mp?.yearsOfExperience ?? null,
+    bio: mp?.bio || mentor.bio || "",
+    expertise: mp?.expertise || mentor.mentorExpertise || "",
+    skills: mp?.skills || mentor.skills || "",
+    topics: (mp?.topics || mentor.mentorTopics || "").split(",").map((s) => s.trim()).filter(Boolean),
+    preferredSessionType: mp?.preferredSessionType || mentor.mentorSessionFormat || "ONLINE",
+    availableDays: (mp?.availableDays || "Sunday, Tuesday, Thursday").split(",").map((s) => s.trim()).filter(Boolean),
+    communicationMethod: mp?.communicationMethod || "GOOGLE_MEET",
+    availabilityNote: mp?.availabilityNote || mentor.mentorAvailabilityNote || "",
+    academicExpertise: mp?.academicExpertise || "",
+    researchInterests: mp?.researchInterests || "",
+    teachingAreas: mp?.teachingAreas || "",
+    academicGuidanceTopics: mp?.academicGuidanceTopics || "",
+    isAvailable,
+    activeMenteesCount,
+    maxCapacity,
+    existingRequest: existingRequest
+      ? {
+          id: existingRequest.id,
+          status: existingRequest.status,
+          topic: existingRequest.topic,
+          createdAt: existingRequest.createdAt.toISOString(),
+        }
+      : null,
+  };
+}
+
+/**
+ * Retrieve all mentorship relationships for the logged in student (My Mentors page).
+ */
+export async function getStudentMentorshipHistory() {
+  const student = await requireUser("STUDENT");
+
+  const rawRequests = await db.mentorshipRequest.findMany({
+    where: { studentId: student.id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      mentor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          department: true,
+          company: true,
+          designation: true,
+          alumniVerified: true,
+          mentorProfile: {
+            select: {
+              company: true,
+              position: true,
+              careerField: true,
+              communicationMethod: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const serialized = rawRequests.map((r) => ({
+    id: r.id,
+    topic: r.topic,
+    message: r.message,
+    careerGoals: r.careerGoals,
+    status: r.status,
+    sessionFormat: r.sessionFormat,
+    scheduledAt: r.scheduledAt ? r.scheduledAt.toISOString() : null,
+    sessionLink: r.sessionLink,
+    mentorNotes: r.mentorNotes,
+    completedAt: r.completedAt ? r.completedAt.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+    mentor: {
+      id: r.mentor.id,
+      name: r.mentor.name,
+      email: r.mentor.email,
+      image: r.mentor.image,
+      role: r.mentor.role,
+      department: r.mentor.department,
+      company: r.mentor.mentorProfile?.company || r.mentor.company,
+      position: r.mentor.mentorProfile?.position || r.mentor.designation,
+      careerField: r.mentor.mentorProfile?.careerField,
+      communicationMethod: r.mentor.mentorProfile?.communicationMethod || "GOOGLE_MEET",
+      alumniVerified: r.mentor.alumniVerified,
+    },
+  }));
+
+  return {
+    all: serialized,
+    pending: serialized.filter((r) => r.status === "PENDING"),
+    active: serialized.filter((r) => r.status === "ACCEPTED" || r.status === "SCHEDULED"),
+    completed: serialized.filter((r) => r.status === "COMPLETED"),
+    archived: serialized.filter((r) => r.status === "DECLINED" || r.status === "CANCELLED"),
+  };
 }

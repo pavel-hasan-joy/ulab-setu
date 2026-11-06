@@ -33,10 +33,10 @@ import {
   declineMentorshipRequest,
   scheduleMentorshipSession,
   completeMentorshipSession,
-  MENTORSHIP_TOPICS,
   type MentorshipTopic,
   type MentorAvailabilityStatus,
 } from "@/app/actions/mentorship";
+import { MENTORSHIP_TOPICS } from "@/lib/mentorship-constants";
 import { Avatar, Badge, Button, cn, timeAgo } from "./ui";
 
 const WEEKDAYS = [

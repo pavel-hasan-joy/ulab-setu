@@ -20,9 +20,9 @@ import {
 import {
   sendMentorshipRequest,
   cancelMentorshipRequest,
-  MENTORSHIP_TOPICS,
   type MentorshipTopic,
 } from "@/app/actions/mentorship";
+import { MENTORSHIP_TOPICS } from "@/lib/mentorship-constants";
 import { Avatar, Badge, Button, cn, timeAgo } from "./ui";
 
 export interface SerializedMentor {

@@ -23,7 +23,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
       nav={[
         { href: "/student", label: "Home", icon: "Home" },
         { href: "/student/jobs", label: "Jobs", icon: "Briefcase" },
-        { href: "/student/mentorship", label: "Mentorship", icon: "Compass" },
+        { href: "/student/mentors", label: "Find a Mentor", icon: "Compass" },
+        { href: "/student/my-mentors", label: "My Mentors", icon: "GraduationCap" },
         { href: "/student/tuitions", label: "Tuitions", icon: "BookOpen" },
         { href: "/student/board", label: "Notices", icon: "Megaphone" },
         { href: "/student/people", label: "People", icon: "Users", badge: pendingInvites > 0 ? pendingInvites : undefined },
