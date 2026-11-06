@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { AlumniJobCard } from "@/components/job-cards";
 import { CountUp, PageIn, Stagger, StaggerItem } from "@/components/motion";
-import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
+import { Avatar, Badge, ButtonLink, Card, posterLabel, timeAgo } from "@/components/ui";
 
 export default async function StudentHome() {
   const user = await requireUser("STUDENT");
@@ -73,11 +73,17 @@ export default async function StudentHome() {
           <Stagger className="grid gap-3 md:grid-cols-3">
             {notices.map((n) => (
               <StaggerItem key={n.id}>
-                <Link href={`/student/board?kind=${n.kind}`}>
-                  <Card className="h-full p-4 transition hover:shadow-lift">
-                    <Badge tone="lilac">{n.kind}</Badge>
-                    <p className="mt-2 line-clamp-2 font-semibold">{n.title}</p>
+                <Link href={`/student/board?noticeId=${n.id}`}>
+                  <Card className="h-full p-4 transition hover:shadow-lift hover:border-ulab/60">
+                    <div className="flex items-center justify-between">
+                      <Badge tone="lilac">{n.kind}</Badge>
+                      <span className="text-[10px] text-ink-soft">{timeAgo(n.createdAt)}</span>
+                    </div>
+                    <p className="mt-2 line-clamp-2 font-semibold text-ink group-hover:text-ulab transition">{n.title}</p>
                     <p className="mt-1 text-xs text-ink-soft">{n.author.name}, {posterLabel(n.author)}</p>
+                    <p className="mt-2.5 text-[11px] font-bold text-ulab inline-flex items-center gap-1">
+                      Read full notice →
+                    </p>
                   </Card>
                 </Link>
               </StaggerItem>

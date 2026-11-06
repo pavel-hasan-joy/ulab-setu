@@ -4,7 +4,7 @@ import { BoardView } from "@/components/board-view";
 
 export const metadata: Metadata = { title: "Notice board" };
 
-export default async function Board({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
+export default async function Board({ searchParams }: { searchParams: Promise<{ kind?: string; noticeId?: string }> }) {
   const user = await requireUser("STUDENT");
   return <BoardView viewer={user} basePath="/student/board" params={await searchParams} />;
 }
