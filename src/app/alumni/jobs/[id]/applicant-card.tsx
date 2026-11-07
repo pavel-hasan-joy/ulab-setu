@@ -7,6 +7,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  FolderGit2,
   Globe,
   GraduationCap,
   Mail,
@@ -279,6 +280,42 @@ export function ApplicantCard({
             >
               <Download size={13} /> View / Download CV
             </a>
+          </div>
+        )}
+
+        {/* Projects & Portfolio Links */}
+        {app.projects && app.projects.length > 0 && (
+          <div className="mt-4 rounded-xl border border-mist bg-surface/60 p-3.5 space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1.5">
+              <FolderGit2 size={14} className="text-ulab" />
+              Candidate Projects & Portfolio ({app.projects.length})
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {app.projects.map((proj, idx) => (
+                <div
+                  key={proj.url + idx}
+                  className="flex items-center justify-between rounded-lg border border-mist bg-paper p-2.5 text-xs transition hover:border-ulab/60 hover:shadow-2xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="font-semibold text-ink truncate">
+                      {proj.title || `Project ${idx + 1}`}
+                    </p>
+                    <p className="text-[10px] text-ink-soft truncate font-mono">
+                      {proj.url}
+                    </p>
+                  </div>
+                  <a
+                    href={proj.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-ulab/10 px-2.5 py-1 text-[11px] font-semibold text-ulab hover:bg-ulab hover:text-white transition"
+                    title="Open external project in new tab"
+                  >
+                    Visit <ExternalLink size={11} />
+                  </a>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

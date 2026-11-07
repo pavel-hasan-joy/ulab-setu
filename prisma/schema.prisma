@@ -163,6 +163,8 @@ model Application {
   interviewScheduledAt DateTime? // Timestamp when scheduled or rescheduled
   interviewCancelledAt DateTime? // Timestamp when cancelled
 
+  projects        ApplicationProject[]
+
   jobId           String
   job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
   studentId       String
@@ -172,6 +174,18 @@ model Application {
   @@index([studentId])
   @@index([jobId])
   @@index([status])
+}
+
+/** Optional project links and portfolio submitted by student applicants */
+model ApplicationProject {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  title         String?     // e.g. "E-commerce Website" or "Portfolio"
+  url           String      // Validated HTTP/HTTPS web address
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
 }
 
 model Connection {

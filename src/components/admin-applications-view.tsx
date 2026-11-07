@@ -16,6 +16,7 @@ import {
   Sparkles,
   XCircle,
   FileEdit,
+  FolderGit2,
 } from "lucide-react";
 import { Badge, Card, EmptyState, formatDate, timeAgo } from "@/components/ui";
 import {
@@ -429,6 +430,41 @@ export function AdminApplicationsView({
                       >
                         <Download size={12} /> Open CV
                       </a>
+                    </div>
+                  )}
+
+                  {/* Submitted Projects & Portfolio Links */}
+                  {parsed.projects && parsed.projects.length > 0 && (
+                    <div className="rounded-xl border border-mist bg-paper p-3 text-xs space-y-2">
+                      <p className="font-bold text-ink uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                        <FolderGit2 size={13} className="text-ulab" />
+                        Candidate Projects & Portfolio ({parsed.projects.length})
+                      </p>
+                      <div className="grid gap-2">
+                        {parsed.projects.map((proj, idx) => (
+                          <div
+                            key={proj.url + idx}
+                            className="flex items-center justify-between rounded-lg border border-mist bg-surface/50 p-2 text-xs"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="font-semibold text-ink truncate">
+                                {proj.title || `Project ${idx + 1}`}
+                              </p>
+                              <p className="text-[10px] text-ink-soft truncate font-mono">
+                                {proj.url}
+                              </p>
+                            </div>
+                            <a
+                              href={proj.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 inline-flex items-center gap-1 rounded-md bg-ulab/10 px-2 py-0.5 text-[11px] font-semibold text-ulab hover:bg-ulab hover:text-white transition"
+                            >
+                              Visit <ExternalLink size={11} />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 

@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Download,
   Video,
+  FolderGit2,
 } from "lucide-react";
 import { Badge, Card, EmptyState, formatDate, timeAgo } from "@/components/ui";
 import { withdrawApplication } from "@/app/actions/jobs";
@@ -298,6 +299,41 @@ export function StudentApplicationsView({
                         </span>
                       )}
                     </div>
+
+                    {/* Submitted Projects & Portfolio Links */}
+                    {parsed.projects && parsed.projects.length > 0 && (
+                      <div className="pt-2 border-t border-mist/60 space-y-1.5">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft flex items-center gap-1.5">
+                          <FolderGit2 size={13} className="text-ulab" />
+                          Submitted Projects & Portfolio ({parsed.projects.length})
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {parsed.projects.map((proj, idx) => (
+                            <div
+                              key={proj.url + idx}
+                              className="flex items-center justify-between rounded-xl border border-mist bg-surface/60 p-2.5 text-xs transition hover:border-mist-deep"
+                            >
+                              <div className="min-w-0 pr-2">
+                                <span className="font-semibold text-ink block truncate">
+                                  {proj.title || `Project ${idx + 1}`}
+                                </span>
+                                <span className="text-[10px] text-ink-soft font-mono truncate block">
+                                  {proj.url}
+                                </span>
+                              </div>
+                              <a
+                                href={proj.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="shrink-0 inline-flex items-center gap-1 rounded-md bg-ulab/10 px-2 py-0.5 text-[11px] font-semibold text-ulab hover:bg-ulab hover:text-white transition"
+                              >
+                                View <ExternalLink size={11} />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions Bar */}

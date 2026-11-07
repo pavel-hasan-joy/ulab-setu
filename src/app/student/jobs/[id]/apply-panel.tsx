@@ -17,6 +17,8 @@ import {
   Calendar,
   AlertCircle,
   HelpCircle,
+  Plus,
+  FolderGit2,
 } from "lucide-react";
 import { useActionState, useState, useRef } from "react";
 import type { User } from "@prisma/client";
@@ -64,6 +66,34 @@ export function ApplyPanel({
   const [cvMode, setCvMode] = useState<"upload" | "link">("upload");
   const [cvError, setCvError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Optional Multiple Projects & Portfolio state
+  const [projectList, setProjectList] = useState<Array<{ id: string; title: string; url: string }>>([
+    { id: "proj_1", title: "", url: "" },
+  ]);
+
+  const addProject = () => {
+    setProjectList((prev) => [
+      ...prev,
+      { id: `proj_${Date.now()}_${prev.length + 1}`, title: "", url: "" },
+    ]);
+  };
+
+  const removeProject = (id: string) => {
+    setProjectList((prev) => {
+      const remaining = prev.filter((p) => p.id !== id);
+      if (remaining.length === 0) {
+        return [{ id: `proj_${Date.now()}`, title: "", url: "" }];
+      }
+      return remaining;
+    });
+  };
+
+  const updateProject = (id: string, field: "title" | "url", value: string) => {
+    setProjectList((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -333,6 +363,93 @@ export function ApplyPanel({
                   className="text-xs"
                 />
               </Field>
+            </div>
+
+            {/* Projects & Portfolio (Optional) */}
+            <div className="space-y-3 border-t border-mist/70 pt-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                    <FolderGit2 size={14} className="text-ulab" />
+                    Projects & Portfolio (Optional)
+                  </h3>
+                  <p className="text-[11px] text-ink-soft">
+                    Share links to your best projects, live websites, or code repositories.
+                  </p>
+                </div>
+              </div>
+
+              {/* Serialized project links for server action */}
+              <input
+                type="hidden"
+                name="projectLinks"
+                value={JSON.stringify(
+                  projectList
+                    .filter((p) => p.url.trim().length > 0)
+                    .map((p) => ({ title: p.title.trim() || null, url: p.url.trim() }))
+                )}
+              />
+
+              <div className="space-y-3">
+                {projectList.map((project, index) => (
+                  <div
+                    key={project.id}
+                    className="relative rounded-xl border border-mist bg-surface/50 p-3 space-y-2.5 transition hover:border-mist-deep"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">
+                        Project {index + 1}
+                      </span>
+                      {projectList.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeProject(project.id)}
+                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline inline-flex items-center gap-0.5"
+                          title="Remove this project input"
+                        >
+                          <X size={12} /> Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-ink-soft mb-0.5">
+                          Project Title / Name (Optional)
+                        </label>
+                        <Input
+                          type="text"
+                          placeholder="e.g. E-commerce Website, Java Management System"
+                          value={project.title}
+                          onChange={(e) => updateProject(project.id, "title", e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-semibold text-ink-soft mb-0.5">
+                          Project URL <span className="text-ink-soft font-normal">(e.g. https://github.com/...)</span>
+                        </label>
+                        <Input
+                          type="url"
+                          placeholder="https://..."
+                          value={project.url}
+                          onChange={(e) => updateProject(project.id, "url", e.target.value)}
+                          className="text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={addProject}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-ulab/60 bg-sky/20 px-3 py-2 text-xs font-semibold text-ulab-deep hover:bg-sky/40 transition w-full justify-center"
+              >
+                <Plus size={13} /> Add Another Project
+              </button>
             </div>
 
             {/* Cover Note */}

@@ -97,6 +97,12 @@ export function canScheduleInterview(status: string | null | undefined): boolean
   return status !== "REJECTED" && status !== "WITHDRAWN" && status !== "SELECTED";
 }
 
+export type ProjectLink = {
+  id?: string;
+  title?: string | null;
+  url: string;
+};
+
 export type ApplicationPayload = {
   coverNote?: string | null;
   phone?: string | null;
@@ -111,8 +117,85 @@ export type ApplicationPayload = {
   cvFileName?: string | null;
   cvUrl?: string | null;
   cvData?: string | null;
+  projects?: ProjectLink[] | null;
   isStructured?: boolean;
 };
+
+/**
+ * Validates and sanitizes a project URL submitted in an application.
+ * Rejects javascript:, data:, and all non-HTTP/HTTPS URLs.
+ * Trims excess whitespace and validates domain format.
+ */
+export function validateProjectUrl(rawUrl: unknown): {
+  valid: boolean;
+  url: string;
+  error?: string;
+} {
+  if (typeof rawUrl !== "string") {
+    return { valid: false, url: "", error: "Project URL must be a valid text string." };
+  }
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed) {
+    return { valid: false, url: "", error: "Project URL cannot be blank." };
+  }
+
+  if (trimmed.length > 1000) {
+    return { valid: false, url: "", error: "Project URL exceeds the 1000 character limit." };
+  }
+
+  // Reject unsafe schemes explicitly
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:") ||
+    lower.startsWith("file:")
+  ) {
+    return {
+      valid: false,
+      url: "",
+      error: "Unsafe URL scheme detected. Only HTTP and HTTPS web addresses are permitted.",
+    };
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return {
+        valid: false,
+        url: "",
+        error: "Invalid protocol. Only HTTP and HTTPS URLs are allowed (e.g. https://...).",
+      };
+    }
+
+    if (!parsed.hostname || !parsed.hostname.includes(".")) {
+      return {
+        valid: false,
+        url: "",
+        error: "Invalid domain address in project URL.",
+      };
+    }
+
+    return { valid: true, url: trimmed };
+  } catch {
+    return {
+      valid: false,
+      url: "",
+      error: "Please enter a valid HTTP or HTTPS URL (e.g. https://github.com/your-project).",
+    };
+  }
+}
+
+/**
+ * Sanitizes project title to prevent abuse or excessive length.
+ */
+export function sanitizeProjectTitle(rawTitle: unknown): string | null {
+  if (typeof rawTitle !== "string") return null;
+  const trimmed = rawTitle.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 150);
+}
 
 /**
  * Safely parses the application note field.

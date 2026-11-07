@@ -8,6 +8,7 @@ import { requirePoster, requireUser } from "@/lib/auth";
 import { syncExpiredJobs, isJobAcceptingApplications, type JobStatus } from "@/lib/jobs";
 import { cleanLinkedIn } from "@/lib/contact";
 import { checkActionRateLimit } from "@/lib/rate-limit";
+import { validateProjectUrl, sanitizeProjectTitle } from "@/lib/applications";
 import { fail, type FormState } from "./auth";
 
 const jobSchema = z.object({
@@ -396,6 +397,36 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     }).catch(() => {});
   }
 
+  // Extract and validate optional project links
+  const projectLinksRaw = formData.get("projectLinks");
+  const validatedProjects: Array<{ title: string | null; url: string }> = [];
+
+  if (typeof projectLinksRaw === "string" && projectLinksRaw.trim()) {
+    try {
+      const parsedProjects = JSON.parse(projectLinksRaw);
+      if (Array.isArray(parsedProjects)) {
+        for (const p of parsedProjects) {
+          if (!p || typeof p !== "object") continue;
+          const urlRaw = typeof p.url === "string" ? p.url.trim() : "";
+          if (!urlRaw) continue; // Optional empty fields are skipped
+
+          const urlCheck = validateProjectUrl(urlRaw);
+          if (!urlCheck.valid) {
+            return { error: `Project Link Error: ${urlCheck.error}` };
+          }
+
+          const cleanTitle = sanitizeProjectTitle(p.title);
+          validatedProjects.push({
+            title: cleanTitle,
+            url: urlCheck.url,
+          });
+        }
+      }
+    } catch {
+      return { error: "Malformed project links data." };
+    }
+  }
+
   const structuredPayload = JSON.stringify({
     coverNote: coverNote || null,
     phone: phone || user.phone || null,
@@ -410,9 +441,10 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     cvFileName: finalCvFileName || null,
     cvUrl: finalCvUrl || null,
     cvData: finalCvData || null,
+    projects: validatedProjects.length > 0 ? validatedProjects : null,
   });
 
-  await db.application.upsert({
+  const savedApp = await db.application.upsert({
     where: { jobId_studentId: { jobId, studentId: user.id } },
     create: {
       jobId,
@@ -428,6 +460,21 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
       statusUpdatedAt: new Date(),
     },
   });
+
+  // Synchronize normalized child table ApplicationProject
+  await db.applicationProject.deleteMany({
+    where: { applicationId: savedApp.id },
+  }).catch(() => {});
+
+  if (validatedProjects.length > 0) {
+    await db.applicationProject.createMany({
+      data: validatedProjects.map((p) => ({
+        applicationId: savedApp.id,
+        title: p.title,
+        url: p.url,
+      })),
+    }).catch(() => {});
+  }
 
   // Notify job poster of new application
   await db.notification.create({
