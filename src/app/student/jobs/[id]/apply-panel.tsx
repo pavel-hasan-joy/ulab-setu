@@ -170,10 +170,18 @@ export function ApplyPanel({
                 "Your application has been received and forwarded directly to the hiring alumnus."}
             </p>
 
-            <div className="mt-5 flex justify-center">
+            <div className="mt-5 space-y-2.5">
+              <Button
+                disabled
+                className="w-full bg-emerald-600 text-white py-2.5 text-xs font-semibold cursor-not-allowed opacity-95 shadow-sm"
+              >
+                <CheckCircle2 size={14} className="mr-1.5 inline" />
+                {statusInfo?.label || "Application Submitted"}
+              </Button>
+
               <Link
                 href="/student/applications"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-ulab px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-ulab-deep transition"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-mist bg-paper/60 px-4 py-2 text-xs font-semibold text-ink hover:bg-paper transition w-full"
               >
                 <FileText size={14} /> View in My Applications
               </Link>
@@ -470,7 +478,7 @@ export function ApplyPanel({
             <FormError message={state?.error} />
 
             <Button disabled={pending} className="w-full py-2.5 text-xs font-semibold">
-              {pending ? "Submitting Application..." : "Submit Application"}
+              {pending ? "Submitting Application..." : "Apply Now"}
             </Button>
           </motion.form>
         )}

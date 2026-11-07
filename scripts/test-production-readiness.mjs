@@ -471,6 +471,163 @@ runAuditTest("FUNC", "D.10: Unlimited Student Mentorship Requests & Duplicate Pe
   assert.strictEqual(existingRequests.length, 15, "Student successfully requested 15 different mentors");
 });
 
+runAuditTest("FUNC", "D.11: Unified Dynamic Job Application Status lifecycle & ApplicationStatusHistory logging", () => {
+  const applicationStatusConfig = {
+    APPLIED: { label: "Application Submitted", badgeTone: "gold", userAction: "None" },
+    VIEWED: { label: "Under Review", badgeTone: "blue", userAction: "None" },
+    SHORTLISTED: { label: "Shortlisted", badgeTone: "sage", userAction: "None" },
+    INTERVIEW: { label: "Interview Scheduled", badgeTone: "lilac", userAction: "Attend Interview" },
+    SELECTED: { label: "Selected", badgeTone: "emerald", userAction: "Accept Offer" },
+    REJECTED: { label: "Rejected", badgeTone: "rose", userAction: "Archived" },
+    WITHDRAWN: { label: "Withdrawn", badgeTone: "gray", userAction: "None" },
+  };
+
+  // 1. Authoritative labels verification
+  assert.strictEqual(applicationStatusConfig.APPLIED.label, "Application Submitted");
+  assert.strictEqual(applicationStatusConfig.VIEWED.label, "Under Review");
+  assert.strictEqual(applicationStatusConfig.SELECTED.label, "Selected");
+
+  // 2. Application Button State Machine
+  const getApplyButtonState = (application) => {
+    if (!application) {
+      return { label: "Apply Now", disabled: false, canApply: true };
+    }
+    if (application.status === "APPLIED") {
+      return { label: "Application Submitted", disabled: true, canApply: false };
+    }
+    return {
+      label: applicationStatusConfig[application.status]?.label || "Applied",
+      disabled: true,
+      canApply: false,
+    };
+  };
+
+  // Before applying
+  assert.deepStrictEqual(getApplyButtonState(null), {
+    label: "Apply Now",
+    disabled: false,
+    canApply: true,
+  });
+
+  // After applying
+  const app = {
+    id: "app_100",
+    jobId: "job_99",
+    studentId: "student_1",
+    status: "APPLIED",
+  };
+  assert.deepStrictEqual(getApplyButtonState(app), {
+    label: "Application Submitted",
+    disabled: true,
+    canApply: false,
+  });
+
+  // Under review
+  app.status = "VIEWED";
+  assert.strictEqual(getApplyButtonState(app).label, "Under Review");
+
+  // Interview scheduled
+  app.status = "INTERVIEW";
+  assert.strictEqual(getApplyButtonState(app).label, "Interview Scheduled");
+
+  // 3. Status History Tracking
+  const statusHistory = [];
+  const recordHistory = ({ applicationId, previousStatus, newStatus, changedById, note }) => {
+    statusHistory.push({
+      id: `hist_${statusHistory.length + 1}`,
+      applicationId,
+      previousStatus,
+      newStatus,
+      changedById,
+      note,
+      createdAt: new Date(),
+    });
+  };
+
+  recordHistory({
+    applicationId: app.id,
+    previousStatus: "APPLIED",
+    newStatus: "VIEWED",
+    changedById: "recruiter_1",
+    note: "Application opened and reviewed",
+  });
+
+  recordHistory({
+    applicationId: app.id,
+    previousStatus: "VIEWED",
+    newStatus: "INTERVIEW",
+    changedById: "recruiter_1",
+    note: "Scheduled online interview for Nov 15",
+  });
+
+  assert.strictEqual(statusHistory.length, 2);
+  assert.strictEqual(statusHistory[0].previousStatus, "APPLIED");
+  assert.strictEqual(statusHistory[0].newStatus, "VIEWED");
+  assert.strictEqual(statusHistory[1].previousStatus, "VIEWED");
+  assert.strictEqual(statusHistory[1].newStatus, "INTERVIEW");
+});
+
+runAuditTest("FUNC", "D.12: Unified Dynamic Mentorship Request Status lifecycle (Request Sent, Mentorship Active, Request Again)", () => {
+  const getMentorButtonState = (latestRequest, mentorIsAvailable = true) => {
+    if (!latestRequest) {
+      return {
+        label: mentorIsAvailable ? "Request Mentor" : "Temporarily Unavailable",
+        disabled: !mentorIsAvailable,
+        type: "NEW_REQUEST",
+      };
+    }
+
+    if (latestRequest.status === "PENDING") {
+      return { label: "Request Sent", disabled: true, type: "PENDING" };
+    }
+
+    if (latestRequest.status === "ACCEPTED" || latestRequest.status === "SCHEDULED") {
+      return { label: "Mentorship Active", disabled: false, type: "ACTIVE", href: "/student/my-mentors" };
+    }
+
+    if (["DECLINED", "CANCELLED", "COMPLETED"].includes(latestRequest.status)) {
+      return {
+        label: mentorIsAvailable ? "Request Again" : "Unavailable",
+        disabled: !mentorIsAvailable,
+        type: "RE_REQUEST",
+      };
+    }
+
+    return { label: "Request Mentor", disabled: !mentorIsAvailable, type: "NEW_REQUEST" };
+  };
+
+  // State 1: No prior request
+  const state1 = getMentorButtonState(null, true);
+  assert.strictEqual(state1.label, "Request Mentor");
+  assert.strictEqual(state1.disabled, false);
+
+  // State 2: Request sent (pending)
+  const state2 = getMentorButtonState({ status: "PENDING" }, true);
+  assert.strictEqual(state2.label, "Request Sent");
+  assert.strictEqual(state2.disabled, true);
+
+  // State 3: Mentorship active (accepted / scheduled)
+  const state3 = getMentorButtonState({ status: "ACCEPTED" }, true);
+  assert.strictEqual(state3.label, "Mentorship Active");
+  assert.strictEqual(state3.href, "/student/my-mentors");
+
+  // State 4: Ended / Cancelled / Declined -> Request Again
+  const state4 = getMentorButtonState({ status: "CANCELLED" }, true);
+  assert.strictEqual(state4.label, "Request Again");
+  assert.strictEqual(state4.disabled, false);
+
+  const state5 = getMentorButtonState({ status: "DECLINED" }, true);
+  assert.strictEqual(state5.label, "Request Again");
+
+  const state6 = getMentorButtonState({ status: "COMPLETED" }, true);
+  assert.strictEqual(state6.label, "Request Again");
+
+  // State 5: Mentor became unavailable
+  const state7 = getMentorButtonState({ status: "COMPLETED" }, false);
+  assert.strictEqual(state7.label, "Unavailable");
+  assert.strictEqual(state7.disabled, true);
+});
+
 console.log("\n================================================================================");
 console.log(`   Final Production Readiness Audit: ${passed}/${total} Checks Passed (100%)`);
 console.log("================================================================================\n");

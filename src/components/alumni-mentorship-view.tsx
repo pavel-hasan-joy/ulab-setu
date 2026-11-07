@@ -227,11 +227,11 @@ export function AlumniMentorshipView({
       case "SCHEDULED":
         return <Badge tone="blue">Scheduled 📅</Badge>;
       case "COMPLETED":
-        return <Badge tone="sage">Completed 🌟</Badge>;
+        return <Badge tone="lilac">Completed</Badge>;
       case "DECLINED":
         return <Badge tone="rose">Declined</Badge>;
       case "CANCELLED":
-        return <Badge tone="gray">Cancelled by Mentee</Badge>;
+        return <Badge tone="gray">Ended / Removed</Badge>;
       default:
         return <Badge tone="gray">{status}</Badge>;
     }

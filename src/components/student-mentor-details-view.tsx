@@ -215,7 +215,7 @@ export function StudentMentorDetailsView({
               <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-800 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200">
                 <div className="flex items-center justify-center gap-1.5 font-bold">
                   <Clock size={14} className="text-amber-600 animate-pulse" />
-                  <span>Request Sent (Pending Review)</span>
+                  <span>Request Sent</span>
                 </div>
                 <Link
                   href="/student/mentorship"
@@ -225,22 +225,24 @@ export function StudentMentorDetailsView({
                 </Link>
               </div>
             ) : requestStatus === "ACCEPTED" || requestStatus === "SCHEDULED" ? (
-              <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-center text-xs font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200">
-                <p className="font-bold">Active Mentor ({requestStatus})</p>
-                <Link
-                  href="/student/my-mentors"
-                  className="mt-1 block text-[11px] underline hover:no-underline font-semibold"
-                >
-                  View in My Mentors →
-                </Link>
-              </div>
+              <Link
+                href="/student/my-mentors"
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-soft transition"
+              >
+                <CheckCircle2 size={14} />
+                Mentorship Active
+              </Link>
             ) : mentor.isAvailable ? (
               <Button
                 type="button"
                 onClick={() => setShowRequestModal(true)}
                 className="w-full sm:w-auto bg-ulab py-2.5 px-6 text-sm text-white hover:bg-ulab-deep shadow-soft"
               >
-                Request Mentorship
+                {requestStatus === "DECLINED" ||
+                requestStatus === "CANCELLED" ||
+                requestStatus === "COMPLETED"
+                  ? "Request Again"
+                  : "Request Mentor"}
               </Button>
             ) : (
               <Button
@@ -440,14 +442,14 @@ export function StudentMentorDetailsView({
                   className="w-full bg-amber-100/90 text-amber-900 border border-amber-300/80 py-2 text-xs font-semibold cursor-not-allowed dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900/60"
                 >
                   <Clock size={13} className="mr-1.5 inline" />
-                  Request Sent (Pending Review)
+                  Request Sent
                 </Button>
               ) : requestStatus === "ACCEPTED" || requestStatus === "SCHEDULED" ? (
                 <Link
                   href="/student/my-mentors"
                   className="block w-full text-center rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2 text-xs font-semibold text-white shadow-soft"
                 >
-                  Active Mentor — View in My Mentors →
+                  Mentorship Active →
                 </Link>
               ) : mentor.isAvailable ? (
                 <Button
@@ -455,7 +457,11 @@ export function StudentMentorDetailsView({
                   onClick={() => setShowRequestModal(true)}
                   className="w-full bg-ulab py-2 text-xs text-white hover:bg-ulab-deep shadow-soft"
                 >
-                  Send Mentorship Request
+                  {requestStatus === "DECLINED" ||
+                  requestStatus === "CANCELLED" ||
+                  requestStatus === "COMPLETED"
+                    ? "Request Again"
+                    : "Request Mentor"}
                 </Button>
               ) : (
                 <Button

@@ -52,11 +52,13 @@ export interface DiscoverMentorItem {
 interface StudentFindMentorViewProps {
   initialMentors: DiscoverMentorItem[];
   departments: string[];
+  studentRequests?: Array<{ mentorId: string; status: string }>;
 }
 
 export function StudentFindMentorView({
   initialMentors,
   departments,
+  studentRequests = [],
 }: StudentFindMentorViewProps) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"ALL" | "ALUMNI" | "TEACHER">("ALL");
@@ -475,12 +477,51 @@ export function StudentFindMentorView({
                 >
                   View Profile
                 </Link>
-                <Link
-                  href={`/student/mentors/${m.id}?request=1`}
-                  className="flex-1 rounded-xl bg-ulab py-2 text-center text-xs font-semibold text-white hover:bg-ulab-deep transition shadow-soft"
-                >
-                  Request Mentorship
-                </Link>
+                {(() => {
+                  const latestReq = studentRequests.find((r) => r.mentorId === m.id);
+                  if (latestReq?.status === "PENDING") {
+                    return (
+                      <span className="flex-1 rounded-xl border border-amber-300 bg-amber-50 py-2 text-center text-xs font-semibold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300">
+                        Request Sent
+                      </span>
+                    );
+                  }
+                  if (
+                    latestReq?.status === "ACCEPTED" ||
+                    latestReq?.status === "SCHEDULED"
+                  ) {
+                    return (
+                      <Link
+                        href="/student/my-mentors"
+                        className="flex-1 rounded-xl bg-emerald-600 py-2 text-center text-xs font-semibold text-white hover:bg-emerald-700 transition shadow-soft"
+                      >
+                        Mentorship Active
+                      </Link>
+                    );
+                  }
+                  if (
+                    latestReq?.status === "DECLINED" ||
+                    latestReq?.status === "CANCELLED" ||
+                    latestReq?.status === "COMPLETED"
+                  ) {
+                    return (
+                      <Link
+                        href={`/student/mentors/${m.id}?request=1`}
+                        className="flex-1 rounded-xl bg-ulab py-2 text-center text-xs font-semibold text-white hover:bg-ulab-deep transition shadow-soft"
+                      >
+                        Request Again
+                      </Link>
+                    );
+                  }
+                  return (
+                    <Link
+                      href={`/student/mentors/${m.id}?request=1`}
+                      className="flex-1 rounded-xl bg-ulab py-2 text-center text-xs font-semibold text-white hover:bg-ulab-deep transition shadow-soft"
+                    >
+                      Request Mentor
+                    </Link>
+                  );
+                })()}
               </div>
             </Card>
           ))}

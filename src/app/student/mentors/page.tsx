@@ -8,16 +8,21 @@ import { findEligibleMentors } from "@/app/actions/mentorship";
 export const dynamic = "force-dynamic";
 
 export default async function FindMentorPage() {
-  await requireUser("STUDENT");
+  const user = await requireUser("STUDENT");
 
-  // Fetch initial eligible available mentors
-  const [mentorsResult, deptRecords] = await Promise.all([
+  // Fetch initial eligible available mentors and student's request history
+  const [mentorsResult, deptRecords, userRequests] = await Promise.all([
     findEligibleMentors({ pageSize: 50 }),
     db.user.findMany({
       where: { department: { not: null }, status: "APPROVED" },
       select: { department: true },
       distinct: ["department"],
       orderBy: { department: "asc" },
+    }),
+    db.mentorshipRequest.findMany({
+      where: { studentId: user.id },
+      select: { mentorId: true, status: true },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 
@@ -36,6 +41,7 @@ export default async function FindMentorPage() {
         <StudentFindMentorView
           initialMentors={mentorsResult.mentors}
           departments={departments}
+          studentRequests={userRequests}
         />
       </div>
     </PageIn>

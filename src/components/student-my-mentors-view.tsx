@@ -335,16 +335,26 @@ export function StudentMyMentorsView({
                       tone={
                         req.status === "PENDING"
                           ? "gold"
-                          : req.status === "SCHEDULED"
+                          : req.status === "SCHEDULED" || req.status === "ACCEPTED"
                           ? "sage"
                           : req.status === "COMPLETED"
                           ? "lilac"
-                          : req.status === "ACCEPTED"
-                          ? "blue"
+                          : req.status === "DECLINED"
+                          ? "rose"
                           : "gray"
                       }
                     >
-                      {req.status}
+                      {req.status === "PENDING"
+                        ? "Request Sent"
+                        : req.status === "ACCEPTED" || req.status === "SCHEDULED"
+                        ? "Mentorship Active"
+                        : req.status === "COMPLETED"
+                        ? "Completed"
+                        : req.status === "DECLINED"
+                        ? "Declined"
+                        : req.status === "CANCELLED"
+                        ? "Ended / Removed"
+                        : req.status}
                     </Badge>
 
                     {req.feedback && (
@@ -561,6 +571,15 @@ export function StudentMyMentorsView({
                       Remove Record
                     </Button>
                   </div>
+                )}
+
+                {(req.status === "COMPLETED" || req.status === "DECLINED" || req.status === "CANCELLED") && (
+                  <Link
+                    href={`/student/mentors/${req.mentor.id}?request=1`}
+                    className="inline-flex items-center gap-1 rounded-xl bg-ulab py-1.5 px-3 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft"
+                  >
+                    Request Again
+                  </Link>
                 )}
 
                 <Link

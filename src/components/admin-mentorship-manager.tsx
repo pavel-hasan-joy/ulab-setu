@@ -327,10 +327,29 @@ export function AdminMentorshipManager({
       case "PENDING":
         return "gold";
       case "DECLINED":
-      case "CANCELLED":
         return "rose";
+      case "CANCELLED":
+        return "gray";
       default:
         return "gray";
+    }
+  };
+
+  const getStatusLabel = (status: string): string => {
+    switch (status) {
+      case "PENDING":
+        return "Request Sent";
+      case "ACCEPTED":
+      case "SCHEDULED":
+        return "Mentorship Active";
+      case "COMPLETED":
+        return "Completed";
+      case "DECLINED":
+        return "Declined";
+      case "CANCELLED":
+        return "Ended / Removed";
+      default:
+        return status.replace(/_/g, " ");
     }
   };
 
@@ -672,7 +691,15 @@ export function AdminMentorshipManager({
                       : "bg-paper text-ink-soft hover:text-ink"
                   )}
                 >
-                  {st === "ALL" ? `All (${data.requests.length})` : st.replace(/_/g, " ")}
+                  {st === "ALL"
+                    ? `All (${data.requests.length})`
+                    : st === "CANCELLED"
+                    ? "Ended / Removed"
+                    : st === "PENDING"
+                    ? "Request Sent"
+                    : st === "ACCEPTED" || st === "SCHEDULED"
+                    ? "Mentorship Active"
+                    : st.replace(/_/g, " ")}
                 </button>
               ))}
             </div>
@@ -690,7 +717,7 @@ export function AdminMentorshipManager({
                 <Card key={r.id} className="p-5 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <Badge tone={getStatusTone(r.status)} className="text-[10px]">
-                      {r.status.replace(/_/g, " ")}
+                      {getStatusLabel(r.status)}
                     </Badge>
                     <span className="text-[11px] text-ink-soft">{timeAgo(r.createdAt)}</span>
                   </div>

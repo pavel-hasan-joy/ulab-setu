@@ -1191,7 +1191,7 @@ export function CareerMentorSettingsView({
 
             {/* Filter pills */}
             <div className="flex flex-wrap items-center gap-1">
-              {["ALL", "PENDING", "ACCEPTED", "SCHEDULED", "COMPLETED", "DECLINED"].map((st) => (
+              {["ALL", "PENDING", "ACCEPTED", "SCHEDULED", "COMPLETED", "DECLINED", "CANCELLED"].map((st) => (
                 <button
                   key={st}
                   type="button"
@@ -1202,7 +1202,7 @@ export function CareerMentorSettingsView({
                       : "border border-mist/80 bg-paper/60 text-ink-soft hover:bg-paper hover:text-ink dark:border-white/10 dark:bg-white/5"
                   }`}
                 >
-                  {st}
+                  {st === "CANCELLED" ? "ENDED / REMOVED" : st}
                 </button>
               ))}
             </div>
@@ -1249,10 +1249,22 @@ export function CareerMentorSettingsView({
                               ? "sage"
                               : req.status === "COMPLETED"
                               ? "lilac"
-                              : "gray"
+                              : req.status === "CANCELLED"
+                              ? "gray"
+                              : "rose"
                           }
                         >
-                          {req.status}
+                          {req.status === "PENDING"
+                            ? "Request Sent"
+                            : req.status === "ACCEPTED" || req.status === "SCHEDULED"
+                            ? "Mentorship Active"
+                            : req.status === "CANCELLED"
+                            ? "Ended / Removed"
+                            : req.status === "DECLINED"
+                            ? "Declined"
+                            : req.status === "COMPLETED"
+                            ? "Completed"
+                            : req.status}
                         </Badge>
                       </div>
 

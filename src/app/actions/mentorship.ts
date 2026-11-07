@@ -1368,13 +1368,13 @@ export async function getMentorPublicProfile(mentorId: string) {
 
   const mp = mentor.mentorProfile;
 
-  // Check viewing student's existing request with this mentor
+  // Check viewing student's existing request with this mentor (most recent request)
   const existingRequest = await db.mentorshipRequest.findFirst({
     where: {
       studentId: user.id,
       mentorId: mentor.id,
-      status: { in: ["PENDING", "ACCEPTED", "SCHEDULED"] },
     },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       status: true,

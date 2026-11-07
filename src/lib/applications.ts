@@ -17,13 +17,13 @@ export const APPLICATION_STATUS_CONFIG: Record<
   }
 > = {
   APPLIED: {
-    label: "Applied",
+    label: "Application Submitted",
     tone: "blue",
     description: "Your application has been received and queued for recruiter review.",
     stageIndex: 1,
   },
   VIEWED: {
-    label: "Viewed",
+    label: "Under Review",
     tone: "lilac",
     description: "The hiring alumni has opened and reviewed your profile and CV.",
     stageIndex: 2,
@@ -41,7 +41,7 @@ export const APPLICATION_STATUS_CONFIG: Record<
     stageIndex: 4,
   },
   SELECTED: {
-    label: "Selected 🎉",
+    label: "Selected",
     tone: "sage",
     description: "Congratulations! You have been selected or offered the position.",
     stageIndex: 5,

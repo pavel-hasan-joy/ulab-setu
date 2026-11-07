@@ -97,6 +97,7 @@ model User {
   feedbackGiven          MentorshipFeedback[]  @relation("StudentFeedbackGiven")
   feedbackReceived       MentorshipFeedback[]  @relation("MentorFeedbackReceived")
   mentorshipAuditLogs    MentorshipAuditLog[]  @relation("MentorshipAuditActor")
+  statusHistoryChanges   ApplicationStatusHistory[] @relation("StatusHistoryChangedBy")
 
   @@index([role])
   @@index([status])
@@ -166,6 +167,7 @@ model Application {
   interviewCancelledAt DateTime? // Timestamp when cancelled
 
   projects        ApplicationProject[]
+  statusHistory   ApplicationStatusHistory[]
 
   jobId           String
   job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
@@ -188,6 +190,23 @@ model ApplicationProject {
   createdAt     DateTime    @default(now())
 
   @@index([applicationId])
+}
+
+/** Audit log of authoritative application status transitions */
+model ApplicationStatusHistory {
+  id             String      @id @default(cuid())
+  applicationId  String
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  previousStatus String?
+  newStatus      String
+  changedById    String
+  changedBy      User        @relation("StatusHistoryChangedBy", fields: [changedById], references: [id], onDelete: Cascade)
+  note           String?
+  createdAt      DateTime    @default(now())
+
+  @@index([applicationId])
+  @@index([changedById])
+  @@index([createdAt])
 }
 
 model Connection {

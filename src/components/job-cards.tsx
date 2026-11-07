@@ -9,17 +9,57 @@ function isClosingSoon(deadline: Date | null) {
   return !!deadline && deadline.getTime() - Date.now() < 5 * 864e5;
 }
 
-export function AlumniJobCard({ job, href }: { job: Job & { postedBy: User }; href: string }) {
+export function AlumniJobCard({
+  job,
+  href,
+  appliedStatus,
+}: {
+  job: Job & { postedBy: User };
+  href: string;
+  appliedStatus?: string | null;
+}) {
   const closingSoon = isClosingSoon(job.deadline);
   return (
     <HoverLift className="h-full">
       <Link href={href} className="group block h-full">
         <Card className="flex h-full flex-col p-5 transition-shadow group-hover:shadow-lift">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 items-center">
             <Badge>{job.type}</Badge>
             {job.experienceLevel && <Badge tone="gray">{job.experienceLevel}</Badge>}
             {job.referral && <Badge tone="gold">Referral available</Badge>}
             {closingSoon && <Badge tone="rose">Closing soon</Badge>}
+            {appliedStatus && appliedStatus !== "WITHDRAWN" && (
+              <Badge
+                tone={
+                  appliedStatus === "SELECTED"
+                    ? "sage"
+                    : appliedStatus === "SHORTLISTED"
+                    ? "gold"
+                    : appliedStatus === "INTERVIEW"
+                    ? "blue"
+                    : appliedStatus === "REJECTED"
+                    ? "rose"
+                    : appliedStatus === "VIEWED"
+                    ? "lilac"
+                    : "blue"
+                }
+                className="font-semibold"
+              >
+                {appliedStatus === "APPLIED"
+                  ? "Application Submitted"
+                  : appliedStatus === "VIEWED"
+                  ? "Under Review"
+                  : appliedStatus === "SHORTLISTED"
+                  ? "Shortlisted"
+                  : appliedStatus === "INTERVIEW"
+                  ? "Interview Scheduled"
+                  : appliedStatus === "SELECTED"
+                  ? "Selected"
+                  : appliedStatus === "REJECTED"
+                  ? "Rejected"
+                  : appliedStatus}
+              </Badge>
+            )}
           </div>
           <h3 className="mt-3.5 text-[17px] font-semibold leading-snug text-ink group-hover:text-ulab-deep">{job.title}</h3>
           <p className="mt-1 text-sm text-ink-soft">{job.company}</p>

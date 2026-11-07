@@ -40,6 +40,29 @@ function sanitizeUrl(url?: string): string | null {
   return `https://${trimmed}`;
 }
 
+async function recordApplicationStatusHistory(
+  dbClient: any,
+  applicationId: string,
+  previousStatus: string | null,
+  newStatus: string,
+  changedById: string,
+  note?: string | null
+) {
+  try {
+    await dbClient.applicationStatusHistory.create({
+      data: {
+        applicationId,
+        previousStatus: previousStatus || null,
+        newStatus,
+        changedById,
+        note: note || null,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to write application status history:", err);
+  }
+}
+
 export async function createJob(_: FormState, formData: FormData): Promise<FormState> {
   const { user, base } = await requirePoster();
   if (user.status !== "APPROVED") {
@@ -514,6 +537,16 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
     },
   });
 
+  // Record dynamic application status history
+  await recordApplicationStatusHistory(
+    db,
+    savedApp.id,
+    existingApp?.status || null,
+    "APPLIED",
+    user.id,
+    "Application submitted by student"
+  );
+
   // Synchronize normalized child table ApplicationProject
   await db.applicationProject.deleteMany({
     where: { applicationId: savedApp.id },
@@ -567,6 +600,15 @@ export async function withdrawApplication(applicationId: string) {
       statusUpdatedAt: new Date(),
     },
   });
+
+  await recordApplicationStatusHistory(
+    db,
+    applicationId,
+    app.status,
+    "WITHDRAWN",
+    user.id,
+    "Application voluntarily withdrawn by student"
+  );
 
   // Notify the job poster
   await db.notification.create({
@@ -648,6 +690,15 @@ export async function setApplicationStatus(
         ...(interviewNotes ? { hiringNotes: interviewNotes.trim() } : {}),
       },
     });
+
+    await recordApplicationStatusHistory(
+      tx,
+      applicationId,
+      app.status,
+      status,
+      user.id,
+      interviewNotes || null
+    );
 
     // Synchronize job capacity status and handle automatic closing/reopening and applicant notifications
     await syncJobCapacityStatus(tx, app.job.id, user.id);
@@ -801,6 +852,15 @@ export async function scheduleInterview(input: ScheduleInterviewInput) {
     },
   });
 
+  await recordApplicationStatusHistory(
+    db,
+    input.applicationId,
+    app.status,
+    "INTERVIEW",
+    user.id,
+    isReschedule ? `Interview rescheduled to ${scheduledDate.toISOString()}` : `Interview scheduled for ${scheduledDate.toISOString()}`
+  );
+
   // Human readable date in Asia/Dhaka
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Dhaka",
@@ -869,6 +929,15 @@ export async function cancelInterview(applicationId: string, reason?: string) {
     },
   });
 
+  await recordApplicationStatusHistory(
+    db,
+    applicationId,
+    "INTERVIEW",
+    "SHORTLISTED",
+    user.id,
+    reasonStr ? `Interview cancelled: ${reasonStr}` : "Interview cancelled by recruiter"
+  );
+
   await db.notification.create({
     data: {
       userId: app.studentId,
@@ -916,6 +985,15 @@ export async function rejectApplication(applicationId: string, internalNotes?: s
       ...(notesStr ? { hiringNotes: notesStr } : {}),
     },
   });
+
+  await recordApplicationStatusHistory(
+    db,
+    applicationId,
+    app.status,
+    "REJECTED",
+    user.id,
+    notesStr || "Applicant rejected"
+  );
 
   await db.notification.create({
     data: {
@@ -974,6 +1052,15 @@ export async function markApplicationViewed(applicationId: string) {
         statusUpdatedAt: new Date(),
       },
     });
+
+    await recordApplicationStatusHistory(
+      db,
+      applicationId,
+      "APPLIED",
+      "VIEWED",
+      user.id,
+      "Application opened and reviewed by recruiter"
+    );
 
     await db.notification.create({
       data: {

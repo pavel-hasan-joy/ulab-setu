@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Info, Search } from "lucide-react";
 import { db } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { getBangladeshJobs, getRemoteJobs } from "@/lib/external-jobs";
 import { jobCategories, jobTypes } from "@/lib/site";
@@ -66,32 +67,51 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
 async function AlumniJobs({ q, category, type }: { q: string; category?: string; type?: string }) {
   await cleanExpiredJobs();
-  const jobs = await db.job.findMany({
-    where: {
-      active: true,
-      status: "PUBLISHED",
-      ...activeDeadlineCondition(),
-      ...(category && { category }),
-      ...(type && { type }),
-      ...(q && {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { company: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-          { skills: { contains: q, mode: "insensitive" } },
-        ],
-      }),
-    },
-    include: { postedBy: true },
-    orderBy: [{ referral: "desc" }, { createdAt: "desc" }],
-  });
+  const [user, jobs] = await Promise.all([
+    getCurrentUser(),
+    db.job.findMany({
+      where: {
+        active: true,
+        status: "PUBLISHED",
+        ...activeDeadlineCondition(),
+        ...(category && { category }),
+        ...(type && { type }),
+        ...(q && {
+          OR: [
+            { title: { contains: q, mode: "insensitive" } },
+            { company: { contains: q, mode: "insensitive" } },
+            { description: { contains: q, mode: "insensitive" } },
+            { skills: { contains: q, mode: "insensitive" } },
+          ],
+        }),
+      },
+      include: { postedBy: true },
+      orderBy: [{ referral: "desc" }, { createdAt: "desc" }],
+    }),
+  ]);
+
+  const appliedMap = new Map<string, string>();
+  if (user) {
+    const userApps = await db.application.findMany({
+      where: { studentId: user.id },
+      select: { jobId: true, status: true },
+    });
+    userApps.forEach((a) => appliedMap.set(a.jobId, a.status));
+  }
+
   if (!jobs.length) {
     return <EmptyState title="No alumni jobs match that" body="Try a broader search, or check the Bangladesh tab for more openings." />;
   }
   return (
     <Stagger key={`${q}-${category ?? ""}-${type ?? ""}`} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {jobs.map((job) => (
-        <StaggerItem key={job.id}><AlumniJobCard job={job} href={`/student/jobs/${job.id}`} /></StaggerItem>
+        <StaggerItem key={job.id}>
+          <AlumniJobCard
+            job={job}
+            href={`/student/jobs/${job.id}`}
+            appliedStatus={appliedMap.get(job.id)}
+          />
+        </StaggerItem>
       ))}
     </Stagger>
   );

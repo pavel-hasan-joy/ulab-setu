@@ -210,17 +210,17 @@ export function StudentMentorshipView({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PENDING":
-        return <Badge tone="gold">Pending Mentor Review</Badge>;
+        return <Badge tone="gold">Request Sent</Badge>;
       case "ACCEPTED":
-        return <Badge tone="sage">Accepted</Badge>;
+        return <Badge tone="sage">Mentorship Active</Badge>;
       case "SCHEDULED":
-        return <Badge tone="blue">Session Scheduled 📅</Badge>;
+        return <Badge tone="blue">Mentorship Active (Scheduled 📅)</Badge>;
       case "COMPLETED":
-        return <Badge tone="sage">Completed 🌟</Badge>;
+        return <Badge tone="lilac">Completed 🌟</Badge>;
       case "DECLINED":
         return <Badge tone="rose">Declined</Badge>;
       case "CANCELLED":
-        return <Badge tone="gray">Cancelled</Badge>;
+        return <Badge tone="gray">Ended / Removed</Badge>;
       default:
         return <Badge tone="gray">{status}</Badge>;
     }
@@ -397,33 +397,43 @@ export function StudentMentorshipView({
                         Available for Mentoring
                       </span>
                       {(() => {
-                        const activeReq = requests.find(
-                          (r) =>
-                            r.mentor.id === m.id &&
-                            ["PENDING", "ACCEPTED", "SCHEDULED"].includes(r.status)
-                        );
-                        if (activeReq?.status === "PENDING") {
+                        const latestReq = requests.find((r) => r.mentor.id === m.id);
+                        if (latestReq?.status === "PENDING") {
                           return (
                             <button
                               type="button"
                               disabled
                               className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 cursor-not-allowed dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
                             >
-                              Request Sent (Pending)
+                              Request Sent
                             </button>
                           );
                         }
                         if (
-                          activeReq?.status === "ACCEPTED" ||
-                          activeReq?.status === "SCHEDULED"
+                          latestReq?.status === "ACCEPTED" ||
+                          latestReq?.status === "SCHEDULED"
                         ) {
                           return (
                             <Link
                               href="/student/my-mentors"
                               className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-soft"
                             >
-                              Active Mentor →
+                              Mentorship Active
                             </Link>
+                          );
+                        }
+                        if (
+                          latestReq?.status === "DECLINED" ||
+                          latestReq?.status === "CANCELLED" ||
+                          latestReq?.status === "COMPLETED"
+                        ) {
+                          return (
+                            <Button
+                              onClick={() => handleOpenRequestModal(m)}
+                              className="py-1.5 px-3 text-xs font-semibold gap-1"
+                            >
+                              Request Again
+                            </Button>
                           );
                         }
                         return (
@@ -431,7 +441,7 @@ export function StudentMentorshipView({
                             onClick={() => handleOpenRequestModal(m)}
                             className="py-1.5 px-3 text-xs font-semibold gap-1"
                           >
-                            Request Mentorship
+                            Request Mentor
                           </Button>
                         );
                       })()}
@@ -533,6 +543,22 @@ export function StudentMentorshipView({
                       >
                         Cancel Request
                       </Button>
+                    )}
+                    {(r.status === "DECLINED" || r.status === "CANCELLED" || r.status === "COMPLETED") && (
+                      <Link
+                        href={`/student/mentors/${r.mentor.id}?request=1`}
+                        className="rounded-xl bg-ulab py-1 px-2.5 text-xs font-semibold text-white hover:bg-ulab-deep shadow-soft transition"
+                      >
+                        Request Again
+                      </Link>
+                    )}
+                    {(r.status === "ACCEPTED" || r.status === "SCHEDULED") && (
+                      <Link
+                        href="/student/my-mentors"
+                        className="rounded-xl bg-emerald-600 py-1 px-2.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-soft transition"
+                      >
+                        My Mentors →
+                      </Link>
                     )}
                   </div>
                 </div>
