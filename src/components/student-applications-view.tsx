@@ -8,6 +8,7 @@ import {
   Building,
   MapPin,
   Calendar,
+  CalendarClock,
   CheckCircle2,
   Clock,
   ArrowRight,
@@ -19,11 +20,13 @@ import {
   Briefcase,
   ChevronRight,
   Download,
+  Video,
 } from "lucide-react";
 import { Badge, Card, EmptyState, formatDate, timeAgo } from "@/components/ui";
 import { withdrawApplication } from "@/app/actions/jobs";
 import {
   APPLICATION_STATUS_CONFIG,
+  formatDhakaDateTime,
   type ApplicationStatus,
   canWithdrawApplication,
   parseApplicationNote,
@@ -37,6 +40,14 @@ export type StudentApplicationRecord = {
   statusUpdatedAt: string | null;
   withdrawnAt: string | null;
   rawNote: string | null;
+  interviewDate?: string | null;
+  interviewTime?: string | null;
+  interviewType?: string | null;
+  interviewLocation?: string | null;
+  interviewMeetingLink?: string | null;
+  interviewMessage?: string | null;
+  interviewScheduledAt?: string | null;
+  interviewCancelledAt?: string | null;
   job: {
     id: string;
     title: string;
@@ -67,28 +78,22 @@ export function StudentApplicationsView({
   const counts = useMemo(() => {
     const total = applications.length;
     const active = applications.filter((a) => a.status === "APPLIED" || a.status === "VIEWED").length;
-    const shortlisted = applications.filter(
-      (a) => a.status === "SHORTLISTED" || a.status === "INTERVIEW"
-    ).length;
+    const interview = applications.filter((a) => a.status === "INTERVIEW").length;
+    const shortlisted = applications.filter((a) => a.status === "SHORTLISTED").length;
     const selected = applications.filter((a) => a.status === "SELECTED").length;
-    const withdrawnOrRejected = applications.filter(
-      (a) => a.status === "REJECTED" || a.status === "WITHDRAWN"
-    ).length;
-    return { total, active, shortlisted, selected, withdrawnOrRejected };
+    const rejected = applications.filter((a) => a.status === "REJECTED").length;
+    const withdrawn = applications.filter((a) => a.status === "WITHDRAWN").length;
+    return { total, active, interview, shortlisted, selected, rejected, withdrawn };
   }, [applications]);
 
   const filtered = useMemo(() => {
     return applications.filter((app) => {
+      if (filter === "INTERVIEW" && app.status !== "INTERVIEW") return false;
       if (filter === "ACTIVE" && !(app.status === "APPLIED" || app.status === "VIEWED")) return false;
-      if (
-        filter === "SHORTLISTED" &&
-        !(app.status === "SHORTLISTED" || app.status === "INTERVIEW" || app.status === "SELECTED")
-      ) {
-        return false;
-      }
-      if (filter === "WITHDRAWN" && !(app.status === "REJECTED" || app.status === "WITHDRAWN")) {
-        return false;
-      }
+      if (filter === "SHORTLISTED" && app.status !== "SHORTLISTED") return false;
+      if (filter === "SELECTED" && app.status !== "SELECTED") return false;
+      if (filter === "REJECTED" && app.status !== "REJECTED") return false;
+      if (filter === "WITHDRAWN" && app.status !== "WITHDRAWN") return false;
 
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -121,35 +126,45 @@ export function StudentApplicationsView({
   return (
     <div className="space-y-6">
       {/* KPI Counters */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Card className="p-4 border-l-4 border-l-ulab">
           <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-            Total Applications
+            Total
           </span>
           <p className="mt-1 text-2xl font-bold text-ink">{counts.total}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Positions applied for</p>
+          <p className="mt-0.5 text-xs text-ink-soft">All applied</p>
         </Card>
 
-        <Card className="p-4 border-l-4 border-l-blue">
-          <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">In Review</span>
-          <p className="mt-1 text-2xl font-bold text-ulab-deep">{counts.active}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Queued or viewed by recruiter</p>
+        <Card className="p-4 border-l-4 border-l-blue-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+            Interviews
+          </span>
+          <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">{counts.interview}</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Scheduled invites</p>
         </Card>
 
         <Card className="p-4 border-l-4 border-l-gold">
           <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-            Shortlist & Interview
+            Shortlisted
           </span>
           <p className="mt-1 text-2xl font-bold text-gold-ink">{counts.shortlisted}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Standout candidate stages</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Candidate pool</p>
         </Card>
 
         <Card className="p-4 border-l-4 border-l-sage">
           <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-            Selected / Hired
+            Selected
           </span>
           <p className="mt-1 text-2xl font-bold text-sage">{counts.selected}</p>
-          <p className="mt-0.5 text-xs text-ink-soft">Job offers received 🎉</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Job offers 🎉</p>
+        </Card>
+
+        <Card className="p-4 border-l-4 border-l-rose-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+            Rejected
+          </span>
+          <p className="mt-1 text-2xl font-bold text-rose-600 dark:text-rose-400">{counts.rejected}</p>
+          <p className="mt-0.5 text-xs text-ink-soft">Not selected</p>
         </Card>
       </div>
 
@@ -170,9 +185,12 @@ export function StudentApplicationsView({
           <div className="flex flex-wrap items-center gap-1.5">
             {[
               { id: "ALL", label: `All (${counts.total})` },
+              { id: "INTERVIEW", label: `Interviews (${counts.interview})` },
               { id: "ACTIVE", label: `In Review (${counts.active})` },
-              { id: "SHORTLISTED", label: `Shortlist & Interview (${counts.shortlisted})` },
-              { id: "WITHDRAWN", label: "Archived" },
+              { id: "SHORTLISTED", label: `Shortlisted (${counts.shortlisted})` },
+              { id: "SELECTED", label: `Selected (${counts.selected})` },
+              { id: "REJECTED", label: `Rejected (${counts.rejected})` },
+              { id: "WITHDRAWN", label: `Withdrawn (${counts.withdrawn})` },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -197,7 +215,7 @@ export function StudentApplicationsView({
           body={
             search
               ? "No job applications match your search query."
-              : "You haven't submitted any job applications yet."
+              : "No applications found under this status filter."
           }
           action={
             <Link
@@ -218,7 +236,7 @@ export function StudentApplicationsView({
             return (
               <Card
                 key={app.id}
-                className="overflow-hidden p-5 transition hover:border-ulab/40 hover:shadow-md"
+                className="overflow-hidden p-5 transition hover:border-ulab/40 hover:shadow-md space-y-4"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2 flex-1 min-w-0">
@@ -303,6 +321,89 @@ export function StudentApplicationsView({
                     )}
                   </div>
                 </div>
+
+                {/* Prominent Interview Scheduled Card for Candidate */}
+                {app.status === "INTERVIEW" && (
+                  <div className="rounded-2xl border-2 border-blue-400 bg-sky/30 p-4 shadow-sm dark:border-blue-700/60 dark:bg-blue-950/30">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/80 pb-2.5 dark:border-blue-900/50">
+                      <span className="flex items-center gap-2 text-sm font-bold text-ulab-deep dark:text-blue-300">
+                        <CalendarClock size={18} className="text-ulab" />
+                        Interview Scheduled (Asia/Dhaka Time)
+                      </span>
+                      <span className="rounded-lg bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
+                        {app.interviewType || "Scheduled"}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-3 text-xs">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] uppercase font-bold text-ink-soft block">
+                          Date & Time
+                        </span>
+                        <p className="font-bold text-ink text-sm">
+                          {formatDhakaDateTime(app.interviewDate) || "Date scheduled"}
+                        </p>
+                        {app.interviewTime && (
+                          <p className="text-xs font-semibold text-ulab-deep dark:text-blue-300">
+                            at {app.interviewTime}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] uppercase font-bold text-ink-soft block">
+                          Venue / Location
+                        </span>
+                        <p className="font-semibold text-ink flex items-center gap-1">
+                          <MapPin size={13} className="text-rose-500 shrink-0" />
+                          {app.interviewLocation || "Campus specified"}
+                        </p>
+                      </div>
+
+                      {app.interviewMeetingLink && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] uppercase font-bold text-ink-soft block">
+                            Online Meeting Link
+                          </span>
+                          <a
+                            href={app.interviewMeetingLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-ulab px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-ulab-deep transition"
+                          >
+                            <Video size={13} /> Join Interview <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {app.interviewMessage && (
+                      <div className="mt-3 rounded-xl border border-blue-200/80 bg-surface/90 p-3 text-xs leading-relaxed dark:border-blue-900/40">
+                        <span className="font-bold text-ulab-deep dark:text-blue-300 block mb-0.5">
+                          Note from Recruiter:
+                        </span>
+                        <p className="text-ink-soft">{app.interviewMessage}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Rejection Feedback Box */}
+                {app.status === "REJECTED" && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3.5 text-xs text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
+                    <p className="font-semibold flex items-center gap-1.5 text-sm">
+                      <XCircle size={16} className="text-rose-600 shrink-0" /> Application Status: Rejected / Not Selected
+                    </p>
+                    <p className="mt-1 text-ink-soft leading-relaxed">
+                      Thank you for your interest and time. The employer decided not to move forward with your application for this position. Keep exploring and applying for other active circulars on Setu!
+                    </p>
+                    {app.statusUpdatedAt && (
+                      <p className="mt-2 text-[10px] text-ink-soft/70">
+                        Status updated: {formatDate(app.statusUpdatedAt)}
+                      </p>
+                    )}
+                  </div>
+                )}
               </Card>
             );
           })}
@@ -311,4 +412,3 @@ export function StudentApplicationsView({
     </div>
   );
 }
-

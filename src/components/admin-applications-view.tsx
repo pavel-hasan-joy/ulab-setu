@@ -20,6 +20,7 @@ import {
 import { Badge, Card, EmptyState, formatDate, timeAgo } from "@/components/ui";
 import {
   APPLICATION_STATUS_CONFIG,
+  formatDhakaDateTime,
   type ApplicationStatus,
   parseApplicationNote,
 } from "@/lib/applications";
@@ -32,6 +33,12 @@ export type AdminApplicationItem = {
   statusUpdatedAt: string | null;
   hiringNotes: string | null;
   rawNote: string | null;
+  interviewDate?: string | null;
+  interviewTime?: string | null;
+  interviewType?: string | null;
+  interviewLocation?: string | null;
+  interviewMeetingLink?: string | null;
+  interviewMessage?: string | null;
   student: {
     id: string;
     name: string;
@@ -354,6 +361,39 @@ export function AdminApplicationsView({
                 Posted by: {inspectApp.job.postedBy.name} ({inspectApp.job.postedBy.role})
               </p>
             </div>
+
+            {/* Scheduled Interview Details (if scheduled) */}
+            {inspectApp.status === "INTERVIEW" && (
+              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-200">
+                <p className="font-bold flex items-center gap-1.5 text-sm mb-2 text-blue-950 dark:text-blue-100">
+                  <Calendar size={15} className="text-blue-600" /> Interview Schedule (Asia/Dhaka)
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Date & Time</span>
+                    <span className="font-semibold">{formatDhakaDateTime(inspectApp.interviewDate) || "Set"}</span> {inspectApp.interviewTime ? `at ${inspectApp.interviewTime}` : ""}
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Venue / Format</span>
+                    <span>{inspectApp.interviewLocation} ({inspectApp.interviewType || "Scheduled"})</span>
+                  </div>
+                  {inspectApp.interviewMeetingLink && (
+                    <div className="sm:col-span-2">
+                      <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Online Link</span>
+                      <a href={inspectApp.interviewMeetingLink} target="_blank" rel="noreferrer" className="text-ulab font-semibold hover:underline flex items-center gap-1">
+                        {inspectApp.interviewMeetingLink} <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
+                  {inspectApp.interviewMessage && (
+                    <div className="sm:col-span-2 pt-1 border-t border-blue-200/50">
+                      <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Instructions to Candidate</span>
+                      <p className="text-ink-soft leading-relaxed">{inspectApp.interviewMessage}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Candidate Cover Note */}
             {(() => {

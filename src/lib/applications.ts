@@ -37,7 +37,7 @@ export const APPLICATION_STATUS_CONFIG: Record<
   INTERVIEW: {
     label: "Interview Scheduled",
     tone: "blue",
-    description: "You have been selected for an interview. Check your inbox / WhatsApp for scheduling details.",
+    description: "You have been invited for an interview. Please review the schedule and venue details below.",
     stageIndex: 4,
   },
   SELECTED: {
@@ -47,9 +47,9 @@ export const APPLICATION_STATUS_CONFIG: Record<
     stageIndex: 5,
   },
   REJECTED: {
-    label: "Not Selected",
-    tone: "gray",
-    description: "The employer decided to move forward with other applicants for this opening.",
+    label: "Rejected",
+    tone: "rose",
+    description: "The employer decided not to move forward with this application at this time.",
     stageIndex: 5,
   },
   WITHDRAWN: {
@@ -59,6 +59,43 @@ export const APPLICATION_STATUS_CONFIG: Record<
     stageIndex: 0,
   },
 };
+
+export type InterviewSchedule = {
+  interviewDate?: Date | string | null;
+  interviewTime?: string | null;
+  interviewType?: "Physical" | "Online" | string | null;
+  interviewLocation?: string | null;
+  interviewMeetingLink?: string | null;
+  interviewMessage?: string | null;
+  interviewScheduledAt?: Date | string | null;
+  interviewCancelledAt?: Date | string | null;
+};
+
+/**
+ * Formats date and time into Asia/Dhaka local display format.
+ */
+export function formatDhakaDateTime(dateInput: Date | string | null | undefined): string {
+  if (!dateInput) return "";
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) return "";
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Dhaka",
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(d);
+}
+
+/**
+ * Checks if an application can have an interview scheduled.
+ * Rejection and Withdrawn states strictly block interview scheduling.
+ */
+export function canScheduleInterview(status: string | null | undefined): boolean {
+  if (!status) return true;
+  return status !== "REJECTED" && status !== "WITHDRAWN" && status !== "SELECTED";
+}
 
 export type ApplicationPayload = {
   coverNote?: string | null;

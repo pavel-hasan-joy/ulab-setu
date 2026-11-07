@@ -360,7 +360,7 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
   // Handle saved CV resolution
   let finalCvFileName = cvFileName;
   let finalCvUrl = cvUrl;
-  let finalCvData = cvData;
+  const finalCvData = cvData;
 
   if (useSavedCv && user.savedCvUrl) {
     finalCvFileName = user.savedCvName || "Saved_Resume.pdf";
@@ -499,9 +499,14 @@ export async function setApplicationStatus(
 
   const app = await db.application.findFirst({
     where: whereClause,
-    include: { job: { select: { title: true, id: true, postedById: true } } },
+    include: { job: { select: { title: true, id: true, postedById: true, company: true } } },
   });
   if (!app) return { error: "Application not found or unauthorized" };
+
+  // Block interview transition for rejected applications
+  if (status === "INTERVIEW" && app.status === "REJECTED") {
+    return { error: "Cannot schedule an interview for a rejected applicant. Please reopen the application first." };
+  }
 
   await db.application.update({
     where: { id: applicationId },
@@ -521,13 +526,16 @@ export async function setApplicationStatus(
     notificationBody = `Great news! You have been shortlisted for "${app.job.title}".`;
   } else if (status === "INTERVIEW") {
     notificationTitle = "Interview Invitation 💼";
-    notificationBody = `You have been invited for an interview for "${app.job.title}". Check your email or messages for details!`;
+    notificationBody = `You have been invited for an interview for "${app.job.title}". Check your application details for schedule and venue!`;
   } else if (status === "SELECTED") {
     notificationTitle = "Congratulations! Selected for Role 🌟";
     notificationBody = `Congratulations! You have been selected for the position of "${app.job.title}".`;
   } else if (status === "VIEWED") {
     notificationTitle = "Application Reviewed 👀";
     notificationBody = `The recruiter reviewed your CV and profile for "${app.job.title}".`;
+  } else if (status === "REJECTED") {
+    notificationTitle = `Application Update: ${app.job.title}`;
+    notificationBody = `Thank you for applying for "${app.job.title}" at ${app.job.company}. The employer decided not to move forward with this application at this time.`;
   }
 
   await db.notification.create({
@@ -543,6 +551,241 @@ export async function setApplicationStatus(
 
   revalidatePath(`${base}/jobs/${app.job.id}`);
   revalidatePath(`/student/applications`);
+  return { success: true };
+}
+
+export type ScheduleInterviewInput = {
+  applicationId: string;
+  date: string; // YYYY-MM-DD
+  time: string; // e.g. "10:30 AM" or "14:30"
+  location: string;
+  type: "Physical" | "Online";
+  meetingLink?: string;
+  message?: string;
+};
+
+/**
+ * Schedules or reschedules an interview with date, time, location, type, and optional meeting link.
+ * Strictly enforces Asia/Dhaka timezone, ownership checks, future-time checks, and notification dispatch.
+ */
+export async function scheduleInterview(input: ScheduleInterviewInput) {
+  const user = await requireUser(["ALUMNI", "TEACHER", "ADMIN"]);
+  const base = user.role === "ADMIN" ? "/admin" : user.role === "TEACHER" ? "/teacher" : "/alumni";
+  const whereClause = user.role === "ADMIN"
+    ? { id: input.applicationId }
+    : { id: input.applicationId, job: { postedById: user.id } };
+
+  const app = await db.application.findFirst({
+    where: whereClause,
+    include: {
+      job: { select: { id: true, title: true, company: true, postedById: true } },
+      student: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  if (!app) return { error: "Application not found or unauthorized." };
+
+  if (app.status === "REJECTED") {
+    return { error: "Cannot schedule an interview for a rejected application. Reopen application first." };
+  }
+  if (app.status === "WITHDRAWN") {
+    return { error: "Cannot schedule an interview for an application that has been withdrawn." };
+  }
+
+  const dateStr = (input.date || "").trim();
+  const timeStr = (input.time || "").trim();
+  const locationStr = (input.location || "").trim();
+  const typeStr = input.type === "Online" ? "Online" : "Physical";
+  const meetingLinkStr = (input.meetingLink || "").trim();
+  const messageStr = (input.message || "").trim();
+
+  if (!dateStr) return { error: "Interview date is required." };
+  if (!timeStr) return { error: "Interview time is required." };
+  if (!locationStr) return { error: "Interview location / place is required." };
+
+  // Parse YYYY-MM-DD
+  const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!dateMatch) {
+    return { error: "Invalid date format. Expected YYYY-MM-DD." };
+  }
+
+  // Parse hours and minutes
+  let hours = 10;
+  let minutes = 0;
+  const timeMatch = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (timeMatch) {
+    let h = parseInt(timeMatch[1], 10);
+    const m = parseInt(timeMatch[2], 10);
+    const ampm = timeMatch[3]?.toUpperCase();
+    if (ampm === "PM" && h < 12) h += 12;
+    if (ampm === "AM" && h === 12) h = 0;
+    hours = h;
+    minutes = m;
+  }
+
+  // Build Date object in Asia/Dhaka (+06:00)
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const isoDhaka = `${dateStr}T${pad(hours)}:${pad(minutes)}:00+06:00`;
+  const scheduledDate = new Date(isoDhaka);
+
+  if (isNaN(scheduledDate.getTime())) {
+    return { error: "Invalid interview date or time." };
+  }
+
+  // Must not be in the past (allow 2-minute buffer)
+  const now = new Date();
+  if (scheduledDate.getTime() < now.getTime() - 2 * 60 * 1000) {
+    return { error: "Interview date and time cannot be in the past." };
+  }
+
+  const isReschedule = app.status === "INTERVIEW" && app.interviewDate != null;
+
+  await db.application.update({
+    where: { id: input.applicationId },
+    data: {
+      status: "INTERVIEW",
+      statusUpdatedAt: new Date(),
+      interviewDate: scheduledDate,
+      interviewTime: timeStr,
+      interviewType: typeStr,
+      interviewLocation: locationStr,
+      interviewMeetingLink: meetingLinkStr || null,
+      interviewMessage: messageStr || null,
+      interviewScheduledAt: new Date(),
+      interviewCancelledAt: null,
+    },
+  });
+
+  // Human readable date in Asia/Dhaka
+  const formattedDate = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Dhaka",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(scheduledDate);
+
+  const notifTitle = isReschedule
+    ? `Interview Rescheduled: ${app.job.title}`
+    : `Interview Invitation: ${app.job.title} 💼`;
+
+  const notifBody = isReschedule
+    ? `Your interview for "${app.job.title}" has been rescheduled to ${formattedDate} at ${timeStr} (${typeStr}). Location: ${locationStr}.`
+    : `You are invited for an interview on ${formattedDate} at ${timeStr} (${typeStr}). Location: ${locationStr}. Check your applications for full details!`;
+
+  await db.notification.create({
+    data: {
+      userId: app.studentId,
+      actorId: user.id,
+      title: notifTitle,
+      body: notifBody,
+      type: "APPLICATION",
+      link: "/student/applications",
+    },
+  }).catch(() => {});
+
+  revalidatePath(`${base}/jobs/${app.job.id}`);
+  revalidatePath("/student/applications");
+  revalidatePath(`/student/jobs/${app.job.id}`);
+  return { success: true, isReschedule };
+}
+
+/**
+ * Cancels a scheduled interview and moves application back to candidate review.
+ */
+export async function cancelInterview(applicationId: string, reason?: string) {
+  const user = await requireUser(["ALUMNI", "TEACHER", "ADMIN"]);
+  const base = user.role === "ADMIN" ? "/admin" : user.role === "TEACHER" ? "/teacher" : "/alumni";
+  const whereClause = user.role === "ADMIN"
+    ? { id: applicationId }
+    : { id: applicationId, job: { postedById: user.id } };
+
+  const app = await db.application.findFirst({
+    where: whereClause,
+    include: {
+      job: { select: { id: true, title: true, company: true } },
+    },
+  });
+
+  if (!app) return { error: "Application not found or unauthorized." };
+  if (app.status !== "INTERVIEW") {
+    return { error: "This application does not currently have a scheduled interview." };
+  }
+
+  const reasonStr = (reason || "").trim();
+
+  await db.application.update({
+    where: { id: applicationId },
+    data: {
+      status: "SHORTLISTED",
+      statusUpdatedAt: new Date(),
+      interviewCancelledAt: new Date(),
+      ...(reasonStr ? { hiringNotes: app.hiringNotes ? `${app.hiringNotes}\n[Cancellation Note]: ${reasonStr}` : `[Cancellation Note]: ${reasonStr}` } : {}),
+    },
+  });
+
+  await db.notification.create({
+    data: {
+      userId: app.studentId,
+      actorId: user.id,
+      title: `Interview Cancelled: ${app.job.title}`,
+      body: `Your scheduled interview for "${app.job.title}" has been cancelled. ${reasonStr ? `Reason: ${reasonStr}` : "The recruiter will update you if a new date opens."}`,
+      type: "APPLICATION",
+      link: "/student/applications",
+    },
+  }).catch(() => {});
+
+  revalidatePath(`${base}/jobs/${app.job.id}`);
+  revalidatePath("/student/applications");
+  revalidatePath(`/student/jobs/${app.job.id}`);
+  return { success: true };
+}
+
+/**
+ * Rejects an applicant with an optional private internal hiring note.
+ * Never leaks private recruiter notes to the applicant.
+ */
+export async function rejectApplication(applicationId: string, internalNotes?: string) {
+  const user = await requireUser(["ALUMNI", "TEACHER", "ADMIN"]);
+  const base = user.role === "ADMIN" ? "/admin" : user.role === "TEACHER" ? "/teacher" : "/alumni";
+  const whereClause = user.role === "ADMIN"
+    ? { id: applicationId }
+    : { id: applicationId, job: { postedById: user.id } };
+
+  const app = await db.application.findFirst({
+    where: whereClause,
+    include: {
+      job: { select: { id: true, title: true, company: true } },
+    },
+  });
+
+  if (!app) return { error: "Application not found or unauthorized." };
+
+  const notesStr = (internalNotes || "").trim();
+
+  await db.application.update({
+    where: { id: applicationId },
+    data: {
+      status: "REJECTED",
+      statusUpdatedAt: new Date(),
+      ...(notesStr ? { hiringNotes: notesStr } : {}),
+    },
+  });
+
+  await db.notification.create({
+    data: {
+      userId: app.studentId,
+      actorId: user.id,
+      title: `Application Update: ${app.job.title}`,
+      body: `Thank you for taking the time to apply for "${app.job.title}" at ${app.job.company}. The employer decided to move forward with other candidates.`,
+      type: "APPLICATION",
+      link: "/student/applications",
+    },
+  }).catch(() => {});
+
+  revalidatePath(`${base}/jobs/${app.job.id}`);
+  revalidatePath("/student/applications");
+  revalidatePath(`/student/jobs/${app.job.id}`);
   return { success: true };
 }
 

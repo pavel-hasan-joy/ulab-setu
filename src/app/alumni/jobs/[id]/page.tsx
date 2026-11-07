@@ -225,6 +225,12 @@ export default async function JobApplicants({
                     app={app}
                     base={base}
                     hiringNotes={a.hiringNotes}
+                    interviewDate={a.interviewDate}
+                    interviewTime={a.interviewTime}
+                    interviewType={a.interviewType}
+                    interviewLocation={a.interviewLocation}
+                    interviewMeetingLink={a.interviewMeetingLink}
+                    interviewMessage={a.interviewMessage}
                   />
                 </StaggerItem>
               );

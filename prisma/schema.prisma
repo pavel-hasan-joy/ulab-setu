@@ -153,6 +153,16 @@ model Application {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt @default(now())
 
+  // Interview Scheduling fields
+  interviewDate        DateTime? // Scheduled interview date (Asia/Dhaka)
+  interviewTime        String?   // Human-readable time e.g. "10:30 AM" or "02:30 PM"
+  interviewType        String?   // "Physical" | "Online"
+  interviewLocation    String?   // Campus Room / Building or Online Platform
+  interviewMeetingLink String?   // Online meeting URL (Google Meet / Zoom)
+  interviewMessage     String?   // Recruiter's instructions or note to candidate
+  interviewScheduledAt DateTime? // Timestamp when scheduled or rescheduled
+  interviewCancelledAt DateTime? // Timestamp when cancelled
+
   jobId           String
   job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
   studentId       String

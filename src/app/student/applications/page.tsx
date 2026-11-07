@@ -49,6 +49,14 @@ export default async function ApplicationsPage() {
     statusUpdatedAt: a.statusUpdatedAt ? a.statusUpdatedAt.toISOString() : null,
     withdrawnAt: a.withdrawnAt ? a.withdrawnAt.toISOString() : null,
     rawNote: a.note,
+    interviewDate: a.interviewDate ? a.interviewDate.toISOString() : null,
+    interviewTime: a.interviewTime,
+    interviewType: a.interviewType,
+    interviewLocation: a.interviewLocation,
+    interviewMeetingLink: a.interviewMeetingLink,
+    interviewMessage: a.interviewMessage,
+    interviewScheduledAt: a.interviewScheduledAt ? a.interviewScheduledAt.toISOString() : null,
+    interviewCancelledAt: a.interviewCancelledAt ? a.interviewCancelledAt.toISOString() : null,
     job: a.job,
   }));
 

@@ -113,12 +113,22 @@ export function ApplyPanel({
               className={`mx-auto flex size-14 items-center justify-center rounded-2xl ${
                 applied === "SHORTLISTED" || applied === "SELECTED"
                   ? "bg-sage-wash text-sage"
-                  : applied === "REJECTED" || applied === "WITHDRAWN"
+                  : applied === "REJECTED"
+                  ? "border border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-400"
+                  : applied === "INTERVIEW"
+                  ? "border border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-400"
+                  : applied === "WITHDRAWN"
                   ? "bg-mist text-ink-soft"
                   : "bg-sky text-ulab"
               }`}
             >
-              <CheckCircle2 size={32} />
+              {applied === "REJECTED" ? (
+                <X size={30} />
+              ) : applied === "INTERVIEW" ? (
+                <Calendar size={28} />
+              ) : (
+                <CheckCircle2 size={32} />
+              )}
             </div>
 
             <p className="mt-3 font-display text-lg font-bold text-ink">

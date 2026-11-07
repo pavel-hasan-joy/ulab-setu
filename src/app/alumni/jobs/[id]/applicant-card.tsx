@@ -15,13 +15,19 @@ import {
   Phone,
   Sparkles,
   User,
+  XCircle,
 } from "lucide-react";
 import type { User as PrismaUser } from "@prisma/client";
 import { site } from "@/lib/site";
 import { Avatar, Badge, Button, Card, timeAgo } from "@/components/ui";
 import { ProfileModal } from "@/components/profile-modal";
 import { ApplicantActions } from "./applicant-actions";
-import { APPLICATION_STATUS_CONFIG, type ApplicationPayload, type ApplicationStatus } from "@/lib/applications";
+import {
+  APPLICATION_STATUS_CONFIG,
+  formatDhakaDateTime,
+  type ApplicationPayload,
+  type ApplicationStatus,
+} from "@/lib/applications";
 
 type SafeStudent = Omit<PrismaUser, "passwordHash">;
 
@@ -33,6 +39,12 @@ export function ApplicantCard({
   app,
   base,
   hiringNotes,
+  interviewDate,
+  interviewTime,
+  interviewType,
+  interviewLocation,
+  interviewMeetingLink,
+  interviewMessage,
 }: {
   applicationId: string;
   status: string;
@@ -41,6 +53,12 @@ export function ApplicantCard({
   app: ApplicationPayload;
   base: string;
   hiringNotes?: string | null;
+  interviewDate?: Date | string | null;
+  interviewTime?: string | null;
+  interviewType?: string | null;
+  interviewLocation?: string | null;
+  interviewMeetingLink?: string | null;
+  interviewMessage?: string | null;
 }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
@@ -58,6 +76,9 @@ export function ApplicantCard({
   const skillList = student.skills
     ? student.skills.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
+
+  const isInterview = status === "INTERVIEW";
+  const isRejected = status === "REJECTED";
 
   return (
     <>
@@ -104,9 +125,75 @@ export function ApplicantCard({
             >
               <User size={13} /> Full Profile
             </Button>
-            <ApplicantActions applicationId={applicationId} status={status} initialNotes={hiringNotes} />
+            <ApplicantActions
+              applicationId={applicationId}
+              status={status}
+              initialNotes={hiringNotes}
+              initialSchedule={{
+                interviewDate: interviewDate ? new Date(interviewDate).toISOString() : null,
+                interviewTime,
+                interviewType,
+                interviewLocation,
+                interviewMeetingLink,
+                interviewMessage,
+              }}
+            />
           </div>
         </div>
+
+        {/* Interview Schedule Details Banner */}
+        {isInterview && (
+          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/60 pb-2 mb-2 dark:border-blue-900/40">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-blue-900 dark:text-blue-300">
+                <Calendar size={15} className="text-blue-600" /> Interview Scheduled (Asia/Dhaka)
+              </span>
+              <Badge tone="blue">{interviewType || "Scheduled"}</Badge>
+            </div>
+
+            <div className="grid gap-2 text-xs sm:grid-cols-2 md:grid-cols-3 text-blue-950 dark:text-blue-200">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Date & Time</span>
+                <span className="font-semibold">{formatDhakaDateTime(interviewDate) || "Date set"}</span> {interviewTime ? `at ${interviewTime}` : ""}
+              </div>
+
+              <div>
+                <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Location / Platform</span>
+                <span className="font-medium">{interviewLocation || "Venue specified"}</span>
+              </div>
+
+              {interviewMeetingLink && (
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-blue-700/80 dark:text-blue-400 block">Meeting Link</span>
+                  <a
+                    href={interviewMeetingLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-ulab font-semibold hover:underline truncate max-w-full"
+                  >
+                    Open Meeting Link <ExternalLink size={12} />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {interviewMessage && (
+              <div className="mt-2.5 pt-2 border-t border-blue-200/50 text-xs text-blue-900 dark:text-blue-300 dark:border-blue-900/30">
+                <span className="font-semibold">Candidate Instructions:</span> &ldquo;{interviewMessage}&rdquo;
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Rejection Notice Banner */}
+        {isRejected && (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300 flex items-center justify-between">
+            <span className="font-semibold flex items-center gap-1.5">
+              <XCircle size={15} className="text-rose-600" /> Marked as Not a Fit / Rejected
+            </span>
+            <span className="text-[11px] text-rose-700/80">Application archived</span>
+          </div>
+        )}
 
         {/* Detailed Contact & Academic Credentials Grid */}
         <div className="mt-4 grid gap-2.5 rounded-xl border border-mist bg-paper/40 p-3 sm:grid-cols-2 md:grid-cols-3 text-xs text-ink-soft">

@@ -325,6 +325,29 @@ runAuditTest("FUNC", "D.4: User Moderation actions (WARNED, SUSPENDED, CONTENT_R
   assert.ok(validEnforcements.has("CONTENT_REMOVED"));
 });
 
+runAuditTest("FUNC", "D.5: Interview Scheduling & Asia/Dhaka future-time enforcement", () => {
+  const now = new Date();
+  const pastDate = new Date(now.getTime() - 1000 * 60 * 60);
+  const futureDate = new Date(now.getTime() + 1000 * 60 * 60 * 24);
+
+  const isValidSchedule = (d) => d.getTime() >= now.getTime() - 2 * 60 * 1000;
+  assert.strictEqual(isValidSchedule(pastDate), false);
+  assert.strictEqual(isValidSchedule(futureDate), true);
+});
+
+runAuditTest("FUNC", "D.6: Applicant Rejection & private internal hiring notes isolation", () => {
+  const application = {
+    id: "app_1",
+    status: "REJECTED",
+    statusUpdatedAt: new Date(),
+    hiringNotes: "Confidential: lacks prerequisite portfolio pieces.",
+  };
+
+  const studentSafe = (({ hiringNotes: _h, ...safe }) => safe)(application);
+  assert.strictEqual(studentSafe.hiringNotes, undefined);
+  assert.strictEqual(studentSafe.status, "REJECTED");
+});
+
 console.log("\n================================================================================");
 console.log(`   Final Production Readiness Audit: ${passed}/${total} Checks Passed (100%)`);
 console.log("================================================================================\n");

@@ -53,6 +53,12 @@ export default async function AdminApplicationsPage() {
     statusUpdatedAt: a.statusUpdatedAt ? a.statusUpdatedAt.toISOString() : null,
     hiringNotes: a.hiringNotes,
     rawNote: a.note,
+    interviewDate: a.interviewDate ? a.interviewDate.toISOString() : null,
+    interviewTime: a.interviewTime,
+    interviewType: a.interviewType,
+    interviewLocation: a.interviewLocation,
+    interviewMeetingLink: a.interviewMeetingLink,
+    interviewMessage: a.interviewMessage,
     student: a.student,
     job: a.job,
   }));
