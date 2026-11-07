@@ -207,7 +207,8 @@ model Connection {
   to                   User      @relation("received", fields: [toId], references: [id], onDelete: Cascade)
   messages             Message[]
 
-  @@unique([fromId, toId, type])
+  @@index([fromId, toId, type])
+  @@index([mentorshipRequestId])
   @@index([fromId])
   @@index([toId])
   @@index([status])

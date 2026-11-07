@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Star,
   Trash2,
+  UserMinus,
 } from "lucide-react";
 import { Avatar, Badge, Button, Card, cn } from "./ui";
 import {
@@ -76,7 +77,7 @@ export function StudentMyMentorsView({
   const [requests, setRequests] = useState<StudentMentorshipRecord[]>(initialRequests);
   const [activeTab, setActiveTab] = useState<
     "ALL" | "ACTIVE" | "PENDING" | "COMPLETED" | "ARCHIVED"
-  >("ALL");
+  >("ACTIVE");
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
     null
@@ -140,7 +141,7 @@ export function StudentMyMentorsView({
     if (res.success) {
       setFeedback({
         type: "success",
-        message: "Mentor relationship deleted and removed successfully.",
+        message: "Mentor relationship ended and removed from active list successfully.",
       });
       setRequests((prev) =>
         prev.map((r) =>
@@ -517,8 +518,8 @@ export function StudentMyMentorsView({
                       }}
                       className="inline-flex items-center gap-1 rounded-xl border border-rose-200/80 bg-rose-50/60 py-1 px-2.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300"
                     >
-                      <Trash2 size={12} />
-                      Delete Mentor
+                      <UserMinus size={12} />
+                      Remove from My Mentors
                     </Button>
                   </div>
                 )}
@@ -667,14 +668,14 @@ export function StudentMyMentorsView({
         </div>
       )}
 
-      {/* Delete Mentor Confirmation Modal */}
+      {/* Remove Mentor Confirmation Modal */}
       {deletingReq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-mist/80 bg-surface p-6 shadow-2xl dark:border-white/10">
             <div className="flex items-center justify-between border-b border-mist/70 pb-3 dark:border-white/10">
               <div className="flex items-center gap-2 text-rose-600">
-                <Trash2 size={18} />
-                <h3 className="font-bold text-ink">Delete / Remove Mentor</h3>
+                <UserMinus size={18} />
+                <h3 className="font-bold text-ink">Remove from My Mentors</h3>
               </div>
               <button
                 type="button"
@@ -687,11 +688,17 @@ export function StudentMyMentorsView({
 
             <div className="mt-4 space-y-3">
               <p className="text-xs text-ink leading-relaxed">
-                আপনি কি নিশ্চিত যে আপনি <strong>{deletingReq.mentor.name}</strong>-কে আপনার মেন্টর তালিকা থেকে ডিলিট/রিমুভ করতে চান?
+                আপনি কি নিশ্চিত যে আপনি <strong>{deletingReq.mentor.name}</strong>-কে আপনার সক্রিয় মেন্টর তালিকা থেকে রিমুভ করতে চান?
               </p>
-              <p className="text-[11px] text-ink-soft leading-relaxed">
-                এর ফলে এই মেন্টরশিপ সম্পর্কটি সমাপ্ত হবে এবং মেন্টরের একটি ক্যাপাসিটি স্লট খালি হবে যাতে অন্য শিক্ষার্থীরা সুযোগ পায়।
-              </p>
+              <div className="rounded-xl border border-amber-200/70 bg-amber-50/60 p-3 text-[11px] text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
+                <p className="font-semibold">রিমুভ করার ফলাফল:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-ink-soft">
+                  <li>বর্তমান সক্রিয় মেন্টরশিপ সমাপ্ত হবে এবং সক্রিয় তালিকা থেকে সরে যাবে।</li>
+                  <li>মেন্টরের স্লট খালি হবে যাতে অন্য শিক্ষার্থীরা যুক্ত হতে পারে।</li>
+                  <li>পূর্বের মেসেজ ও হিস্ট্রি আর্কাইভে নিরাপদে সংরক্ষিত থাকবে (মুছে যাবে না)।</li>
+                  <li>পরবর্তীতে আপনি চাইলে এই মেন্টরকে পুনরায় রিকোয়েস্ট পাঠাতে পারবেন।</li>
+                </ul>
+              </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-ink-soft">
@@ -721,7 +728,7 @@ export function StudentMyMentorsView({
                 disabled={isDeleting}
                 className="bg-rose-600 py-1.5 px-3 text-xs font-semibold text-white hover:bg-rose-700 shadow-soft"
               >
-                {isDeleting ? "Deleting..." : "Confirm Delete"}
+                {isDeleting ? "Removing..." : "Confirm Removal"}
               </Button>
             </div>
           </div>

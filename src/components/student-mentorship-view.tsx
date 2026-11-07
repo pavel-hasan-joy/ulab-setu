@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Compass,
   Search,
@@ -84,6 +85,20 @@ export function StudentMentorshipView({
 }: StudentMentorshipViewProps) {
   const [activeTab, setActiveTab] = useState<"BROWSE" | "MY_REQUESTS">("BROWSE");
   const [requests, setRequests] = useState<SerializedMentorshipRequest[]>(initialRequests);
+  const [requestsFilter, setRequestsFilter] = useState<"ACTIVE" | "ARCHIVED" | "ALL">("ACTIVE");
+
+  const activeRequests = requests.filter((r) =>
+    ["PENDING", "ACCEPTED", "SCHEDULED"].includes(r.status)
+  );
+  const archivedRequests = requests.filter((r) =>
+    ["COMPLETED", "DECLINED", "CANCELLED"].includes(r.status)
+  );
+  const displayedRequests =
+    requestsFilter === "ACTIVE"
+      ? activeRequests
+      : requestsFilter === "ARCHIVED"
+      ? archivedRequests
+      : requests;
 
   // Search & Filter for Mentors
   const [searchQuery, setSearchQuery] = useState("");
@@ -381,12 +396,45 @@ export function StudentMentorshipView({
                         <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                         Available for Mentoring
                       </span>
-                      <Button
-                        onClick={() => handleOpenRequestModal(m)}
-                        className="py-1.5 px-3 text-xs font-semibold gap-1"
-                      >
-                        Request Mentorship
-                      </Button>
+                      {(() => {
+                        const activeReq = requests.find(
+                          (r) =>
+                            r.mentor.id === m.id &&
+                            ["PENDING", "ACCEPTED", "SCHEDULED"].includes(r.status)
+                        );
+                        if (activeReq?.status === "PENDING") {
+                          return (
+                            <button
+                              type="button"
+                              disabled
+                              className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 cursor-not-allowed dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                            >
+                              Request Sent (Pending)
+                            </button>
+                          );
+                        }
+                        if (
+                          activeReq?.status === "ACCEPTED" ||
+                          activeReq?.status === "SCHEDULED"
+                        ) {
+                          return (
+                            <Link
+                              href="/student/my-mentors"
+                              className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-soft"
+                            >
+                              Active Mentor →
+                            </Link>
+                          );
+                        }
+                        return (
+                          <Button
+                            onClick={() => handleOpenRequestModal(m)}
+                            className="py-1.5 px-3 text-xs font-semibold gap-1"
+                          >
+                            Request Mentorship
+                          </Button>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -397,12 +445,51 @@ export function StudentMentorshipView({
       ) : (
         /* ================= MY REQUESTS TAB ================= */
         <div className="space-y-4">
-          {requests.length === 0 ? (
+          {/* Sub-filter segment tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-mist/80 pb-3 dark:border-white/10">
+            <div className="inline-flex rounded-2xl border border-mist/80 bg-paper/60 p-1 dark:border-white/5 dark:bg-white/5">
+              {[
+                { id: "ACTIVE", label: `Active & Pending (${activeRequests.length})` },
+                { id: "ARCHIVED", label: `Concluded & Archived (${archivedRequests.length})` },
+                { id: "ALL", label: `All Requests (${requests.length})` },
+              ].map((subTab) => (
+                <button
+                  key={subTab.id}
+                  type="button"
+                  onClick={() => setRequestsFilter(subTab.id as any)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                    requestsFilter === subTab.id
+                      ? "bg-ulab text-white shadow-soft"
+                      : "text-ink-soft hover:bg-surface hover:text-ink"
+                  }`}
+                >
+                  {subTab.label}
+                </button>
+              ))}
+            </div>
+
+            <Link
+              href="/student/my-mentors"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-mist bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-paper transition"
+            >
+              Open My Mentors Workspace →
+            </Link>
+          </div>
+
+          {displayedRequests.length === 0 ? (
             <div className="rounded-2xl border border-mist bg-surface p-12 text-center shadow-soft">
               <Clock size={28} className="mx-auto text-ink-soft" />
-              <h3 className="mt-3 text-sm font-bold text-ink">No mentorship requests sent yet</h3>
+              <h3 className="mt-3 text-sm font-bold text-ink">
+                {requestsFilter === "ACTIVE"
+                  ? "No active or pending mentorship requests"
+                  : requestsFilter === "ARCHIVED"
+                  ? "No concluded or archived mentorships"
+                  : "No mentorship requests sent yet"}
+              </h3>
               <p className="mt-1 text-xs text-ink-soft">
-                Browse our verified alumni mentors to request 1-on-1 career guidance.
+                {requestsFilter === "ACTIVE"
+                  ? "You do not have any ongoing mentorships right now. Explore mentors to start a session."
+                  : "Browse our verified alumni mentors to request 1-on-1 career guidance."}
               </p>
               <Button
                 onClick={() => setActiveTab("BROWSE")}
@@ -412,7 +499,7 @@ export function StudentMentorshipView({
               </Button>
             </div>
           ) : (
-            requests.map((r) => (
+            displayedRequests.map((r) => (
               <div
                 key={r.id}
                 className="rounded-2xl border border-mist bg-surface p-5 shadow-soft transition hover:shadow-lift space-y-3"

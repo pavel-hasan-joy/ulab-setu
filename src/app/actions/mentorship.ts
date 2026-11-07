@@ -628,16 +628,19 @@ export async function acceptMentorshipRequest(requestId: string, note?: string) 
 
   const now = new Date();
 
-  // 2. Dedicated Mentorship Conversation (Connection with type="mentorship")
-  let connection = await db.connection.findFirst({
-    where: {
-      type: "mentorship",
-      OR: [
-        { fromId: user.id, toId: req.studentId },
-        { fromId: req.studentId, toId: user.id },
-      ],
-    },
-  });
+  // 2. Dedicated Mentorship Conversation (Connection with type="mentorship" for this request)
+  let connection = req.connectionId
+    ? await db.connection.findUnique({ where: { id: req.connectionId } })
+    : null;
+
+  if (!connection) {
+    connection = await db.connection.findFirst({
+      where: {
+        type: "mentorship",
+        mentorshipRequestId: req.id,
+      },
+    });
+  }
 
   if (!connection) {
     connection = await db.connection.create({
@@ -1027,9 +1030,14 @@ export async function deleteMentorshipRelationship(requestId: string, reason?: s
   const now = new Date();
   const deleteReason = reason?.trim() || (isStudent ? "Removed by student" : "Removed by mentor");
 
-  // 1. Delete associated MentorshipRelationship
-  await db.mentorshipRelationship.deleteMany({
+  // 1. Preserve historical relationship record by updating status to CANCELLED instead of hard deleting
+  await db.mentorshipRelationship.updateMany({
     where: { requestId: req.id },
+    data: {
+      status: "CANCELLED",
+      endedAt: now,
+      endReason: deleteReason,
+    },
   }).catch(() => {});
 
   // 2. Mark request as CANCELLED so it moves out of active views

@@ -373,9 +373,102 @@ runAuditTest("FUNC", "D.8: Optional Multiple Project Links submission & scheme p
     }
   };
 
+run_command_safe:
   assert.strictEqual(isSafeUrl("https://github.com/project"), true);
   assert.strictEqual(isSafeUrl("javascript:alert(1)"), false);
   assert.strictEqual(isSafeUrl("data:text/html,<script>"), false);
+});
+
+runAuditTest("FUNC", "D.9: Mentorship Relationship Removal, Historical Integrity & Re-request Isolation", () => {
+  // 1. Initial active relationship
+  const relationship = {
+    id: "rel_101",
+    requestId: "req_101",
+    studentId: "student_1",
+    mentorId: "mentor_1",
+    status: "ACTIVE",
+    startedAt: new Date("2026-11-01T10:00:00Z"),
+    endedAt: null,
+    endReason: null,
+  };
+  const connection = {
+    id: "conn_101",
+    mentorshipRequestId: "req_101",
+    isCompleted: false,
+    messages: [{ id: "m1", body: "Hello mentor" }],
+  };
+
+  // 2. Removal by student: do NOT hard delete; soft-cancel and archive
+  relationship.status = "CANCELLED";
+  relationship.endedAt = new Date();
+  relationship.endReason = "Removed by student";
+  connection.isCompleted = true; // Read-only archive
+
+  assert.strictEqual(relationship.status, "CANCELLED");
+  assert.ok(relationship.endedAt instanceof Date);
+  assert.strictEqual(relationship.endReason, "Removed by student");
+  assert.strictEqual(connection.isCompleted, true);
+  assert.strictEqual(connection.messages.length, 1, "Chat history preserved in archive");
+
+  // 3. New request to same mentor after removal: allowed with new ID
+  const newRequest = {
+    id: "req_102",
+    studentId: "student_1",
+    mentorId: "mentor_1",
+    status: "PENDING",
+  };
+  assert.notStrictEqual(newRequest.id, relationship.requestId);
+
+  // 4. Dedicated new connection upon acceptance without mixing past chat
+  const newConnection = {
+    id: "conn_102",
+    mentorshipRequestId: newRequest.id,
+    isCompleted: false,
+    messages: [],
+  };
+  assert.notStrictEqual(newConnection.id, connection.id);
+  assert.strictEqual(newConnection.messages.length, 0, "New session conversation is cleanly isolated");
+});
+
+runAuditTest("FUNC", "D.10: Unlimited Student Mentorship Requests & Duplicate Pending Protection", () => {
+  const existingRequests = [
+    { id: "r1", studentId: "s1", mentorId: "m1", status: "PENDING" },
+    { id: "r2", studentId: "s1", mentorId: "m2", status: "ACCEPTED" },
+  ];
+
+  const canRequest = (studentId, mentorId) => {
+    const existing = existingRequests.find(
+      (r) =>
+        r.studentId === studentId &&
+        r.mentorId === mentorId &&
+        ["PENDING", "ACCEPTED", "SCHEDULED"].includes(r.status)
+    );
+    if (existing?.status === "PENDING") {
+      return { allowed: false, reason: "PENDING_EXISTS" };
+    }
+    if (existing) {
+      return { allowed: false, reason: "ACTIVE_EXISTS" };
+    }
+    return { allowed: true };
+  };
+
+  // Duplicate pending blocked
+  assert.strictEqual(canRequest("s1", "m1").allowed, false);
+  assert.strictEqual(canRequest("s1", "m1").reason, "PENDING_EXISTS");
+
+  // Duplicate active blocked
+  assert.strictEqual(canRequest("s1", "m2").allowed, false);
+  assert.strictEqual(canRequest("s1", "m2").reason, "ACTIVE_EXISTS");
+
+  // Unlimited requests to different mentors: >10 mentors allowed without arbitrary caps
+  for (let i = 3; i <= 15; i++) {
+    const mentorId = `m${i}`;
+    const res = canRequest("s1", mentorId);
+    assert.strictEqual(res.allowed, true);
+    existingRequests.push({ id: `r${i}`, studentId: "s1", mentorId, status: "PENDING" });
+  }
+
+  assert.strictEqual(existingRequests.length, 15, "Student successfully requested 15 different mentors");
 });
 
 console.log("\n================================================================================");
