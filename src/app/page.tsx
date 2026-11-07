@@ -20,8 +20,8 @@ export default async function Home() {
   const [alumniCount, studentCount, jobCount, jobs, companies] = await Promise.all([
     db.user.count({ where: { role: "ALUMNI", status: "APPROVED" } }),
     db.user.count({ where: { role: "STUDENT" } }),
-    db.job.count({ where: { active: true, ...activeDeadlineCondition() } }),
-    db.job.findMany({ where: { active: true, ...activeDeadlineCondition() }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
+    db.job.count({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() } }),
+    db.job.findMany({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", company: { not: null } }, select: { company: true }, distinct: ["company"] }),
   ]);
 

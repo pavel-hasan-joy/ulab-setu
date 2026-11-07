@@ -37,6 +37,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
     deadline: job.deadline ? job.deadline.toISOString().split("T")[0] : null,
     externalUrl: job.externalUrl,
     contactEmail: job.contactEmail,
+    hiringCapacity: job.hiringCapacity,
     referral: job.referral,
     status: (job.status as JobStatus) || (job.active ? "PUBLISHED" : "CLOSED"),
   };

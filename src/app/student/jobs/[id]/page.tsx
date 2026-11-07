@@ -74,8 +74,9 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
                 ✨ Referral available
               </Badge>
             )}
+            {job.status === "FILLED" && <Badge tone="lilac">Fully Filled / Capacity Reached</Badge>}
             {isExpired && <Badge tone="rose">Expired / Deadline Passed</Badge>}
-            {!isAccepting && !isExpired && <Badge tone="gray">Applications Closed</Badge>}
+            {!isAccepting && !isExpired && job.status !== "FILLED" && <Badge tone="gray">Applications Closed</Badge>}
           </div>
 
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-ink md:text-4xl">{job.title}</h1>

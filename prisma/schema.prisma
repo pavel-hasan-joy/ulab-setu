@@ -120,7 +120,9 @@ model Job {
   deadline        DateTime?
   referral        Boolean       @default(false)
   active          Boolean       @default(true)
-  status          String        @default("PUBLISHED") // DRAFT | PUBLISHED | PAUSED | CLOSED | EXPIRED | REMOVED
+  status          String        @default("PUBLISHED") // DRAFT | PUBLISHED | FILLED | PAUSED | CLOSED | EXPIRED | REMOVED
+  hiringCapacity  Int?          // Number of people to hire (positive integer, null = legacy/unconfigured)
+  capacityFilledEvents Int      @default(0) // Monotonically incremented sequence of full-capacity events
   experienceLevel String?       // Entry | Mid-level | Senior
   externalUrl     String?       // optional direct application URL
   contactEmail    String?       // relevant hiring contact email or info

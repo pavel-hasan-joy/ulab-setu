@@ -69,6 +69,7 @@ async function AlumniJobs({ q, category, type }: { q: string; category?: string;
   const jobs = await db.job.findMany({
     where: {
       active: true,
+      status: "PUBLISHED",
       ...activeDeadlineCondition(),
       ...(category && { category }),
       ...(type && { type }),

@@ -48,8 +48,10 @@ export type AlumniJobRecord = {
   contactEmail: string | null;
   viewsCount: number;
   createdAt: string;
+  hiringCapacity?: number | null;
   applicationsCount: number;
   shortlistedCount: number;
+  selectedCount: number;
 };
 
 export function AlumniJobsView({
@@ -69,19 +71,21 @@ export function AlumniJobsView({
   const stats = useMemo(() => {
     const total = jobs.length;
     const published = jobs.filter((j) => j.status === "PUBLISHED" && j.active).length;
+    const filled = jobs.filter((j) => j.status === "FILLED").length;
     const drafts = jobs.filter((j) => j.status === "DRAFT").length;
     const pausedOrClosed = jobs.filter((j) => j.status === "PAUSED" || j.status === "CLOSED").length;
     const expired = jobs.filter((j) => j.status === "EXPIRED" || (j.deadline && new Date(j.deadline).getTime() < Date.now())).length;
     const totalApps = jobs.reduce((sum, j) => sum + j.applicationsCount, 0);
     const totalShortlisted = jobs.reduce((sum, j) => sum + j.shortlistedCount, 0);
 
-    return { total, published, drafts, pausedOrClosed, expired, totalApps, totalShortlisted };
+    return { total, published, filled, drafts, pausedOrClosed, expired, totalApps, totalShortlisted };
   }, [jobs]);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       if (statusFilter !== "ALL") {
         if (statusFilter === "ACTIVE" && !(job.status === "PUBLISHED" && job.active)) return false;
+        if (statusFilter === "FILLED" && job.status !== "FILLED") return false;
         if (statusFilter === "DRAFT" && job.status !== "DRAFT") return false;
         if (statusFilter === "PAUSED" && job.status !== "PAUSED") return false;
         if (statusFilter === "CLOSED" && job.status !== "CLOSED") return false;
@@ -190,6 +194,7 @@ export function AlumniJobsView({
             {[
               { id: "ALL", label: `All (${jobs.length})` },
               { id: "ACTIVE", label: `Published (${stats.published})` },
+              { id: "FILLED", label: `Fully Filled (${stats.filled})` },
               { id: "DRAFT", label: `Drafts (${stats.drafts})` },
               { id: "PAUSED", label: `Paused` },
               { id: "EXPIRED", label: `Expired (${stats.expired})` },
@@ -246,6 +251,11 @@ export function AlumniJobsView({
                           {job.title}
                         </Link>
                         {isLive && <Badge tone="sage">Live & Published</Badge>}
+                        {job.status === "FILLED" && (
+                          <Badge tone="lilac">
+                            Fully Filled ({job.selectedCount}/{job.hiringCapacity})
+                          </Badge>
+                        )}
                         {job.status === "DRAFT" && <Badge tone="gray">Draft</Badge>}
                         {job.status === "PAUSED" && <Badge tone="gold">Paused</Badge>}
                         {job.status === "CLOSED" && <Badge tone="gray">Closed</Badge>}
@@ -266,6 +276,12 @@ export function AlumniJobsView({
                           <Briefcase size={14} className="text-ink-soft" />
                           {job.type} ({job.experienceLevel || "Any Experience"})
                         </span>
+                        {job.hiringCapacity && (
+                          <span className="inline-flex items-center gap-1 font-medium text-indigo-600 dark:text-indigo-400">
+                            <Users size={14} className="text-indigo-500" />
+                            Capacity: {job.hiringCapacity} ({job.selectedCount} selected)
+                          </span>
+                        )}
                         {job.deadline && (
                           <span className="inline-flex items-center gap-1">
                             <Calendar size={14} className="text-ink-soft" />

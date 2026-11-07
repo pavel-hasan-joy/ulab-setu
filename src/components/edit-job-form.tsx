@@ -31,6 +31,7 @@ export function EditJobForm({
     deadline: string | null;
     externalUrl: string | null;
     contactEmail: string | null;
+    hiringCapacity?: number | null;
     referral: boolean;
     status: JobStatus;
   };
@@ -49,6 +50,7 @@ export function EditJobForm({
     experienceLevel: f.experienceLevel ?? job.experienceLevel ?? "Entry",
     salary: f.salary ?? job.salary ?? "",
     skills: f.skills ?? job.skills ?? "",
+    hiringCapacity: f.hiringCapacity ?? (job.hiringCapacity ? String(job.hiringCapacity) : ""),
     deadline: f.deadline ?? job.deadline ?? "",
     externalUrl: f.externalUrl ?? job.externalUrl ?? "",
     contactEmail: f.contactEmail ?? job.contactEmail ?? "",
@@ -103,6 +105,7 @@ export function EditJobForm({
                 experienceLevel: get("experienceLevel")?.value ?? "Entry",
                 salary: get("salary")?.value ?? "",
                 skills: get("skills")?.value ?? "",
+                hiringCapacity: get("hiringCapacity")?.value ?? "",
                 deadline: get("deadline")?.value ?? "",
                 externalUrl: get("externalUrl")?.value ?? "",
                 contactEmail: get("contactEmail")?.value ?? "",
@@ -152,9 +155,20 @@ export function EditJobForm({
             <div className="space-y-4 border-t border-mist/70 pt-5">
               <h2 className="text-sm font-bold uppercase tracking-wider text-ulab">Compensation & Applications</h2>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Salary / Compensation (Optional)">
-                  <Input name="salary" defaultValue={f.salary ?? job.salary ?? ""} />
+                  <Input name="salary" defaultValue={f.salary ?? job.salary ?? ""} placeholder="e.g. BDT 40,000 / month" />
+                </Field>
+
+                <Field label="Number of People to Hire" hint="Hiring capacity">
+                  <Input
+                    name="hiringCapacity"
+                    type="number"
+                    min="1"
+                    step="1"
+                    defaultValue={f.hiringCapacity ?? (job.hiringCapacity ? String(job.hiringCapacity) : "")}
+                    placeholder="e.g. 1, 2, 5"
+                  />
                 </Field>
 
                 <Field label="Application Deadline">

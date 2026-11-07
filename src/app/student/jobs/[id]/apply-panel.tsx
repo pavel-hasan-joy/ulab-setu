@@ -186,7 +186,7 @@ export function ApplyPanel({
             </div>
             <p className="mt-2 text-sm font-semibold text-ink">Applications Closed</p>
             <p className="mt-1 text-xs text-ink-soft">
-              This job posting has reached its deadline or has been closed by the poster.
+              This position has reached its hiring capacity, its application deadline has passed, or it has been paused by the employer.
             </p>
           </motion.div>
         ) : (

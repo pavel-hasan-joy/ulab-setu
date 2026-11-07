@@ -50,8 +50,10 @@ export default async function MyJobs({
     contactEmail: j.contactEmail,
     viewsCount: j.viewsCount,
     createdAt: j.createdAt.toISOString(),
+    hiringCapacity: j.hiringCapacity,
     applicationsCount: j.applications.length,
     shortlistedCount: j.applications.filter((a) => a.status === "SHORTLISTED").length,
+    selectedCount: j.applications.filter((a) => a.status === "SELECTED").length,
   }));
 
   return (

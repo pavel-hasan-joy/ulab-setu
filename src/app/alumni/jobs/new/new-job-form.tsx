@@ -24,6 +24,7 @@ export function NewJobForm({ company, base = "/alumni" }: { company: string; bas
     experienceLevel: f.experienceLevel ?? "Entry",
     salary: f.salary ?? "",
     skills: f.skills ?? "",
+    hiringCapacity: f.hiringCapacity ?? "",
     deadline: f.deadline ?? "",
     externalUrl: f.externalUrl ?? "",
     contactEmail: f.contactEmail ?? "",
@@ -65,6 +66,7 @@ export function NewJobForm({ company, base = "/alumni" }: { company: string; bas
                 experienceLevel: get("experienceLevel")?.value ?? "Entry",
                 salary: get("salary")?.value ?? "",
                 skills: get("skills")?.value ?? "",
+                hiringCapacity: get("hiringCapacity")?.value ?? "",
                 deadline: get("deadline")?.value ?? "",
                 externalUrl: get("externalUrl")?.value ?? "",
                 contactEmail: get("contactEmail")?.value ?? "",
@@ -129,12 +131,23 @@ export function NewJobForm({ company, base = "/alumni" }: { company: string; bas
             <div className="space-y-4 border-t border-mist/70 pt-5">
               <h2 className="text-sm font-bold uppercase tracking-wider text-ulab">Compensation & Applications</h2>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Salary / Compensation (Optional)" hint="e.g. BDT 35,000 - 45,000 / month, or Negotiable">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field label="Salary / Compensation (Optional)" hint="e.g. BDT 40,000 / month, or Negotiable">
                   <Input name="salary" defaultValue={f.salary} placeholder="e.g. BDT 40,000 / month" />
                 </Field>
 
-                <Field label="Application Deadline" hint="Applications will close after this date">
+                <Field label="Number of People to Hire" hint="How many candidates to recruit">
+                  <Input
+                    name="hiringCapacity"
+                    type="number"
+                    min="1"
+                    step="1"
+                    defaultValue={f.hiringCapacity}
+                    placeholder="e.g. 1, 2, 5"
+                  />
+                </Field>
+
+                <Field label="Application Deadline" hint="Applications close after date">
                   <Input name="deadline" type="date" defaultValue={f.deadline} />
                 </Field>
               </div>

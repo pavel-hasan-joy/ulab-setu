@@ -63,6 +63,7 @@ export default async function JobApplicants({
   const isLive = job.status === "PUBLISHED" && job.active;
   const isExpired = job.status === "EXPIRED" || (job.deadline && new Date(job.deadline).getTime() < Date.now());
   const shortlistedCount = job.applications.filter((a) => a.status === "SHORTLISTED").length;
+  const selectedCount = job.applications.filter((a) => a.status === "SELECTED").length;
   const pendingCount = job.applications.filter((a) => a.status === "APPLIED").length;
 
   return (
@@ -89,6 +90,7 @@ export default async function JobApplicants({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-ink sm:text-3xl">{job.title}</h1>
               {isLive && <Badge tone="sage">Live & Published</Badge>}
+              {job.status === "FILLED" && <Badge tone="lilac">Fully Filled</Badge>}
               {job.status === "DRAFT" && <Badge tone="gray">Draft</Badge>}
               {job.status === "PAUSED" && <Badge tone="gold">Paused</Badge>}
               {job.status === "CLOSED" && <Badge tone="gray">Closed</Badge>}
@@ -109,6 +111,12 @@ export default async function JobApplicants({
                 <Briefcase size={15} className="text-ink-soft" />
                 {job.type} • {job.experienceLevel || "Entry"}
               </span>
+              {job.hiringCapacity && (
+                <span className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400">
+                  <Users size={15} className="text-indigo-500" />
+                  Capacity: {job.hiringCapacity} ({selectedCount} Selected)
+                </span>
+              )}
               {job.deadline && (
                 <span className="flex items-center gap-1">
                   <Calendar size={15} className="text-ink-soft" />
@@ -162,7 +170,7 @@ export default async function JobApplicants({
       </Card>
 
       {/* Candidate Pipeline Metrics */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
         <Card className="p-4 border-l-4 border-l-ulab">
           <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Total Applicants</span>
           <p className="mt-1 text-2xl font-bold text-ink">{job.applications.length}</p>
@@ -178,7 +186,17 @@ export default async function JobApplicants({
           <p className="mt-1 text-2xl font-bold text-emerald-600">{shortlistedCount}</p>
         </Card>
 
-        <Card className="p-4 border-l-4 border-l-indigo-500">
+        <Card className="p-4 border-l-4 border-l-indigo-600">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Selected Candidates</span>
+          <p className="mt-1 text-2xl font-bold text-indigo-600">
+            {selectedCount}
+            {job.hiringCapacity ? (
+              <span className="text-xs font-normal text-ink-soft ml-1">/ {job.hiringCapacity} capacity</span>
+            ) : null}
+          </p>
+        </Card>
+
+        <Card className="p-4 border-l-4 border-l-sky-500">
           <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">External Apply Link</span>
           <div className="mt-1">
             {job.externalUrl ? (

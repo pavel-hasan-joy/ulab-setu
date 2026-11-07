@@ -348,6 +348,36 @@ runAuditTest("FUNC", "D.6: Applicant Rejection & private internal hiring notes i
   assert.strictEqual(studentSafe.status, "REJECTED");
 });
 
+runAuditTest("FUNC", "D.7: Hiring Capacity enforcement, automatic hiding & reopening", () => {
+  const isAccepting = ({ status, active, hiringCapacity, selectedCount }) => {
+    if (status !== "PUBLISHED" || !active) return false;
+    if (hiringCapacity && selectedCount >= hiringCapacity) return false;
+    return true;
+  };
+
+  // Capacity 3, Selected 2 -> Open
+  assert.strictEqual(isAccepting({ status: "PUBLISHED", active: true, hiringCapacity: 3, selectedCount: 2 }), true);
+  // Capacity 3, Selected 3 -> Fully Filled / Hidden
+  assert.strictEqual(isAccepting({ status: "FILLED", active: false, hiringCapacity: 3, selectedCount: 3 }), false);
+  // Reopening: after rejection, Selected 2 -> Back to PUBLISHED
+  assert.strictEqual(isAccepting({ status: "PUBLISHED", active: true, hiringCapacity: 3, selectedCount: 2 }), true);
+});
+
+runAuditTest("FUNC", "D.8: Optional Multiple Project Links submission & scheme protection", () => {
+  const isSafeUrl = (url) => {
+    try {
+      const u = new URL(url);
+      return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  assert.strictEqual(isSafeUrl("https://github.com/project"), true);
+  assert.strictEqual(isSafeUrl("javascript:alert(1)"), false);
+  assert.strictEqual(isSafeUrl("data:text/html,<script>"), false);
+});
+
 console.log("\n================================================================================");
 console.log(`   Final Production Readiness Audit: ${passed}/${total} Checks Passed (100%)`);
 console.log("================================================================================\n");

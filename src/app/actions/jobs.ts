@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requirePoster, requireUser } from "@/lib/auth";
-import { syncExpiredJobs, isJobAcceptingApplications, type JobStatus } from "@/lib/jobs";
+import { syncExpiredJobs, isJobAcceptingApplications, syncJobCapacityStatus, type JobStatus } from "@/lib/jobs";
 import { cleanLinkedIn } from "@/lib/contact";
 import { checkActionRateLimit } from "@/lib/rate-limit";
 import { validateProjectUrl, sanitizeProjectTitle } from "@/lib/applications";
@@ -26,6 +26,7 @@ const jobSchema = z.object({
   externalUrl: z.string().trim().optional(),
   referral: z.string().optional(),
   contactEmail: z.string().trim().optional(),
+  hiringCapacity: z.string().trim().optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "PAUSED", "CLOSED"]).optional(),
 });
 
@@ -55,7 +56,17 @@ export async function createJob(_: FormState, formData: FormData): Promise<FormS
   const parsed = jobSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0].message, raw);
 
-  const { deadline, referral, externalUrl, contactEmail, status: requestedStatus, ...data } = parsed.data;
+  const { deadline, referral, externalUrl, contactEmail, status: requestedStatus, hiringCapacity, ...data } = parsed.data;
+
+  // Validate hiringCapacity: must be positive whole integer if provided
+  let parsedHiringCapacity: number | null = null;
+  if (hiringCapacity !== undefined && hiringCapacity !== "") {
+    const parsedCap = Number(hiringCapacity);
+    if (!Number.isInteger(parsedCap) || parsedCap <= 0) {
+      return fail("Number of people to hire must be a positive whole number (e.g. 1, 2, 5).", raw);
+    }
+    parsedHiringCapacity = parsedCap;
+  }
 
   // Deadline validation: if published with a deadline, deadline must be in the future
   let deadlineDate: Date | null = null;
@@ -91,6 +102,7 @@ export async function createJob(_: FormState, formData: FormData): Promise<FormS
       referral: referral === "on" || referral === "true",
       externalUrl: sanitizeUrl(externalUrl),
       contactEmail: contactEmail || null,
+      hiringCapacity: parsedHiringCapacity,
       status: finalStatus,
       active: isActive,
       postedById: user.id,
@@ -125,7 +137,17 @@ export async function updateJob(jobId: string, _: FormState, formData: FormData)
   const parsed = jobSchema.safeParse(raw);
   if (!parsed.success) return fail(parsed.error.issues[0].message, raw);
 
-  const { deadline, referral, externalUrl, contactEmail, status: requestedStatus, ...data } = parsed.data;
+  const { deadline, referral, externalUrl, contactEmail, status: requestedStatus, hiringCapacity, ...data } = parsed.data;
+
+  // Validate hiringCapacity: must be positive whole integer if provided
+  let parsedHiringCapacity: number | null = null;
+  if (hiringCapacity !== undefined && hiringCapacity !== "") {
+    const parsedCap = Number(hiringCapacity);
+    if (!Number.isInteger(parsedCap) || parsedCap <= 0) {
+      return fail("Number of people to hire must be a positive whole number (e.g. 1, 2, 5).", raw);
+    }
+    parsedHiringCapacity = parsedCap;
+  }
 
   let deadlineDate: Date | null = null;
   if (deadline) {
@@ -157,9 +179,15 @@ export async function updateJob(jobId: string, _: FormState, formData: FormData)
       referral: referral === "on" || referral === "true",
       externalUrl: sanitizeUrl(externalUrl),
       contactEmail: contactEmail || null,
+      hiringCapacity: parsedHiringCapacity,
       status: finalStatus,
       active: isActive,
     },
+  });
+
+  // Evaluate capacity in transaction (e.g. if capacity was increased or decreased)
+  await db.$transaction(async (tx) => {
+    await syncJobCapacityStatus(tx, jobId, user.id);
   });
 
   revalidatePath(`${base}/jobs`);
@@ -180,8 +208,19 @@ export async function setJobStatus(jobId: string, status: JobStatus) {
   }
 
   const isExpired = job.deadline && job.deadline.getTime() < Date.now();
-  const newStatus = status === "PUBLISHED" && isExpired ? "EXPIRED" : status;
-  const active = newStatus === "PUBLISHED";
+  let newStatus = status === "PUBLISHED" && isExpired ? "EXPIRED" : status;
+  let active = newStatus === "PUBLISHED";
+
+  // If attempting to publish, check if capacity is already filled
+  if (newStatus === "PUBLISHED" && job.hiringCapacity && job.hiringCapacity > 0) {
+    const selectedCount = await db.application.count({
+      where: { jobId, status: "SELECTED" },
+    });
+    if (selectedCount >= job.hiringCapacity) {
+      newStatus = "FILLED";
+      active = false;
+    }
+  }
 
   await db.job.update({
     where: { id: jobId },
@@ -351,11 +390,25 @@ export async function applyToJob(_: FormState, formData: FormData): Promise<Form
       postedById: true,
       title: true,
       company: true,
+      hiringCapacity: true,
     },
   });
 
   if (!job || !isJobAcceptingApplications(job)) {
+    if (job?.status === "FILLED") {
+      return { error: "This position has reached its hiring capacity and is no longer accepting new applications." };
+    }
     return { error: "This job is no longer open or its deadline has passed." };
+  }
+
+  // Double check capacity count
+  if (job.hiringCapacity && job.hiringCapacity > 0) {
+    const selectedCount = await db.application.count({
+      where: { jobId, status: "SELECTED" },
+    });
+    if (selectedCount >= job.hiringCapacity) {
+      return { error: "This position has reached its hiring capacity and is no longer accepting new applications." };
+    }
   }
 
   // Handle saved CV resolution
@@ -544,59 +597,104 @@ export async function setApplicationStatus(
     ? { id: applicationId }
     : { id: applicationId, job: { postedById: user.id } };
 
-  const app = await db.application.findFirst({
-    where: whereClause,
-    include: { job: { select: { title: true, id: true, postedById: true, company: true } } },
-  });
-  if (!app) return { error: "Application not found or unauthorized" };
+  const txResult = await db.$transaction(async (tx) => {
+    const app = await tx.application.findFirst({
+      where: whereClause,
+      include: {
+        job: {
+          select: {
+            title: true,
+            id: true,
+            postedById: true,
+            company: true,
+            hiringCapacity: true,
+            status: true,
+            active: true,
+            deadline: true,
+          },
+        },
+      },
+    });
+    if (!app) return { error: "Application not found or unauthorized" };
 
-  // Block interview transition for rejected applications
-  if (status === "INTERVIEW" && app.status === "REJECTED") {
-    return { error: "Cannot schedule an interview for a rejected applicant. Please reopen the application first." };
+    // Block interview transition for rejected applications
+    if (status === "INTERVIEW" && app.status === "REJECTED") {
+      return { error: "Cannot schedule an interview for a rejected applicant. Please reopen the application first." };
+    }
+
+    // Capacity check if transitioning to SELECTED
+    if (status === "SELECTED" && app.status !== "SELECTED") {
+      if (app.job.hiringCapacity && app.job.hiringCapacity > 0) {
+        const currentSelectedCount = await tx.application.count({
+          where: {
+            jobId: app.job.id,
+            status: "SELECTED",
+            id: { not: applicationId },
+          },
+        });
+        if (currentSelectedCount >= app.job.hiringCapacity) {
+          return {
+            error: `Hiring capacity reached! This position has ${app.job.hiringCapacity} opening(s), all of which are already selected.`,
+          };
+        }
+      }
+    }
+
+    await tx.application.update({
+      where: { id: applicationId },
+      data: {
+        status,
+        statusUpdatedAt: new Date(),
+        ...(interviewNotes ? { hiringNotes: interviewNotes.trim() } : {}),
+      },
+    });
+
+    // Synchronize job capacity status and handle automatic closing/reopening and applicant notifications
+    await syncJobCapacityStatus(tx, app.job.id, user.id);
+
+    // Formulate human-friendly in-app notification for the student
+    let notificationTitle = "Application Update";
+    let notificationBody = `Your application for "${app.job.title}" has been updated to ${status}.`;
+
+    if (status === "SHORTLISTED") {
+      notificationTitle = "Application Shortlisted! 🎉";
+      notificationBody = `Great news! You have been shortlisted for "${app.job.title}".`;
+    } else if (status === "INTERVIEW") {
+      notificationTitle = "Interview Invitation 💼";
+      notificationBody = `You have been invited for an interview for "${app.job.title}". Check your application details for schedule and venue!`;
+    } else if (status === "SELECTED") {
+      notificationTitle = "Congratulations! Selected for Role 🌟";
+      notificationBody = `Congratulations! You have been selected for the position of "${app.job.title}".`;
+    } else if (status === "VIEWED") {
+      notificationTitle = "Application Reviewed 👀";
+      notificationBody = `The recruiter reviewed your CV and profile for "${app.job.title}".`;
+    } else if (status === "REJECTED") {
+      notificationTitle = `Application Update: ${app.job.title}`;
+      notificationBody = `Thank you for applying for "${app.job.title}" at ${app.job.company}. The employer decided not to move forward with this application at this time.`;
+    }
+
+    await tx.notification.create({
+      data: {
+        userId: app.studentId,
+        actorId: user.id,
+        title: notificationTitle,
+        body: notificationBody,
+        type: "APPLICATION",
+        link: `/student/applications`,
+      },
+    }).catch(() => {});
+
+    return { success: true, jobId: app.job.id };
+  });
+
+  if (txResult.error) {
+    return { error: txResult.error };
   }
 
-  await db.application.update({
-    where: { id: applicationId },
-    data: {
-      status,
-      statusUpdatedAt: new Date(),
-      ...(interviewNotes ? { hiringNotes: interviewNotes.trim() } : {}),
-    },
-  });
-
-  // Formulate human-friendly in-app notification for the student
-  let notificationTitle = "Application Update";
-  let notificationBody = `Your application for "${app.job.title}" has been updated to ${status}.`;
-
-  if (status === "SHORTLISTED") {
-    notificationTitle = "Application Shortlisted! 🎉";
-    notificationBody = `Great news! You have been shortlisted for "${app.job.title}".`;
-  } else if (status === "INTERVIEW") {
-    notificationTitle = "Interview Invitation 💼";
-    notificationBody = `You have been invited for an interview for "${app.job.title}". Check your application details for schedule and venue!`;
-  } else if (status === "SELECTED") {
-    notificationTitle = "Congratulations! Selected for Role 🌟";
-    notificationBody = `Congratulations! You have been selected for the position of "${app.job.title}".`;
-  } else if (status === "VIEWED") {
-    notificationTitle = "Application Reviewed 👀";
-    notificationBody = `The recruiter reviewed your CV and profile for "${app.job.title}".`;
-  } else if (status === "REJECTED") {
-    notificationTitle = `Application Update: ${app.job.title}`;
-    notificationBody = `Thank you for applying for "${app.job.title}" at ${app.job.company}. The employer decided not to move forward with this application at this time.`;
-  }
-
-  await db.notification.create({
-    data: {
-      userId: app.studentId,
-      actorId: user.id,
-      title: notificationTitle,
-      body: notificationBody,
-      type: "APPLICATION",
-      link: `/student/applications`,
-    },
-  }).catch(() => {});
-
-  revalidatePath(`${base}/jobs/${app.job.id}`);
+  revalidatePath(`${base}/jobs/${txResult.jobId}`);
+  revalidatePath(`${base}/jobs`);
+  revalidatePath(`/student/jobs/${txResult.jobId}`);
+  revalidatePath("/student/jobs");
   revalidatePath(`/student/applications`);
   return { success: true };
 }

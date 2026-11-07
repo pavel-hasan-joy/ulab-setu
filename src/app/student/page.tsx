@@ -13,7 +13,7 @@ export default async function StudentHome() {
   const [applications, connections, jobs, alumni, notices] = await Promise.all([
     db.application.count({ where: { studentId: user.id } }),
     db.connection.count({ where: { status: "ACCEPTED", OR: [{ fromId: user.id }, { toId: user.id }] } }),
-    db.job.findMany({ where: { active: true, ...activeDeadlineCondition() }, include: { postedBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
+    db.job.findMany({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() }, include: { postedBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", department: user.department }, take: 4, orderBy: { graduationYear: "desc" } }),
     db.post.findMany({ include: { author: true }, orderBy: { createdAt: "desc" }, take: 3 }),
   ]);
