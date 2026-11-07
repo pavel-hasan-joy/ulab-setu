@@ -172,7 +172,7 @@ export function BoardFeed({
                       setViewingAuthor(p.author);
                     }}
                     className="flex items-start gap-3 min-w-0 flex-1 group/author cursor-pointer"
-                    title="Click to view full profile (সম্পূর্ণ প্রোফাইল দেখুন)"
+                    title="Click to view full profile"
                   >
                     <Avatar
                       name={p.author.name}
@@ -314,7 +314,7 @@ export function BoardFeed({
                   </p>
                 </div>
 
-                {/* Notice Author / Publisher Card (নোটিশদাতা ও বিভাগ) */}
+                {/* Notice Author / Publisher Card */}
                 <div className="rounded-2xl border border-mist/80 bg-paper/60 p-4 dark:border-white/5 dark:bg-white/5">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div
@@ -322,7 +322,7 @@ export function BoardFeed({
                       tabIndex={0}
                       onClick={() => setViewingAuthor(selectedNotice.author)}
                       className="flex items-center gap-3.5 cursor-pointer group"
-                      title="Click to view full profile (সম্পূর্ণ প্রোফাইল দেখুন)"
+                      title="Click to view full profile"
                     >
                       <Avatar
                         name={selectedNotice.author.name}
@@ -423,7 +423,7 @@ export function BoardFeed({
                   </div>
                 )}
 
-                {/* Full Notice Content (নোটিশের মূল বিবরণ ও তথ্য) */}
+                {/* Full Notice Content */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink-soft">
                     <Megaphone size={14} className="text-ulab" />
@@ -435,7 +435,7 @@ export function BoardFeed({
                   </div>
                 </div>
 
-                {/* Attached External Link / Registration Portal (সংযুক্ত লিংক) */}
+                {/* Attached External Link / Registration Portal */}
                 {selectedNotice.link && (
                   <div className="rounded-2xl border border-emerald-300/80 bg-emerald-50/80 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/30">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

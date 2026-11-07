@@ -197,7 +197,7 @@ export function GroupChatWindow({
             href={backHref}
             scroll={false}
             className="inline-flex items-center gap-1.5 rounded-xl border border-mist bg-paper/80 px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-ulab hover:text-ulab hover:bg-paper transition shadow-2xs shrink-0"
-            title="All Conversations (সব চ্যাটে ফিরে যান)"
+            title="All Conversations"
             aria-label="Back to all conversations"
           >
             <ArrowLeft size={15} />
@@ -223,7 +223,7 @@ export function GroupChatWindow({
             href={backHref}
             scroll={false}
             className="inline-flex items-center gap-1 rounded-xl border border-mist/80 bg-paper/60 px-2.5 py-1.5 text-xs font-medium text-ink-soft hover:border-mist-deep hover:bg-paper hover:text-ink transition shadow-2xs"
-            title="Close this group chat (গ্রুপ বন্ধ করুন)"
+            title="Close this group chat"
             aria-label="Exit group chat"
           >
             <X size={14} />

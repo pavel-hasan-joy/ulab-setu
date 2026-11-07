@@ -366,7 +366,7 @@ function MentorshipChatPane({
             href={backHref}
             scroll={false}
             className="inline-flex items-center gap-1.5 rounded-xl border border-mist bg-paper/80 px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-ulab hover:text-ulab hover:bg-paper transition shadow-2xs shrink-0"
-            title="All Mentorship Chats (সব মেন্টরশিপ চ্যাটে ফিরে যান)"
+            title="All Mentorship Chats"
             aria-label="Back to all mentorship conversations"
           >
             <ArrowLeft size={15} />
@@ -426,7 +426,7 @@ function MentorshipChatPane({
             href={backHref}
             scroll={false}
             className="inline-flex items-center gap-1 rounded-xl border border-mist/80 bg-paper/60 px-2.5 py-1.5 text-xs font-medium text-ink-soft hover:border-mist-deep hover:bg-paper hover:text-ink transition shadow-2xs"
-            title="Close this chat (চ্যাট বন্ধ করুন)"
+            title="Close this chat"
             aria-label="Exit conversation"
           >
             <X size={14} />
@@ -447,7 +447,7 @@ function MentorshipChatPane({
               <span>1 Session Completed!</span>
             </div>
             <p className="mt-1 text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
-              ১টি সেশন সম্পন্ন হয়েছে · আপনারা চ্যাট চালিয়ে যেতে পারেন এবং চাইলে আরও সেশন করতে পারেন।
+              1 session completed · You may continue messaging or schedule further sessions whenever needed.
             </p>
           </div>
         )}

@@ -415,7 +415,7 @@ export function StudentMentorDetailsView({
                     )}
                     {hoursMatch && (
                       <div>
-                        <span className="font-semibold text-ink-soft">Available Hours (সময়):</span>
+                        <span className="font-semibold text-ink-soft">Available Hours:</span>
                         <p className="mt-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                           ⏰ {hoursMatch[1].trim()}
                         </p>
@@ -520,7 +520,7 @@ export function StudentMentorDetailsView({
                       </option>
                     ))}
                   </optgroup>
-                  <option value="__CUSTOM__">✍️ Custom Topic (অন্য যেকোনো বিষয় লিখুন)...</option>
+                  <option value="__CUSTOM__">✍️ Custom Topic (Specify any custom topic)...</option>
                 </select>
 
                 {selectedTopic === "__CUSTOM__" && (

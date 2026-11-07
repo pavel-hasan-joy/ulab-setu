@@ -141,7 +141,7 @@ export function MessagesClient({
                 onClick={() => setIsNewChatOpen(true)}
                 variant="soft"
                 className="h-8 gap-1.5 px-2.5 text-xs font-semibold text-ulab-deep shadow-none"
-                title="Start a new chat (নতুন মেসেজ)"
+                title="Start a new chat"
               >
                 <MessageSquarePlus size={14} />
                 <span className="hidden sm:inline">New Chat</span>

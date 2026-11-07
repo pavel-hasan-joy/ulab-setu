@@ -802,7 +802,7 @@ export function CareerMentorSettingsView({
                   <div>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <label className="text-xs font-semibold text-ink">
-                        Offered Mentorship Topics (পছন্দের টপিক সিলেক্ট করুন অথবা নতুন লিখে যোগ করুন)
+                        Offered Mentorship Topics (Select preferred topics or add custom ones)
                       </label>
                       <button
                         type="button"
@@ -1094,11 +1094,11 @@ export function CareerMentorSettingsView({
                     </div>
                   </div>
 
-                  {/* Preferred Time Slots & Hours (কখন কয়টার সময় থাকবেন) */}
+                  {/* Preferred Time Slots & Hours */}
                   <div>
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-semibold text-ink">
-                        Preferred Time Slots & Timing (কখন থাকবেন)
+                        Preferred Time Slots & Timing
                       </label>
                       <span className="text-[11px] text-ink-soft">Select one or more</span>
                     </div>
@@ -1125,7 +1125,7 @@ export function CareerMentorSettingsView({
                     {/* Custom Specific Hours */}
                     <div className="mt-2.5">
                       <label className="text-[11px] font-medium text-ink-soft">
-                        Specific Hours / Window (নির্দিষ্ট সময়সূচি)
+                        Specific Hours / Availability Window
                       </label>
                       <input
                         type="text"
@@ -1725,7 +1725,7 @@ export function CareerMentorSettingsView({
               Delete / End Mentorship
             </h3>
             <p className="text-xs text-ink-soft mt-1.5 leading-relaxed">
-              আপনি কি নিশ্চিত যে আপনি <strong className="text-ink">{endingReq.student.name}</strong>-এর সাথে মেন্টরশিপ সম্পর্কটি সমাপ্ত/ডিলিট করতে চান? এর ফলে আপনার ১টি মেন্টি স্লট খালি হবে।
+              Are you sure you want to end this mentorship relationship with <strong className="text-ink">{endingReq.student.name}</strong>? This will free up 1 of your mentee capacity slots.
             </p>
 
             <div className="mt-4">

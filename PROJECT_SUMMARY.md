@@ -1,4 +1,4 @@
-# ULAB Setu (সেতু) — Comprehensive Project Summary & Architecture Blueprint
+# ULAB Setu (Setu — Bridge) — Comprehensive Project Summary & Architecture Blueprint
 
 > **Project Name:** ULAB Setu  
 > **Tagline:** *Where ULAB students meet the alumni who came before them.*  

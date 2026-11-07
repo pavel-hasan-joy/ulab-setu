@@ -36,7 +36,7 @@ export function JobPosterCard({
             }
           }}
           className="mt-3 flex items-center gap-3.5 rounded-xl p-2 -m-2 transition hover:bg-paper cursor-pointer group"
-          title="Click to view full profile (সম্পূর্ণ প্রোফাইল দেখুন)"
+          title="Click to view full profile"
           aria-label={`View ${poster.name}'s profile`}
         >
           <Avatar

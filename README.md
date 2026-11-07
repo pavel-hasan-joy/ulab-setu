@@ -23,188 +23,325 @@
 
 <p><em>🌉 ULAB Setu Interface — Bridging students with alumni, mentorship, and career opportunities</em></p>
 
-[Live Website](https://ulab-setu.vercel.app) • [Features](#-key-features) • [Tech Stack](#-tech-stack) • [Architecture](#-system-architecture) • [Getting Started](#-getting-started) • [Deployment](#-deployment)
+[Live Website](https://ulab-setu.vercel.app) • [GitHub Repository](https://github.com/pavel-hasan-joy/ulab-setu) • [Features by Role](#-features-by-user-role) • [Shared Features](#-shared-platform-features) • [Tech Stack](#-tech-stack) • [System Architecture](#-system-architecture) • [Getting Started](#-getting-started) • [Deployment](#-production-deployment)
 
 </div>
 
 ---
 
-## 📖 Overview
+## 📖 Project Introduction & Purpose
 
-**ULAB Setu** (সেতু — *Bridge*) is a modern full-stack web application and Progressive Web App (PWA) designed to bridge the gap between academia and the professional world. 
+**ULAB Setu** (*Setu* — Bridge) is an institutional networking, career development, and mentorship platform purpose-built for the **University of Liberal Arts Bangladesh (ULAB)** community.
 
-The platform enables students to connect with alumni mentors, apply for curated jobs and internships, communicate directly through private messaging, and access real-time job listings from both Bangladeshi job portals and global remote companies. An automated verification workflow managed by the Alumni Office ensures safety, authenticity, and verified community networking.
-
----
-
-## 🚀 Recent Platform Upgrades (v2.0)
-
-ULAB Setu has been significantly upgraded with enterprise-grade collaborative and networking features:
-
-- 💬 **Messenger-Style Unified Group & Direct Messaging System:**
-  - **Open to All Roles:** Anyone (Students, Faculty, and Alumni) can create collaborative group chats directly from the Messages section.
-  - **Dynamic Group Creation:** Set group name, optional description/topics, and invite peers, teachers, or alumni mentors with live search and selection.
-  - **Rich File & Media Attachments:**
-    - Share **photos, PDF documents, lecture notes, syllabus files, and archives** directly in chat via the paperclip button.
-    - Inline preview for photos and one-click download card with file size indicator for documents/PDFs.
-  - **Messenger & WhatsApp-Style Group Feed:**
-    - Real-time polling with sender avatars, names, and distinctive role badges (Faculty, Student, Alumni, Admin).
-    - Auto-scrolling and fast message dispatch.
-  - **Group Management & Roles:**
-    - Dedicated Group Info drawer with member roster and role badges (Owner, Admin, Member).
-    - Admins can add members or remove users; members can leave groups at any time.
-  - **Unified Conversations Sidebar:** Filter tabs for **All**, **Direct (1-on-1)**, and **Groups** with unread/last activity snippets and relative timestamps.
-  - **Resilient Real-Time Engine & Auto Schema Sync:**
-    - Zero-downtime database schema migration (`prisma db push --accept-data-loss`) ensuring database tables and constraints are safely synchronized.
-    - Defensive null-guarding and structured error boundary with instant recovery controls.
-- 🤝 **Interactive Networking & Disconnect Controls:**
-  - LinkedIn-style Connection Requests (Send, Pending with withdrawal, Accept, Decline).
-  - **Disconnect / Remove Connection:** Once connected, users can remove connections with a safe confirmation modal preventing accidental removal.
-  - **Dynamic Invitation Badges:** Real-time notification counters on sidebar tabs across Student, Teacher, and Alumni spaces.
-- 📄 **Rich Job Candidate Dossiers & Profile Modal:**
-  - Interactive applicant cards displaying full profile information, skills badges, student ID, batch, and CV preview.
-  - Global **Profile Modal** allowing one-click profile inspection from any directory card or job applicant listing.
-- 🔐 **Pre-configured Testing & Demonstration Accounts:**
-  - Seeded ready-to-use accounts for Faculty, Student, and Alumni with pre-populated sample group `ULAB CSE Tech & Project Hub`.
+The platform bridges the traditional gap between university academia and professional industry by empowering students to:
+- Connect directly with verified alumni working across top multinational and domestic enterprises.
+- Receive one-on-one professional career consultation, resume reviews, and interview coaching from alumni and faculty mentors.
+- Discover and apply for campus-exclusive job vacancies, internships, research assistantships, and tuition opportunities.
+- Collaborate across departments via real-time direct and group messaging with rich multimedia and document attachments.
+- Access an authenticated, institution-governed space where the Alumni Office actively maintains authenticity through official directory reconciliation and zero-trust verification.
 
 ---
 
-## ✨ Key Features by User Role
+## 🌐 Official Platform Links
 
-### 🎓 1. Student Portal
-- **Smart Job Search & Filters:** Browse direct alumni job postings, Bangladeshi jobs via Careerjet API, and global remote opportunities via Himalayas API.
-- **Application Tracking:** Apply directly to alumni/teacher postings and track application statuses.
-- **Messenger-Style Group Chats:** Create or join group chats with peers, faculty, and alumni with full media and document sharing.
-- **Alumni Mentorship Directory:** Discover alumni filtered by department, batch, company, and location with Connect/Disconnect options.
-- **Community Notice Board:** Stay updated with official announcements, career seminars, and campus events.
-- **1-on-1 Direct Messaging:** Private messaging with alumni mentors and faculty members.
-- **Privacy First:** Control visibility of personal contact info (Phone, WhatsApp, Facebook).
-
-### 💼 2. Alumni Portal
-- **Job & Internship Posting:** Post job openings directly with custom application requirements, deadlines, and salary details.
-- **Applicant Review & Candidate Dossier:** View comprehensive applicant details (Avatar, Student ID, batch, department, skills, and CV preview) with full profile modals.
-- **Talent Discovery & Networking:** Connect with students and peer alumni with connect and disconnect options.
-- **Group Collaborations:** Form project or alumni chapter groups with students and faculty.
-- **Community Engagement:** Publish career advice, opportunities, and discussions on the notice board.
-- **Approval Workflow:** Verified status granted by the Alumni Office ensures authentic alumni representation.
-
-### 👨‍🏫 3. Faculty / Teacher Portal
-- **Interactive Group Discussions:** Create study groups, course groups, and research project groups with rich attachment sharing.
-- **Research & TA Opportunities:** Post openings for Teaching Assistants (TA), Research Assistants (RA), and lab projects.
-- **Direct Mentorship & Networking:** Connect with current students and alumni with full connection management.
-
-### 🛡️ 4. Alumni Office (Admin Portal)
-- **User Verification Queue:** Review, approve, or reject pending alumni and faculty registration requests.
-- **Bulk Directory Import (Excel & CSV):** Upload official institutional faculty and alumni lists (`.xlsx`, `.xls`, `.csv`) with auto-column detection. Members in the directory are auto-approved instantly on signup, and existing pending accounts are reconciled immediately.
-- **Email OTP Verification Engine:** Ensures email ownership at signup and during password recovery with 6-digit one-time passwords.
-- **Forgot Password & Password Reset:** Self-service password recovery flow sending 6-digit verification codes to the user's registered institutional or personal email.
-- **Account Deletion & Data Privacy:** Self-service account deletion allowing any student, alumni, or teacher to permanently delete their account, messages, and profile data at any time.
-- **Platform Analytics & Telemetry:** Real-time metrics on user growth, role distribution, active jobs, and engagement.
-- **Job & Notice Moderation:** Manage and moderate posted listings across the platform.
+- **Live Website:** [https://ulab-setu.vercel.app](https://ulab-setu.vercel.app)
+- **GitHub Repository:** [https://github.com/pavel-hasan-joy/ulab-setu](https://github.com/pavel-hasan-joy/ulab-setu)
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Verified Technology Stack
 
-| Layer | Technologies |
-|---|---|
-| **Frontend Framework** | **Next.js 16** (App Router, Server Components & Server Actions) |
-| **UI Library** | **React 19**, **Tailwind CSS v4**, **Lucide Icons** |
-| **Animation & 3D** | **Three.js**, **Motion** (Framer Motion v13) for interactive particle & canvas effects |
-| **Language & Validation** | **TypeScript 5**, **Zod** (runtime validation) |
-| **Database & ORM** | **Prisma ORM**, SQLite (Local development) / PostgreSQL (Production) |
-| **File & Data Ingestion** | **XLSX (SheetJS)** for Excel (.xlsx, .xls) & CSV parsing and template generation |
-| **Email Delivery** | **Nodemailer** (SMTP) & **Resend API** integration with resilient demo fallback |
-| **Authentication & Security** | **Jose** (JWT session tokens), **bcryptjs** (salted password hashing), HTTP-only cookies, 6-digit OTP verification |
-| **Testing** | **Playwright** (End-to-end / smoke tests) |
-| **CI / CD** | **GitHub Actions** (Automated Linting, Next.js Build & Playwright E2E testing) |
-| **Mobile & Offline** | **Progressive Web App (PWA)** with Service Worker (`sw.js`) and offline fallback |
-| **Package Manager** | **pnpm v11** |
+| Layer | Technologies & Libraries | Verified Role in Codebase |
+|---|---|---|
+| **Frontend Framework** | **Next.js 16** (App Router, Server Actions, Server Components) | High-performance full-stack React framework with Turbopack compilation |
+| **UI & Styling** | **React 19**, **Tailwind CSS v4**, **Lucide Icons** | Component primitives, utility-first styling, and accessible icon sets |
+| **Animation & Visuals** | **Three.js**, **Motion** (Framer Motion v13) | Interactive 3D particle background Canvas and smooth UI transitions |
+| **Language & Typing** | **TypeScript 5**, **Zod** | End-to-end strict static typing and schema input validation |
+| **Database & ORM** | **Prisma ORM 6**, SQLite (Local) / PostgreSQL (Production) | Declarative schema modeling, migrations, and parameterized query execution |
+| **Session Security** | **Jose** (JWT), **bcryptjs**, HTTP-Only Cookies | Stateless HS256 cryptographic session cookies and salted password hashing |
+| **Email & Verification** | **Nodemailer** (SMTP), **Resend API** | Cryptographic 6-digit OTP delivery for signup and password recovery |
+| **Data Ingestion** | **XLSX (SheetJS)** | Server-side parsing of institutional alumni/faculty directories (`.xlsx`, `.xls`, `.csv`) |
+| **External Job APIs** | **Careerjet API**, **Himalayas API** | Aggregation of domestic Bangladesh jobs and global remote developer roles |
+| **Testing & CI** | **Playwright**, **Node Test Runner**, **GitHub Actions** | Automated end-to-end browser flows, unit regression audits, and CI build verification |
+| **PWA & Offline** | **Web App Manifest**, **Service Worker (`sw.js`)** | Standalone mobile/desktop app installation and offline fallback caching |
+| **Package Manager** | **pnpm v11** | Fast, deterministic dependency management |
 
 ---
 
-## 🏛️ System Architecture & Data Model
+## ✨ Features by User Role
 
-The database is built on **Prisma ORM** with relational integrity:
+### 🌐 1. Public Website (Unauthenticated Visitors)
+
+The public-facing surface of ULAB Setu introduces prospective users to the platform's mission and provides seamless, secure entry points into the ecosystem:
+
+- **Interactive 3D Hero Section:** Features an animated Three.js particle canvas symbolizing the network bridge connecting students and alumni.
+- **Platform Telemetry Counters:** Displays live counts of registered students, verified alumni, active faculty mentors, and available career openings.
+- **Pillars of Setu Showcase:** Visual breakdown of platform offerings: 1-on-1 Alumni Mentorship, Curated University Jobs, Real-time Networking, and Official Campus Notices.
+- **Curated Job Stream Teaser:** Live preview of recent career listings and campus-exclusive internships.
+- **Alumni Spotlight & Testimonials:** Highlights stories of ULAB graduates thriving in industry.
+- **Responsive Top Navigation Bar:** Quick navigation links, dark/light theme toggle, and direct calls to action for Login and Sign Up.
+- **Footer with University Identity:** Comprehensive institutional links, departmental directories, privacy guidelines, and community contact channels.
+- **User Authentication Gateway:** Accessible login and registration routes with institution-exclusive email validation (`@ulab.edu.bd`).
+
+---
+
+### 🎓 2. Student Portal
+
+The Student Portal empowers enrolled ULAB students to accelerate their career trajectories, find guidance, and participate in campus life:
+
+- **Student Dashboard (`/student`):**
+  - High-level overview displaying active mentorship status, pending application alerts, and recent notice broadcasts.
+  - Quick-action shortcuts to browse jobs, discover mentors, or connect with peers.
+- **Smart Job Portal & External Ingestion (`/student/jobs`):**
+  - **Internal University Listings:** Browse positions posted directly by verified alumni and faculty recruiters.
+  - **Live Bangladesh Job Portal (Careerjet API):** Real-time aggregation of domestic professional listings filtered for ULAB graduates.
+  - **Global Remote Opportunities (Himalayas API):** Real-time international remote positions across engineering, design, and marketing.
+  - **Multi-parameter Search & Filters:** Search by title, company, skills, employment type (Full-time, Part-time, Internship), and location.
+  - **Real-Time Applied Status Badges:** Job cards visibly indicate if an application has already been submitted with authoritative status badges (*Application Submitted*, *Under Review*, *Shortlisted*, *Interview Scheduled*, *Selected*, *Rejected*).
+- **Job Details & Application Suite (`/student/jobs/[id]`):**
+  - Comprehensive view of job specifications, responsibilities, salary ranges, and application deadlines.
+  - **Hiring Capacity Visual Indicator:** Displays progress toward recruitment goals (e.g., `Selected: 1 / 3` or `Fully Filled`).
+  - **1-Click Saved CV Reuse:** Instant application submission using pre-uploaded profile resumes without re-uploading files.
+  - **Custom Pitch Note:** Optional personalized cover letter or pitch to the recruiter.
+  - **Optional Multiple Project & Portfolio Links:** Dynamic interface allowing applicants to attach unlimited portfolio links (e.g., GitHub repositories, live demo sites, Behance portfolios) with project titles and safe HTTP/HTTPS validation.
+  - **Duplicate Application Prevention:** Prevents double submissions at both the UI and database levels.
+- **My Applications ATS Tracker (`/student/applications`):**
+  - Real-time Applicant Tracking System (ATS) interface for students to monitor all submitted applications.
+  - **Authoritative Status Progression:** Tracks status through 7 standardized stages: *Application Submitted*, *Under Review*, *Shortlisted*, *Interview Scheduled*, *Selected*, *Rejected*, and *Withdrawn*.
+  - **Interview Details Viewer:** Displays scheduled interview date, time in Asia/Dhaka timezone, physical location or Google Meet/online link, and custom recruiter guidance notes.
+  - **Self-Service Application Withdrawal:** Allows students to safely withdraw active applications during early stages.
+- **Find a Mentor Directory (`/student/mentors`, `/student/mentorship`):**
+  - Discover verified alumni and faculty mentors filtered by department, expertise topics, availability, and search keywords.
+  - **Dynamic Action States:** Mentor cards display real-time relationship states: *"Request Mentor"*, *"Request Sent"* (pending with clock indicator), *"Mentorship Active"* (with direct link to active relationship), or *"Request Again"* (for concluded or re-requestable mentorships).
+  - **Unlimited Mentor Requests:** Students can send requests to multiple distinct mentors without arbitrary limits, while duplicate pending requests to the same mentor are strictly prevented.
+- **Mentor Public Profile & Booking Form (`/student/mentors/[id]`):**
+  - In-depth profile displaying the mentor's current company, designation, bio, topics of expertise, preferred days, and available hours window.
+  - Dedicated request form allowing students to specify topics (preset or custom), introductory message, career objectives, and session format (Online or In-Person).
+- **My Mentors Relationship Center (`/student/my-mentors`):**
+  - Dedicated workspace managing all active and historical mentorship connections.
+  - Displays session timing, scheduled meetings, and quick links to open private mentorship chats.
+  - **Safe Relationship Removal ("Remove from My Mentors"):** Modal allowing students to conclude an active mentorship, freeing up the mentor's mentee slot for other students while safely archiving historical records and chat messages.
+  - **Re-Request Functionality:** Concluded or cancelled relationships can be re-initiated via the *"Request Again"* action.
+- **Mentorship Feedback & Completion:** Submit reviews and ratings upon session completion.
+- **Private Mentorship Messaging (`/student/mentorship-messages`):**
+  - Dedicated 1-on-1 communication channel between student and mentor with session progress banners (e.g., *"1 Session Completed!"*).
+- **Unified Messaging System (`/student/messages`):**
+  - **1-on-1 Direct Chats:** Private end-to-end messaging with any student, alumni, or faculty member.
+  - **Multi-Role Group Chats:** Create and join collaborative groups (e.g., study groups, capstone project teams, club channels).
+  - **File & Media Attachments:** Share photos, PDF documents, lecture notes, and archives with inline photo previews and document download cards.
+  - **Conversations Sidebar:** Tabs for All, Direct, and Groups with unread counters and relative timestamps.
+- **Campus Networking & People Directory (`/student/people`, `/student/alumni`):**
+  - Comprehensive directory of students and alumni with department, batch, and company filters.
+  - **LinkedIn-Style Connection Lifecycle:** Send connection requests, view pending invitations, accept/decline incoming requests, and disconnect existing connections with confirmation safeguards.
+- **Community Notice Board (`/student/board`):**
+  - Real-time campus bulletin for institutional notices, career seminars, club events, and academic deadlines.
+  - Read announcements, view author profile cards, access external registration links, and participate in discussion comments.
+- **Student Profile & Privacy Management (`/student/profile`):**
+  - Manage avatar, personal bio, academic details (Student ID, batch, graduation year), skills tags, and portfolio links.
+  - **Saved CV Management:** Upload, preview, update, or remove default PDF resume for 1-click job applications.
+  - **Granular Privacy Controls:** Toggle public/private visibility for phone number, WhatsApp, and Facebook profiles.
+  - **Self-Service Account Deletion:** Permanent account removal with complete data purging upon user confirmation.
+- **Tuitions & Tutoring Board (`/student/tuitions`):**
+  - Browse available private tutoring and peer teaching opportunities across academic subjects.
+- **Support Ticket Helpdesk (`/student/support`):**
+  - Submit technical or account inquiries to platform administrators and track ticket resolution statuses.
+- **In-App Notification Center (`/student/notifications`):**
+  - Real-time notifications for application status updates, interview schedules, mentorship acceptances, new connection requests, and system announcements with direct link routing.
+
+---
+
+### 💼 3. Alumni Portal
+
+The Alumni Portal enables ULAB graduates to hire campus talent, give back through mentorship, and stay connected with the university:
+
+- **Alumni Dashboard (`/alumni`):**
+  - Executive summary showing active job postings, candidate applications, active mentee counts, and recent community notices.
+- **Job Posting & Recruitment Management (`/alumni/jobs`):**
+  - View all posted vacancies with applicant counters, hiring status badges, and quick controls to edit or toggle postings.
+- **Create & Edit Vacancies (`/alumni/jobs/new`, `/alumni/jobs/[id]/edit`):**
+  - Post full-time jobs, internships, or contractual roles with rich descriptions, requirements, location, salary, and deadlines.
+  - **Configurable Hiring Capacity ("Number of People to Hire"):** Specify the exact target number of candidates to hire for a role.
+  - **Automatic Job Closure & Reopening:** Jobs automatically transition to *Fully Filled* and are hidden from open listings once the hiring target is reached, and automatically reopen if selected applicants change.
+- **Job Poster Applicant Review Center (`/alumni/jobs/[id]`):**
+  - Comprehensive candidate dossiers displaying applicant name, avatar, department, batch, student ID, and skills.
+  - **CV Inspection:** One-click preview and download of applicant resume PDFs.
+  - **Portfolio & Project Links Review:** Inspect candidate portfolio links with clickable, sanitized URLs.
+  - **Status Management Pipeline:** Transition applicants through *Under Review*, *Shortlisted*, *Interview Scheduled*, *Selected*, and *Rejected*.
+  - **Interview Scheduling System:**
+    - Schedule interviews with mandatory date and time in **Asia/Dhaka timezone** (preventing past date selection).
+    - Specify interview format (Physical or Online), venue location, or Google Meet / Zoom meeting link.
+    - Provide custom preparation notes to the applicant.
+    - Full support to reschedule or cancel scheduled interviews with automated candidate notification.
+  - **Applicant Rejection Suite:**
+    - Reject candidates with optional respectful feedback.
+    - **Private Internal Hiring Notes:** Record confidential recruiter-only evaluation notes completely isolated from the student's payload.
+  - **Candidate Selection & Capacity Sync:** Mark candidates as *Selected*, automatically incrementing the job's hired count and managing capacity limits.
+- **Career Mentorship Center (`/alumni/mentorship`):**
+  - **Availability Toggle:** Switch mentor status between `AVAILABLE` and `TEMPORARILY_UNAVAILABLE`.
+  - **Mentee Capacity Limit:** Configure maximum concurrent mentees (e.g., 1 to 10 students).
+  - **Offered Topics & Custom Skills:** Select preset mentorship domains or type custom specialization tags.
+  - **Availability Scheduling:** Select preferred days of the week, preset time slots (Morning, Afternoon, Evening, Night), and custom availability windows (e.g., *"Fridays 4:00 PM - 6:00 PM BST"*).
+  - **Mentorship Requests Pipeline:** Filter requests by status (*Pending*, *Active*, *Completed*, *Declined*, *Ended/Removed*), review student goals, and accept or decline requests.
+  - **End Mentorship Relationship:** Conclude relationships with students to free up mentee slots while preserving historical records.
+- **Mentorship Messaging (`/alumni/mentorship-messages`):** Dedicated chat channel for active career guidance.
+- **Unified Messaging (`/alumni/messages`):** Full 1-on-1 direct messaging and group collaboration with attachment support.
+- **Notice Board Publishing (`/alumni/board`):** Publish career seminars, industry insights, and hiring drives to the campus feed.
+- **Networking Directory (`/alumni/people`):** Connect with fellow alumni, faculty members, and current students.
+- **Alumni Profile & Verification (`/alumni/profile`):**
+  - Manage professional credentials: degree, graduation year, current employer, job designation, industry, and portfolio links.
+  - Display official Alumni Verified badge (upon automatic whitelist or administrator approval).
+  - Privacy toggles for contact disclosure and self-service account deletion.
+- **Tuition & Mentoring Posts (`/alumni/tuitions`):** Post tutoring opportunities or seek specialized assistance.
+- **Support Desk & Notifications (`/alumni/support`, `/alumni/notifications`):** Platform assistance and real-time activity alerts.
+
+---
+
+### 👨‍🏫 4. Faculty / Teacher Portal
+
+The Faculty Portal provides professors, lecturers, and departmental coordinators with tools for academic mentorship, research assistant recruitment, and campus communication:
+
+- **Faculty Dashboard (`/teacher`):**
+  - Overview of departmental notices, active TA/RA applicants, academic mentorship requests, and campus messages.
+- **Research & Teaching Assistantship Recruiting (`/teacher/jobs`):**
+  - Post openings for Teaching Assistants (TA), Research Assistants (RA), lab proctors, and student project contributors.
+  - Configure hiring capacity limits, review student dossiers and CVs, schedule interviews, and select qualified candidates.
+- **Academic Mentorship Management (`/teacher/mentorship`):**
+  - Configure office hours, consultation availability, and preferred academic advising topics (e.g., Higher Studies, Research Methodology, Career Paths).
+  - Accept, schedule, or decline student guidance appointments.
+- **Mentorship Communication (`/teacher/mentorship-messages`):** Dedicated private channel for student academic consultations.
+- **Unified Messaging System (`/teacher/messages`):**
+  - Create course-wide or project-specific group chats with students and fellow researchers.
+  - Share lecture slides, reading lists, research papers, and assignments as PDF/image attachments.
+- **Official Campus Notice Board (`/teacher/board`):**
+  - Publish authoritative departmental announcements, seminar schedules, guest lectures, and exam guidelines with attachment links.
+- **Academic Networking (`/teacher/people`):** Connect with current students and track graduated alumni in industry.
+- **Faculty Profile Management (`/teacher/profile`):**
+  - Configure department, academic rank/designation, research interests, office hours, and privacy preferences.
+- **Support Desk & Notifications (`/teacher/support`, `/teacher/notifications`):** In-app notification center and administrative support ticketing.
+
+---
+
+### 🛡️ 5. Admin Portal (Alumni Office & System Administration)
+
+The Admin Portal provides institutional administrators with an enterprise-grade command center for platform governance, verification, and moderation:
+
+- **Executive Analytics Dashboard (`/admin`):**
+  - High-level KPIs: total registered users, verified alumni, active faculty, published jobs, total applications, active mentorship connections, and open support tickets.
+  - Quick-action shortcuts to pending verification queues and urgent support tickets.
+- **User Management & Moderation CRM (`/admin/users`):**
+  - Search, filter, and inspect all registered accounts across all roles (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`).
+  - **Account Verification:** Review, approve, or reject unverified alumni and faculty registrations.
+  - **Disciplinary Moderation:** Issue formal warnings, suspend malicious users, remove offending content, or restore accounts with automated audit logging.
+  - **Role Reassignment:** Safely change user roles when appropriate.
+- **Admin Team & Super-Admin Management (`/admin/admins`):**
+  - Manage administrative privileges, appoint new administrators, and review admin activity.
+- **Alumni Directory Governance (`/admin/alumni`):**
+  - Comprehensive database of all alumni profiles with verification toggles, graduation year filtering, and export capabilities.
+- **Visual Analytics & Reporting (`/admin/analytics`):**
+  - Interactive charts detailing user registration trajectories, departmental distributions, job placement statistics, and mentorship engagement rates.
+- **Centralized ATS Applications Manager (`/admin/applications`):**
+  - Cross-platform visibility into all job and internship applications across the university with status inspection.
+- **Centralized Job Moderation (`/admin/jobs`):**
+  - Review, edit, approve, or archive job postings across the entire platform.
+- **Mentorship CRM & Moderation (`/admin/mentorship`):**
+  - Monitor all university mentorship pairings, track session completion rates, review mentee feedback and ratings, and moderate reported reviews.
+  - Toggle individual mentor availability across the platform.
+- **Campus Notice Board Management (`/admin/notices`):**
+  - Publish official university-wide broadcasts, pin priority alerts to the top of the feed, and moderate community posts.
+- **Broadcast Notifications Engine (`/admin/notifications`):**
+  - Dispatch real-time in-app announcements to targeted roles (e.g., all students, all alumni, or entire university).
+- **User Report Resolution Center (`/admin/reports`):**
+  - Review user-submitted reports regarding inappropriate messages, spam job postings, or abusive behavior with direct dismissal or sanction tools.
+- **Support Ticket Helpdesk CRM (`/admin/tickets`):**
+  - Manage support tickets submitted by any user.
+  - Update ticket status (*Open*, *In Progress*, *Resolved*, *Closed*), assign priority levels, and record **Private Internal Staff Notes** isolated from the user's view.
+- **Granular Platform Settings (`/admin/settings`):**
+  - Configure 25+ system parameters across 7 distinct categories:
+    1. **Registration & Onboarding:** Enable/disable new signups, toggle instant alumni verification, enforce email domains.
+    2. **Mentorship Engine:** Toggle mentorship platform-wide, set default mentee limits, configure feedback requirements.
+    3. **Career & Job Portal:** Moderate job postings before publication, toggle external job aggregations (Careerjet, Himalayas).
+    4. **Security & Access Control:** Adjust session expiration durations, configure brute-force rate-limiting thresholds.
+    5. **Notifications & Alerts:** Set global broadcast preferences and email delivery channels.
+    6. **UI, Branding & Theme:** Customize institutional tagline, primary accent color, and theme defaults.
+    7. **Email & SMTP Deliverability:** Configure SMTP server parameters and test email dispatches.
+- **Security & Operational Audit Log Viewer (`/admin/audit-logs`):**
+  - Immutable chronological log recording all administrative actions: user verifications, status changes, disciplinary sanctions, and system configuration modifications.
+- **Bulk Directory Ingestion (Excel & CSV) via Whitelist Engine:**
+  - Upload institutional graduation registers and faculty rosters (`.xlsx`, `.xls`, `.csv`).
+  - Automatically reconciles existing pending registrations and enables instant zero-latency verification for future signups.
+
+---
+
+## 🔒 Shared Platform Features
+
+The following capabilities are shared across all user roles, providing consistent security, usability, and design:
+
+- **Institutional Authentication & Email Verification:**
+  - Strict validation enforcing official ULAB institutional emails (`@ulab.edu.bd`).
+  - Cryptographically generated 6-digit one-time password (OTP) delivery for both account registration and password recovery with 10-minute validity.
+  - Passwords hashed using industry-standard `bcryptjs` with high-cost salt rounds.
+  - Ephemeral JWT session tokens stored in secure, `HTTP-only`, `SameSite=Lax` cookies, shielding against XSS and token interception.
+- **Role-Based Access Control (RBAC):**
+  - Strict server-side route guards, layout interception, and server action ownership assertions preventing horizontal or vertical privilege escalation.
+- **Unified Real-Time Messaging & Group Collaboration:**
+  - Cross-role direct 1-on-1 chats and multi-member group conversations open to Students, Alumni, and Faculty.
+  - Rich attachment engine supporting photo previews and document/PDF file download cards.
+  - Member management: view roster, assign group admins, add or remove members, or leave groups.
+- **Campus Networking & Connection System:**
+  - Professional LinkedIn-style connection workflow: Send request, review pending invitations, accept, decline, and disconnect with safe confirmation modals.
+- **Universal Interactive Profile Modals:**
+  - Clicking any user's avatar or name across job applications, notices, or directories opens a comprehensive profile modal displaying academic credentials, current company, skills, and portfolio links.
+- **Granular Privacy Controls:**
+  - Every user controls the public visibility of their personal contact details (Phone, WhatsApp, Facebook) via independent database flags.
+- **Notice Board Discussion & Announcements:**
+  - Dynamic campus bulletin supporting rich announcement posts, author attribution cards, external attachment links, and nested comment threads.
+- **Real-Time In-App Notification System:**
+  - Instant notifications for application updates, interview bookings, mentorship approvals, connection requests, and system alerts with automatic unread tracking.
+- **Dark / Light Theme System:**
+  - Harmonious, high-contrast dark and light color palettes engineered for accessibility (WCAG AA/AAA) with zero-flicker inline theme initialization.
+- **Progressive Web App (PWA) & Offline Resilience:**
+  - Installable across iOS, Android, and desktop operating systems via Web App Manifest.
+  - Service worker caching for static application assets and an elegant offline fallback page (`offline.html`) when connectivity is lost.
+
+---
+
+## 🏛️ System Architecture
+
+### Multi-Tier Defense-in-Depth Security Model
 
 ```
-┌──────────────┐          1:N           ┌──────────────┐
-│     User     │───────────────────────<│     Job      │
-│ (RBAC Roles) │                        └──────┬───────┘
-└──────┬───────┘                               │ 1:N
-       │ 1:N                                   ▼
-       ├───────────────────────────────<┌──────────────┐
-       │                                │ Application  │
-       │ 1:N                            └──────────────┘
-       ├───────────────────────────────<┌──────────────┐
-       │                                │   Message    │
-       │ 1:N                            └──────────────┘
-       └───────────────────────────────<┌──────────────┐
-                                        │  Post/Notice │
-                                        └──────────────┘
+┌────────────────────────────────────────────────────────┐
+│               Client Presentation Layer                │
+│    (Next.js 16 App Router · React 19 · PWA Shell)      │
+└──────────────────────────┬─────────────────────────────┘
+                           │ HTTP-only Signed Cookie (JWT)
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│              Edge & Middleware Route Guard             │
+│        Verifies JWT integrity & Role claims            │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Authenticated Request Context
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│                 Server Actions Layer                   │
+│   • Input sanitization via Zod                         │
+│   • Session subject verification                       │
+│   • Entity ownership checks (Job poster / Applicant)   │
+│   • Approval state assertion (APPROVED status)         │
+└──────────────────────────┬─────────────────────────────┘
+                           │ Parameterized Object Queries
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│                   Prisma ORM Layer                     │
+│    Type-safe DB interactions with SQL injection defense │
+└──────────────────────────┬─────────────────────────────┘
+                           │ PostgreSQL Connection Pool
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│                   Production Database                  │
+│       Hosted PostgreSQL (Supabase / Neon Cloud)        │
+└────────────────────────────────────────────────────────┘
 ```
-
-- **User Model:** Stores credentials, university details (`department`, `studentId`, `batch`, `graduationYear`), career info (`company`, `designation`), role (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`), and approval status (`PENDING`, `APPROVED`, `REJECTED`).
-- **PreApprovedMember Model:** Stores whitelisted institutional records (email, student ID, faculty designation) uploaded by the Alumni Office via Excel/CSV for automated zero-latency verification.
-- **VerificationCode Model:** Manages ephemeral, cryptographically random 6-digit one-time passwords (OTP) tied to applicant emails with a 10-minute validity window.
-- **Granular Privacy:** Dedicated booleans (`phonePublic`, `whatsappPublic`, `facebookPublic`) so users control contact disclosure.
-- **Job & Application Model:** Tracks employer metadata, requirements, deadlines, application counts, and candidate statuses.
-- **Communication & Social:** Direct peer-to-peer messages and community notice-board feeds.
-
----
-## 🧠 Architectural Decisions & Engineering Rationale
-
-Technical decisions across Setu were guided by industry best practices, defense-in-depth security, and scalable systems architecture:
-
-### 1. Why Prisma ORM over Raw SQL or Query Builders?
-- **End-to-End Type Safety & Schema Integrity:** Prisma generates typed client bindings directly from `schema.prisma`. Schema mutations trigger immediate compile-time errors across application server actions and UI components, eliminating runtime impedance mismatches.
-- **Multi-Environment Portability (SQLite ⇋ PostgreSQL):** Prisma abstracts SQL dialect divergence, allowing zero-friction local development and isolated, ephemeral CI test runners using SQLite, while seamlessly targeting distributed production PostgreSQL instances (Supabase, Neon) without query refactoring.
-- **Defensive Query Construction:** All database queries are automatically parameterized and sanitized internally, providing robust out-of-the-box mitigation against SQL injection vectors.
-
-### 2. How and Where is Role-Based Authorization & Approval Enforced?
-Setu implements a **multi-tiered, defense-in-depth authorization model**:
-- **Layer 1 — Cryptographic Session Verification (`src/lib/session.ts`):** Client sessions are minted as cryptographically signed JSON Web Tokens (JWT) using `jose`, stored in secure, `HTTP-only`, `SameSite=Lax` cookies. This architecture prevents token leakage via Cross-Site Scripting (XSS).
-- **Layer 2 — Route-Level Edge Interception:** Server-side layout and route handlers verify the decoded JWT `role` claim (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`) prior to evaluating or rendering role-protected portal routes (`/admin/*`, `/alumni/*`, `/teacher/*`, `/student/*`).
-- **Layer 3 — Mutation & Approval State Assertion (`status === 'APPROVED'`):** For sensitive mutative actions (e.g., posting job vacancies or publishing notice-board broadcasts), server actions assert two strict preconditions:
-  1. The authenticated subject holds the requisite role.
-  2. The account verification state explicitly evaluates to `APPROVED`.
-  *Unverified alumni or faculty accounts remain quarantined in a read-only state until university credentials are authenticated by the Alumni Administration office via `/admin/users`.*
-- **Layer 4 — Selective Data Projection (Granular Privacy):** Database queries apply selective field projection based on privacy flags (`phonePublic`, `whatsappPublic`, `facebookPublic`), stripping private contact vectors before payloads reach the presentation layer.
-
-### 3. Why Next.js 16 App Router & Server Actions over a Decoupled REST Backend?
-- **Elimination of Network Waterfalls:** React Server Components (RSC) fetch and process records directly at the data layer, avoiding redundant client-to-server HTTP round trips and dramatically slimming the client-side JavaScript payload delivered to mobile devices.
-- **Type-Safe Remote Procedure Calls (RPC):** Server Actions co-locate backend mutation logic with client forms, removing the overhead of managing separate REST endpoint boilerplate, JSON serialization DTOs, and client-side fetching hooks.
-
-### 4. Why Playwright for End-to-End Testing?
-- **Deterministic Cross-Role Validation:** Playwright drives headless Chromium with full browser isolation, enabling automated verification of complex multi-actor workflows (e.g., student submitting an application, alumni reviewing candidate profiles, and admin approving user accounts).
-- **Automated Regression Artifacts:** CI test suites capture visual DOM snapshots into `e2e/shots/`, allowing verification of responsive layouts and Canvas graphics across viewport sizes.
-
-### 5. Why Progressive Web App (PWA) Architecture?
-- Rather than requiring students and alumni to navigate mobile app store approvals, Setu leverages Web App Manifests (`manifest.ts`) and Service Workers (`sw.js`). This provides zero-install friction, instant desktop/mobile installation, and reliable offline fallback capabilities via cached static application shells.
-
-### 6. Why Pre-Approved Whitelist Ingestion (Excel & CSV) for Verification?
-- Real-world institutional integration requires bridging legacy university spreadsheets (faculty directories, graduation records) with a modern web portal. By supporting client-side template downloads and server-side XLSX/CSV parsing, administrators can ingest thousands of records in seconds. Signups matching institutional emails or student IDs are granted immediate `APPROVED` status, while unrecognized registrations gracefully route to manual review.
-
-### 7. Why Email OTP Verification over Static Link Tokens?
-- Static email links require deep linking or context-switching between mail clients and mobile browsers, which frequently fails inside embedded webviews (e.g., Messenger or LinkedIn in-app browsers). 6-digit numeric OTPs provide high deliverability, a clean interactive signup form, and strict 10-minute cryptographic expiration against replay attacks.
-
----
-
-## 🌐 External Job Integrations
-
-Setu aggregates three distinct streams of employment opportunities:
-1. **Alumni & Faculty Postings:** Curated, verified campus-exclusive jobs directly posted within the platform.
-2. **Bangladesh Job Market (Careerjet API):** Pulls live listings from Bdjobs and major Bangladeshi recruitment sites (`locale_code=en_BD`).
-3. **Global Remote Careers (Himalayas API):** Real-time remote opportunities from international technology companies.
-
----
-
-## 📱 Progressive Web App (PWA)
-
-Setu functions as a native-feeling application across Android, iOS, and Desktop:
-- **Mobile Installation:** Supports "Add to Home Screen" on iOS Safari and Web App Install prompts on Android Chrome.
-- **Service Worker (`public/sw.js`):** Caches static assets, app icons, and critical scripts.
-- **Offline Resilience:** Renders an elegant fallback page (`public/offline.html`) when the device loses network connectivity.
 
 ---
 
@@ -225,7 +362,7 @@ cd ulab-setu
 pnpm install
 ```
 
-### 3. Environment Variables
+### 3. Environment Variables Setup
 Create a `.env` file based on `.env.example`:
 ```bash
 cp .env.example .env
@@ -234,15 +371,15 @@ Generate an authentication secret:
 ```bash
 openssl rand -hex 32
 ```
-Add the values to `.env`:
+Configure `.env`:
 ```env
 DATABASE_URL="file:./dev.db"
 AUTH_SECRET="your_generated_32_byte_secret"
 CAREERJET_API_KEY="" # Optional: Required for live Careerjet BD listings
 ```
 
-### 4. Database Setup & Seeding
-Initialize the SQLite database schema and load demonstration seed accounts:
+### 4. Database Initialization & Seeding
+Initialize the database schema and populate demonstration accounts:
 ```bash
 pnpm db:push
 pnpm db:seed
@@ -256,73 +393,54 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🔐 Seed & Testing Configuration
+## 🧪 Testing & Verification
 
-For local development and automated staging validation, test seeds are provisioned through environment variables and isolated database seed scripts.
-
-> 🔒 **Security Standard:** Plaintext passwords and sample credentials must never be committed to public documentation or source control. Administrators configure access via environment variables or through the authorized Admin Management Center.
-
-#### 💬 Demonstration Messenger Group:
-- **Group Name:** `ULAB CSE Tech & Project Hub`
-- **Members:** Dual-enrolled with Teacher, Student, and Alumni roles.
-- **Features:** Real-time discussion feed, role badges, attachment sharing, and group info controls.
-
----
-
-## 🧪 Testing & CI
-
-The repository includes end-to-end tests driven by **Playwright** and automated via **GitHub Actions**:
+The project includes multi-layered verification suites ensuring security, type safety, and end-to-end functionality:
 
 ```bash
-# 1. Initialize isolated test database
-pnpm test:db
+# 1. Run Production Readiness & Security Audit Suite (32 automated checks)
+pnpm test
 
-# 2. Build and start test server (in terminal 1)
+# 2. Run ATS Application Management Tests
+node scripts/test-applications-ats.mjs
+
+# 3. TypeScript Strict Type Checking
+pnpm exec tsc --noEmit
+
+# 4. Production Build Verification
 pnpm build
-DATABASE_URL=file:./test.db pnpm start -p 3457
 
-# 3. Execute Playwright smoke tests (in terminal 2)
-BASE=http://localhost:3457 pnpm test:e2e
+# 5. Playwright End-to-End Suite
+pnpm test:e2e
 ```
-*Screenshots from automated test runs are saved to `e2e/shots/`.*
 
 ---
 
 ## 📦 Production Deployment
 
-### 1. Database
-For production environments, switch from local SQLite to a hosted PostgreSQL instance (e.g., **Supabase** or **Neon**):
-1. In `prisma/schema.prisma`, update the provider:
-   ```prisma
-   datasource db {
-     provider = "postgresql"
-     url      = env("DATABASE_URL")
-   }
-   ```
-2. Run database push:
-   ```bash
-   pnpm db:push
-   ```
+### 1. Database Configuration
+For production, update the datasource provider in `prisma/schema.prisma` to PostgreSQL:
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+Synchronize the production database schema:
+```bash
+pnpm db:push
+```
 
 ### 2. Vercel Deployment
-Deploy seamlessly with Vercel:
-1. Import the repository in your Vercel Dashboard.
-2. Configure Environment Variables:
-   - `DATABASE_URL`: Hosted PostgreSQL connection URL.
-   - `AUTH_SECRET`: Strong random secret.
-   - `CAREERJET_API_KEY`: Your Careerjet API key (optional).
-3. Deploy!
+1. Import the repository `pavel-hasan-joy/ulab-setu` into Vercel.
+2. Configure Environment Variables in the Vercel Dashboard:
+   - `DATABASE_URL`: Hosted PostgreSQL connection string.
+   - `AUTH_SECRET`: Strong random cryptographic key.
+   - `CAREERJET_API_KEY`: API key for Bangladeshi job aggregation (optional).
+3. Deploy! Vercel automatically builds and hosts the serverless application.
 
 ---
 
-## 🎨 Rebranding & Customization
-
-The project is structured for easy white-labeling and adaptation to other universities:
-- **University Identity:** Name, logo, domain, and departments are configured in `src/lib/site.ts`.
-- **Theme & Colors:** Design system tokens and brand palettes are defined in `src/app/globals.css`.
-
----
-
-## 📄 License & Credits
+## 📄 License & Authorship
 
 Developed with ❤️ by **[Pavel Hasan Joy](https://github.com/pavel-hasan-joy)** for the **University of Liberal Arts Bangladesh (ULAB — "University of the future")** community.

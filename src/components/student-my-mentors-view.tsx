@@ -707,21 +707,21 @@ export function StudentMyMentorsView({
 
             <div className="mt-4 space-y-3">
               <p className="text-xs text-ink leading-relaxed">
-                আপনি কি নিশ্চিত যে আপনি <strong>{deletingReq.mentor.name}</strong>-কে আপনার সক্রিয় মেন্টর তালিকা থেকে রিমুভ করতে চান?
+                Are you sure you want to remove <strong>{deletingReq.mentor.name}</strong> from your active mentors list?
               </p>
               <div className="rounded-xl border border-amber-200/70 bg-amber-50/60 p-3 text-[11px] text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200 space-y-1">
-                <p className="font-semibold">রিমুভ করার ফলাফল:</p>
+                <p className="font-semibold">Effects of removal:</p>
                 <ul className="list-disc list-inside space-y-0.5 text-ink-soft">
-                  <li>বর্তমান সক্রিয় মেন্টরশিপ সমাপ্ত হবে এবং সক্রিয় তালিকা থেকে সরে যাবে।</li>
-                  <li>মেন্টরের স্লট খালি হবে যাতে অন্য শিক্ষার্থীরা যুক্ত হতে পারে।</li>
-                  <li>পূর্বের মেসেজ ও হিস্ট্রি আর্কাইভে নিরাপদে সংরক্ষিত থাকবে (মুছে যাবে না)।</li>
-                  <li>পরবর্তীতে আপনি চাইলে এই মেন্টরকে পুনরায় রিকোয়েস্ট পাঠাতে পারবেন।</li>
+                  <li>The active mentorship will conclude and be removed from your active list.</li>
+                  <li>The mentor&apos;s capacity slot will be freed up for other students.</li>
+                  <li>Previous chat messages and history will be safely preserved in archives.</li>
+                  <li>You can submit a new mentorship request to this mentor in the future.</li>
                 </ul>
               </div>
 
               <div>
                 <label className="text-[11px] font-semibold text-ink-soft">
-                  কারণ / মন্তব্য (ঐচ্ছিক):
+                  Reason / Note (Optional):
                 </label>
                 <input
                   type="text"
