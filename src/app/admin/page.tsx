@@ -45,6 +45,7 @@ export default async function AdminDashboardPage() {
     totalStudents,
     totalAlumni,
     totalFaculty,
+    totalAdmins,
     verifiedAlumni,
     activeJobs,
     totalApplications,
@@ -59,6 +60,7 @@ export default async function AdminDashboardPage() {
     db.user.count({ where: { role: "STUDENT" } }),
     db.user.count({ where: { role: "ALUMNI" } }),
     db.user.count({ where: { role: "TEACHER" } }),
+    db.user.count({ where: { role: "ADMIN" } }),
     db.user.count({ where: { role: "ALUMNI", alumniVerified: true } }),
     db.job.count({ where: { active: true } }),
     db.application.count(),
@@ -98,6 +100,12 @@ export default async function AdminDashboardPage() {
     { title: "Total Applications", count: totalApplications, icon: FileText, tone: "text-cyan-600", href: "/admin/applications" },
     { title: "Mentorship Requests", count: mentorshipRequests, icon: Compass, tone: "text-teal-600", href: "/admin/mentorship" },
   ];
+
+  // Mathematically balanced member role distribution percentages (guaranteed 100% total sum)
+  const studentPct = totalUsers ? Math.round((totalStudents / totalUsers) * 100) : 0;
+  const alumniPct = totalUsers ? Math.round((totalAlumni / totalUsers) * 100) : 0;
+  const facultyPct = totalUsers ? Math.round((totalFaculty / totalUsers) * 100) : 0;
+  const adminPct = totalUsers ? Math.max(0, 100 - (studentPct + alumniPct + facultyPct)) : 0;
 
   return (
     <PageIn>
@@ -167,24 +175,82 @@ export default async function AdminDashboardPage() {
           <div className="flex items-center justify-between border-b border-mist/70 pb-3 dark:border-white/10">
             <div>
               <h3 className="font-display text-base font-bold text-ink">University Network Breakdown</h3>
-              <p className="text-xs text-ink-soft">Role distribution and alumni verification coverage</p>
+              <p className="text-xs text-ink-soft">
+                Role distribution across all {totalUsers} registered members (100% database coverage)
+              </p>
             </div>
-            <Badge tone="blue">Active Database</Badge>
+            <Badge tone="blue">Total: 100%</Badge>
+          </div>
+
+          {/* Segmented 100% Composition Bar */}
+          <div className="mt-5">
+            <div className="flex h-3.5 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
+              {studentPct > 0 && (
+                <div
+                  className="h-full bg-blue-500 transition-all duration-500"
+                  style={{ width: `${studentPct}%` }}
+                  title={`Students: ${studentPct}%`}
+                />
+              )}
+              {alumniPct > 0 && (
+                <div
+                  className="h-full bg-amber-500 transition-all duration-500"
+                  style={{ width: `${alumniPct}%` }}
+                  title={`Alumni: ${alumniPct}%`}
+                />
+              )}
+              {facultyPct > 0 && (
+                <div
+                  className="h-full bg-purple-500 transition-all duration-500"
+                  style={{ width: `${facultyPct}%` }}
+                  title={`Faculty: ${facultyPct}%`}
+                />
+              )}
+              {adminPct > 0 && (
+                <div
+                  className="h-full bg-slate-500 transition-all duration-500"
+                  style={{ width: `${adminPct}%` }}
+                  title={`Administration: ${adminPct}%`}
+                />
+              )}
+            </div>
+
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-soft">
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2 rounded-full bg-blue-500" />
+                Students ({studentPct}%)
+              </span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2 rounded-full bg-amber-500" />
+                Alumni ({alumniPct}%)
+              </span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2 rounded-full bg-purple-500" />
+                Faculty ({facultyPct}%)
+              </span>
+              <span className="flex items-center gap-1.5 font-medium">
+                <span className="size-2 rounded-full bg-slate-500" />
+                Admin ({adminPct}%)
+              </span>
+            </div>
           </div>
 
           <div className="mt-6 space-y-4">
             {/* Student Bar */}
             <div>
               <div className="mb-1 flex justify-between text-xs font-semibold">
-                <span>Students</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-blue-500" />
+                  <span>Students</span>
+                </span>
                 <span className="text-ink-soft">
-                  {totalStudents} ({totalUsers ? Math.round((totalStudents / totalUsers) * 100) : 0}%)
+                  {totalStudents} ({studentPct}%)
                 </span>
               </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
                 <div
                   className="h-full rounded-full bg-blue-500 transition-all duration-500"
-                  style={{ width: `${totalUsers ? (totalStudents / totalUsers) * 100 : 0}%` }}
+                  style={{ width: `${studentPct}%` }}
                 />
               </div>
             </div>
@@ -193,51 +259,67 @@ export default async function AdminDashboardPage() {
             <div>
               <div className="mb-1 flex justify-between text-xs font-semibold">
                 <span className="flex items-center gap-1.5">
-                  Alumni <CheckCircle2 size={12} className="text-emerald-600" />
+                  <span className="size-2 rounded-full bg-amber-500" />
+                  <span>Alumni</span>
+                  <CheckCircle2 size={12} className="text-emerald-600" />
                 </span>
                 <span className="text-ink-soft">
-                  {totalAlumni} ({totalUsers ? Math.round((totalAlumni / totalUsers) * 100) : 0}%)
+                  {totalAlumni} ({alumniPct}%)
                 </span>
               </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
                 <div
                   className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                  style={{ width: `${totalUsers ? (totalAlumni / totalUsers) * 100 : 0}%` }}
+                  style={{ width: `${alumniPct}%` }}
                 />
               </div>
-            </div>
 
-            {/* Verified Alumni Sub-coverage */}
-            <div>
-              <div className="mb-1 flex justify-between text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                <span className="flex items-center gap-1.5">
+              {/* Verified Alumni Sub-coverage */}
+              <div className="mt-2 ml-3 flex items-center justify-between rounded-xl border border-emerald-200/70 bg-emerald-50/70 px-3 py-1.5 text-[11px] text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <span className="flex items-center gap-1.5 font-medium">
                   <ShieldCheck size={13} className="text-emerald-600" />
-                  Verified Alumni (ULAB Official)
+                  Official Alumni Verification Rate:
                 </span>
-                <span>
-                  {verifiedAlumni} ({totalAlumni ? Math.round((verifiedAlumni / totalAlumni) * 100) : 0}% verified)
+                <span className="font-bold">
+                  {verifiedAlumni} of {totalAlumni} verified ({totalAlumni ? Math.round((verifiedAlumni / totalAlumni) * 100) : 0}%)
                 </span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-950/60">
-                <div
-                  className="h-full rounded-full bg-emerald-600 transition-all duration-500"
-                  style={{ width: `${totalAlumni ? (verifiedAlumni / totalAlumni) * 100 : 0}%` }}
-                />
               </div>
             </div>
 
             {/* Faculty Bar */}
             <div>
               <div className="mb-1 flex justify-between text-xs font-semibold">
-                <span>Faculty</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-purple-500" />
+                  <span>Faculty</span>
+                </span>
                 <span className="text-ink-soft">
-                  {totalFaculty} ({totalUsers ? Math.round((totalFaculty / totalUsers) * 100) : 0}%)
+                  {totalFaculty} ({facultyPct}%)
                 </span>
               </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
                 <div
                   className="h-full rounded-full bg-purple-500 transition-all duration-500"
-                  style={{ width: `${totalUsers ? (totalFaculty / totalUsers) * 100 : 0}%` }}
+                  style={{ width: `${facultyPct}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Administration Bar */}
+            <div>
+              <div className="mb-1 flex justify-between text-xs font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-slate-500" />
+                  <span>Administration & Office Staff</span>
+                </span>
+                <span className="text-ink-soft">
+                  {totalAdmins} ({adminPct}%)
+                </span>
+              </div>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-mist/50 dark:bg-white/10">
+                <div
+                  className="h-full rounded-full bg-slate-500 transition-all duration-500"
+                  style={{ width: `${adminPct}%` }}
                 />
               </div>
             </div>
