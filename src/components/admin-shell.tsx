@@ -141,9 +141,9 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
       {/* =========================================================================
           DESKTOP SIDEBAR
       ========================================================================= */}
-      <aside className="sticky top-0 hidden h-screen flex-col border-r border-mist/80 bg-surface/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0f172a]/80 md:flex">
+      <aside className="sticky top-0 hidden h-screen max-h-screen flex-col overflow-hidden border-r border-mist/80 bg-surface/80 backdrop-blur-md dark:border-white/10 dark:bg-[#0f172a]/80 md:flex">
         {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between border-b border-mist/70 px-5 dark:border-white/10">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-mist/70 px-5 dark:border-white/10">
           <Link href="/admin" className="flex items-center gap-2.5">
             <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-ulab-deep to-ulab text-white shadow-soft">
               <ShieldCheck size={20} />
@@ -159,7 +159,7 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
         </div>
 
         {/* Admin Sub-Role Identification */}
-        <div className="border-b border-mist/60 px-5 py-3 dark:border-white/5">
+        <div className="shrink-0 border-b border-mist/60 px-5 py-3 dark:border-white/5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-ink-soft">Privilege Level:</span>
             <Badge tone={roleMeta.tone} className="px-2 py-0.5 text-[11px] font-semibold">
@@ -169,7 +169,7 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
         </div>
 
         {/* Scrollable Navigation */}
-        <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 py-4 space-y-6 scrollbar-thin">
           {navSections.map((section) => {
             const visibleItems = section.items.filter((item) =>
               allowedPermissions.includes(item.permission)
@@ -230,7 +230,7 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
         </div>
 
         {/* Admin Account & Sign Out */}
-        <div className="border-t border-mist/80 p-3.5 dark:border-white/10">
+        <div className="shrink-0 border-t border-mist/80 p-3.5 dark:border-white/10">
           <div className="flex items-center gap-3 rounded-2xl border border-mist/60 bg-paper/60 p-2.5 dark:border-white/5 dark:bg-white/5">
             <Avatar name={user.name} size={36} src={user.image} />
             <div className="min-w-0 flex-1">
@@ -353,9 +353,9 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className="relative z-10 flex h-full w-4/5 max-w-xs flex-col border-r border-mist bg-surface p-4 shadow-lift dark:border-white/10 dark:bg-[#0f172a]"
+              className="relative z-10 flex h-full max-h-screen w-4/5 max-w-xs flex-col overflow-hidden border-r border-mist bg-surface p-4 shadow-lift dark:border-white/10 dark:bg-[#0f172a]"
             >
-              <div className="flex items-center justify-between border-b border-mist/70 pb-3 dark:border-white/10">
+              <div className="flex shrink-0 items-center justify-between border-b border-mist/70 pb-3 dark:border-white/10">
                 <span className="font-display font-bold text-ink">ULAB Admin</span>
                 <button
                   type="button"
@@ -366,13 +366,13 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
                 </button>
               </div>
 
-              <div className="my-2 flex items-center justify-between px-1">
+              <div className="my-2 flex shrink-0 items-center justify-between px-1">
                 <span className="text-xs text-ink-soft">Sub-Role:</span>
                 <Badge tone={roleMeta.tone}>{roleMeta.label}</Badge>
               </div>
 
               {/* Navigation Links */}
-              <div className="flex-1 overflow-y-auto py-3 space-y-4">
+              <div className="flex-1 min-h-0 overflow-y-auto py-3 space-y-4 scrollbar-thin">
                 {navSections.map((section) => {
                   const visibleItems = section.items.filter((item) =>
                     allowedPermissions.includes(item.permission)

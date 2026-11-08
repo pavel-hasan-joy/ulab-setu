@@ -210,7 +210,7 @@ export function MessagesClient({
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-mist/40">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-mist/40 scrollbar-thin">
           {filteredItems.length === 0 ? (
             <div className="p-8 text-center">
               <div className="mx-auto grid size-10 place-items-center rounded-xl bg-mist/40 text-ink-soft">

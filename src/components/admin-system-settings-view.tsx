@@ -212,7 +212,7 @@ export function AdminSystemSettingsView({
       {/* Main Settings Layout: Left Category Navigation, Right Settings Form */}
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Categories Sidebar */}
-        <div className="space-y-2 lg:col-span-1">
+        <div className="space-y-2 lg:col-span-1 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:scrollbar-thin">
           <p className="px-2 text-xs font-bold uppercase tracking-wider text-ink-soft">
             Settings Modules
           </p>

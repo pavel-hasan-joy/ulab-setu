@@ -33,35 +33,47 @@ export function AppShell({
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[250px_1fr]">
       {/* Sidebar (desktop) */}
-      <aside data-sidebar className="sticky top-0 hidden h-dvh flex-col border-r border-mist/70 bg-surface/70 px-4 py-6 backdrop-blur md:flex">
-        <div className="flex items-center justify-between px-2"><Logo /><ThemeToggle /></div>
-        <p className={cn("mx-2 mt-6 w-fit rounded-full px-2.5 py-1 text-xs font-medium",
-          tone === "alumni" ? "bg-gold-wash text-gold-ink" : tone === "admin" || tone === "teacher" ? "bg-lilac-wash text-lilac-ink" : "bg-sky text-ulab-deep")}>
-          {tone === "alumni" ? "Alumni space" : tone === "teacher" ? "Teacher space" : tone === "admin" ? "Alumni office" : "Student space"}
-        </p>
-        <nav className="mt-4 space-y-1">
-          {nav.map((item) => {
-            const Icon = icons[item.icon];
-            const active = isActive(item.href);
-            return (
-              <Link key={item.href} href={item.href} className={cn("relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors", active ? "text-ulab-deep" : "text-ink-soft hover:text-ink")}>
-                {active && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-sky" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-                <Icon size={18} className="relative" />
-                <span className="relative">{item.label}</span>
-                {!!item.badge && <span className="relative ml-auto rounded-full bg-gold px-1.5 text-[11px] font-semibold text-white">{item.badge}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="mt-auto flex items-center gap-3 rounded-2xl border border-mist/70 bg-surface p-3">
-          <Avatar name={user.name} size={36} src={user.image} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold">{user.name}</p>
-            <p className="truncate text-xs text-ink-soft">{user.subtitle}</p>
+      <aside data-sidebar className="sticky top-0 hidden h-dvh max-h-dvh flex-col overflow-hidden border-r border-mist/70 bg-surface/70 px-3 py-4 backdrop-blur md:flex">
+        {/* Brand Header */}
+        <div className="flex shrink-0 items-center justify-between px-2">
+          <Logo />
+          <ThemeToggle />
+        </div>
+
+        {/* Scrollable Navigation Area */}
+        <div className="mt-3 flex flex-1 min-h-0 flex-col overflow-y-auto overscroll-contain pr-1 scrollbar-thin">
+          <p className={cn("mx-2 mb-2 w-fit shrink-0 rounded-full px-2.5 py-1 text-xs font-medium",
+            tone === "alumni" ? "bg-gold-wash text-gold-ink" : tone === "admin" || tone === "teacher" ? "bg-lilac-wash text-lilac-ink" : "bg-sky text-ulab-deep")}>
+            {tone === "alumni" ? "Alumni space" : tone === "teacher" ? "Teacher space" : tone === "admin" ? "Alumni office" : "Student space"}
+          </p>
+          <nav className="space-y-1 pb-2">
+            {nav.map((item) => {
+              const Icon = icons[item.icon];
+              const active = isActive(item.href);
+              return (
+                <Link key={item.href} href={item.href} className={cn("relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors", active ? "text-ulab-deep font-semibold" : "text-ink-soft hover:text-ink hover:bg-paper/60")}>
+                  {active && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-sky" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                  <Icon size={18} className="relative shrink-0" />
+                  <span className="relative truncate">{item.label}</span>
+                  {!!item.badge && <span className="relative ml-auto shrink-0 rounded-full bg-gold px-1.5 py-0.2 text-[11px] font-semibold text-white">{item.badge}</span>}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* User Card Docked at Bottom */}
+        <div className="mt-auto shrink-0 border-t border-mist/60 pt-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-mist/70 bg-surface p-2.5 shadow-2xs">
+            <Avatar name={user.name} size={36} src={user.image} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold">{user.name}</p>
+              <p className="truncate text-[11px] text-ink-soft">{user.subtitle}</p>
+            </div>
+            <form action={logout}>
+              <button className="rounded-lg p-2 text-ink-soft transition hover:bg-rose-wash hover:text-rose" aria-label="Log out"><LogOut size={16} /></button>
+            </form>
           </div>
-          <form action={logout}>
-            <button className="rounded-lg p-2 text-ink-soft transition hover:bg-rose-wash hover:text-rose" aria-label="Log out"><LogOut size={16} /></button>
-          </form>
         </div>
       </aside>
 

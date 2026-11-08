@@ -141,7 +141,7 @@ export function MentorshipMessagesClient({
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-mist/40 dark:divide-white/5">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-mist/40 dark:divide-white/5 scrollbar-thin">
           {filteredConnections.length === 0 ? (
             <div className="p-8 text-center text-xs text-ink-soft">
               <MessageSquare size={32} className="mx-auto text-ink-soft/30 mb-2" />

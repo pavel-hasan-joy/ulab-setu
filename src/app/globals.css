@@ -130,6 +130,27 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Modern sleek scrollbar for sidebars, drawers, and overflow panels */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-mist) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-mist);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-soft);
+}
+
 body {
   transition: background-color 0.4s ease, color 0.4s ease;
   background: var(--color-paper);
