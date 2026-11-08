@@ -2,11 +2,9 @@ import { db } from "@/lib/db";
 
 export type SettingCategory =
   | "PLATFORM"
-  | "NOTIFICATION"
   | "PRIVACY"
   | "ROLES"
   | "JOBS"
-  | "SUPPORT"
   | "SECURITY";
 
 export type SettingDefinition = {
@@ -78,67 +76,7 @@ export const SYSTEM_SETTING_DEFINITIONS: SettingDefinition[] = [
     defaultValue: "true",
   },
 
-  // 2. Notification Preferences
-  {
-    key: "email_notifications_enabled",
-    category: "NOTIFICATION",
-    label: "Master Email Dispatch",
-    description: "Toggle global automated email delivery for OTPs, alerts, and status changes.",
-    type: "boolean",
-    defaultValue: "true",
-  },
-  {
-    key: "notification_retention_days",
-    category: "NOTIFICATION",
-    label: "Notification Retention Window",
-    description: "Number of days in-app notification records are retained before automatic cleanup.",
-    type: "number",
-    defaultValue: "90",
-  },
-  {
-    key: "digest_frequency",
-    category: "NOTIFICATION",
-    label: "Activity Digest Cadence",
-    description: "Default frequency for consolidated opportunity and network digests.",
-    type: "select",
-    options: [
-      { label: "Real-time Instant Delivery", value: "INSTANT" },
-      { label: "Daily Evening Summary", value: "DAILY" },
-      { label: "Weekly Career Roundup", value: "WEEKLY" },
-    ],
-    defaultValue: "DAILY",
-  },
-  {
-    key: "job_alert_broadcast",
-    category: "NOTIFICATION",
-    label: "Broadcast New Published Jobs",
-    description: "Send automated notifications to relevant students when alumni publish matching jobs.",
-    type: "boolean",
-    defaultValue: "true",
-  },
-  {
-    key: "mentorship_instant_alerts",
-    category: "NOTIFICATION",
-    label: "Instant Mentorship Alerts",
-    description: "Immediately alert mentors upon receipt of a new student request.",
-    type: "boolean",
-    defaultValue: "true",
-  },
-
-  // 3. User Privacy Settings
-  {
-    key: "default_profile_visibility",
-    category: "PRIVACY",
-    label: "Default Profile Visibility",
-    description: "Initial discovery scope assigned to newly registered students and alumni.",
-    type: "select",
-    options: [
-      { label: "All Verified Campus Members", value: "CAMPUS_MEMBERS" },
-      { label: "Direct Connections Only", value: "CONNECTIONS_ONLY" },
-      { label: "Strictly Private Until Approved", value: "PRIVATE" },
-    ],
-    defaultValue: "CAMPUS_MEMBERS",
-  },
+  // 2. User Privacy Settings
   {
     key: "allow_alumni_directory_indexing",
     category: "PRIVACY",
@@ -168,7 +106,7 @@ export const SYSTEM_SETTING_DEFINITIONS: SettingDefinition[] = [
     defaultValue: "OPEN_CAMPUS",
   },
 
-  // 4. Role and Permission Settings
+  // 3. Role and Permission Settings
   {
     key: "alumni_auto_approval",
     category: "ROLES",
@@ -202,23 +140,7 @@ export const SYSTEM_SETTING_DEFINITIONS: SettingDefinition[] = [
     defaultValue: "true",
   },
 
-  // 5. Job-related Configuration
-  {
-    key: "job_default_expiry_days",
-    category: "JOBS",
-    label: "Default Job Posting Lifespan",
-    description: "Standard active duration in days from publication date before automatic expiration.",
-    type: "number",
-    defaultValue: "30",
-  },
-  {
-    key: "allow_external_job_links",
-    category: "JOBS",
-    label: "Permit External Application Links",
-    description: "Allow alumni employers to provide external company careers portals or Google Forms.",
-    type: "boolean",
-    defaultValue: "true",
-  },
+  // 4. Job-related Configuration
   {
     key: "require_salary_range",
     category: "JOBS",
@@ -227,50 +149,8 @@ export const SYSTEM_SETTING_DEFINITIONS: SettingDefinition[] = [
     type: "boolean",
     defaultValue: "false",
   },
-  {
-    key: "auto_archive_expired_jobs",
-    category: "JOBS",
-    label: "Auto-Archive Expired Postings",
-    description: "Automatically change job status from Published to Expired when the deadline passes.",
-    type: "boolean",
-    defaultValue: "true",
-  },
 
-  // 6. Support Configuration
-  {
-    key: "support_ticket_auto_close_days",
-    category: "SUPPORT",
-    label: "Resolved Ticket Auto-Close",
-    description: "Number of days resolved support tickets remain before automatically moving to Closed.",
-    type: "number",
-    defaultValue: "7",
-  },
-  {
-    key: "max_open_tickets_per_user",
-    category: "SUPPORT",
-    label: "Concurrent Open Ticket Limit",
-    description: "Maximum active (Open or In Progress) tickets permitted per individual user.",
-    type: "number",
-    defaultValue: "3",
-  },
-  {
-    key: "escalation_alert_email",
-    category: "SUPPORT",
-    label: "Escalation Lead Contact",
-    description: "Administrator destination email for urgent priority tickets and safety violations.",
-    type: "text",
-    defaultValue: "admin@ulab.edu.bd",
-  },
-  {
-    key: "moderation_auto_flag_threshold",
-    category: "SUPPORT",
-    label: "Auto-Flag Content Threshold",
-    description: "Number of member reports required to automatically place a job or post in moderation hold.",
-    type: "number",
-    defaultValue: "3",
-  },
-
-  // 7. Security Configuration
+  // 5. Security Configuration
   {
     key: "max_login_attempts",
     category: "SECURITY",
@@ -286,14 +166,6 @@ export const SYSTEM_SETTING_DEFINITIONS: SettingDefinition[] = [
     description: "Temporary block duration following threshold-exceeded failed authentications.",
     type: "number",
     defaultValue: "15",
-  },
-  {
-    key: "session_token_ttl_days",
-    category: "SECURITY",
-    label: "Session Token Validity (Days)",
-    description: "Stateless JWT HTTP-only cookie lifespan before re-authentication is required.",
-    type: "number",
-    defaultValue: "7",
   },
   {
     key: "enforce_password_complexity",
@@ -318,7 +190,9 @@ export async function getSystemSettings(): Promise<Record<string, string>> {
     }
 
     for (const record of records) {
-      map[record.key] = record.value;
+      if (SYSTEM_SETTING_DEFINITIONS.some((d) => d.key === record.key)) {
+        map[record.key] = record.value;
+      }
     }
 
     return map;
@@ -347,4 +221,3 @@ export async function getSystemSetting(key: string, defaultValue?: string): Prom
   const def = SYSTEM_SETTING_DEFINITIONS.find((d) => d.key === key);
   return def ? def.defaultValue : "";
 }
-

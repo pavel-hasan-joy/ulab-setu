@@ -4,11 +4,9 @@ import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Globe,
-  Bell,
   Shield,
   Users,
   Briefcase,
-  LifeBuoy,
   Lock,
   Save,
   RotateCcw,
@@ -46,16 +44,9 @@ const CATEGORIES: {
     tone: "blue",
   },
   {
-    id: "NOTIFICATION",
-    label: "Notification Preferences",
-    description: "Email delivery gateways, retention windows, and digest frequencies.",
-    icon: Bell,
-    tone: "gold",
-  },
-  {
     id: "PRIVACY",
     label: "User Privacy Settings",
-    description: "Default member visibility, phone masking, and direct messaging access.",
+    description: "Alumni directory indexing, phone masking, and direct messaging access.",
     icon: Shield,
     tone: "sage",
   },
@@ -69,21 +60,14 @@ const CATEGORIES: {
   {
     id: "JOBS",
     label: "Job Configuration",
-    description: "Default posting lifespan, external link rules, and salary transparency.",
+    description: "Compensation transparency and salary range requirements.",
     icon: Briefcase,
     tone: "gold",
   },
   {
-    id: "SUPPORT",
-    label: "Support Configuration",
-    description: "Ticket auto-close thresholds, SLA escalation, and auto-flagging.",
-    icon: LifeBuoy,
-    tone: "blue",
-  },
-  {
     id: "SECURITY",
     label: "Security & Cryptography",
-    description: "Brute-force lockout thresholds, token TTL, and password complexity.",
+    description: "Brute-force lockout thresholds and password complexity.",
     icon: Lock,
     tone: "sage",
   },

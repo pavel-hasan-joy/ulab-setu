@@ -26,7 +26,7 @@ export default async function AdminSettingsPage() {
     <PageIn>
       <PageHeader
         title="System Settings & Governance Policy"
-        description="Configure institutional branding, domain enforcement, security thresholds, notification rules, and job policies in real time."
+        description="Configure institutional branding, domain enforcement, privacy controls, role permissions, and security thresholds in real time."
       />
 
       <div className="mt-6">
