@@ -44,7 +44,6 @@ export default async function TeacherLayout({ children }: { children: React.Reac
         { href: "/teacher/notifications", label: "Alerts", icon: "Bell", badge: unreadNotifs > 0 ? unreadNotifs : undefined },
         { href: "/teacher/people", label: "People", icon: "Users", badge: pendingInvites > 0 ? pendingInvites : undefined },
         { href: "/teacher/profile", label: "Profile", icon: "User" },
-        { href: "/teacher/support", label: "Helpdesk", icon: "LifeBuoy" },
         { href: "/teacher/jobs/new", label: "Post job", icon: "PlusCircle" },
       ]}
     >

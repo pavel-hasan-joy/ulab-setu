@@ -51,7 +51,6 @@ export default async function AdminDashboardPage() {
     mentorshipRequests,
     newRegistrations,
     pendingReports,
-    openTickets,
     recentUsers,
     recentAudits,
     shortlistedApps,
@@ -66,7 +65,6 @@ export default async function AdminDashboardPage() {
     db.mentorshipRequest.count().catch(() => 0),
     db.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     db.userReport.count({ where: { status: "PENDING" } }).catch(() => 0),
-    db.supportTicket.count({ where: { status: "OPEN" } }).catch(() => 0),
     db.user.findMany({
       orderBy: { createdAt: "desc" },
       take: 6,
@@ -127,38 +125,21 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Critical System Alerts Bar */}
-      {(pendingReports > 0 || openTickets > 0) && (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {pendingReports > 0 && (
-            <Link
-              href="/admin/reports"
-              className="flex items-center gap-3 rounded-2xl border border-rose/30 bg-rose-wash/60 p-4 transition hover:shadow-soft"
-            >
-              <div className="rounded-xl bg-rose/10 p-2 text-rose">
-                <AlertTriangle size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-rose">Pending Moderation Reports ({pendingReports})</p>
-                <p className="text-[11px] text-ink-soft">Unresolved user reports require moderation review.</p>
-              </div>
-              <ArrowUpRight size={16} className="text-rose" />
-            </Link>
-          )}
-          {openTickets > 0 && (
-            <Link
-              href="/admin/tickets"
-              className="flex items-center gap-3 rounded-2xl border border-gold/40 bg-gold-wash/60 p-4 transition hover:shadow-soft"
-            >
-              <div className="rounded-xl bg-gold/10 p-2 text-gold-ink">
-                <LifeBuoy size={18} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-gold-ink">Open Helpdesk Tickets ({openTickets})</p>
-                <p className="text-[11px] text-ink-soft">Support requests awaiting admin response.</p>
-              </div>
-              <ArrowUpRight size={16} className="text-gold-ink" />
-            </Link>
-          )}
+      {pendingReports > 0 && (
+        <div className="mt-6">
+          <Link
+            href="/admin/reports"
+            className="flex items-center gap-3 rounded-2xl border border-rose/30 bg-rose-wash/60 p-4 transition hover:shadow-soft"
+          >
+            <div className="rounded-xl bg-rose/10 p-2 text-rose">
+              <AlertTriangle size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-rose">Pending Moderation Reports ({pendingReports})</p>
+              <p className="text-[11px] text-ink-soft">Unresolved user reports require moderation review.</p>
+            </div>
+            <ArrowUpRight size={16} className="text-rose" />
+          </Link>
         </div>
       )}
 

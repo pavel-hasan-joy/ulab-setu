@@ -8,9 +8,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const subRole = getAdminSubRole(user);
 
   // Real database-driven notification badge counts
-  const [pendingReports, openTickets, pendingMentorship, pendingApprovals] = await Promise.all([
+  const [pendingReports, pendingMentorship, pendingApprovals] = await Promise.all([
     db.userReport.count({ where: { status: "PENDING" } }).catch(() => 0),
-    db.supportTicket.count({ where: { status: "OPEN" } }).catch(() => 0),
     db.mentorshipRequest.count({ where: { status: "PENDING" } }).catch(() => 0),
     db.user.count({ where: { status: "PENDING" } }).catch(() => 0),
   ]);
@@ -26,7 +25,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       }}
       badgeCounts={{
         pendingReports,
-        openTickets,
         pendingMentorship,
         pendingApprovals,
       }}

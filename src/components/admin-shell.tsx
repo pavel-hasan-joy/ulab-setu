@@ -88,13 +88,6 @@ const navSections = [
         badgeKey: "pendingMentorship" as const,
       },
       {
-        href: "/admin/tickets",
-        label: "Support Tickets",
-        icon: LifeBuoy,
-        permission: "tickets:manage" as AdminPermission,
-        badgeKey: "openTickets" as const,
-      },
-      {
         href: "/admin/notifications",
         label: "Notifications",
         icon: Bell,
@@ -307,7 +300,7 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
               title="System Notifications"
             >
               <Bell size={16} />
-              {(badgeCounts?.openTickets || 0) + (badgeCounts?.pendingReports || 0) > 0 && (
+              {(badgeCounts?.pendingReports || 0) > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-rose animate-pulse" />
               )}
             </Link>

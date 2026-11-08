@@ -306,7 +306,7 @@ runAuditTest("FUNC", "D.2: 6-Stage Mentorship Lifecycle integrity", () => {
   assert.strictEqual(canTransition("COMPLETED", "CANCELLED"), false); // Terminal state
 });
 
-runAuditTest("FUNC", "D.3: Support Ticket status progression and internal notes privacy", () => {
+runAuditTest("FUNC", "D.3: Internal Staff Notes & Admin Moderation Privacy isolation", () => {
   const messageThread = [
     { id: "m1", body: "My password reset is failing", isInternal: false },
     { id: "m2", body: "Staff Note: Checked user identity", isInternal: true },

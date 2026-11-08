@@ -143,8 +143,6 @@ The Student Portal empowers enrolled ULAB students to accelerate their career tr
   - **Self-Service Account Deletion:** Permanent account removal with complete data purging upon user confirmation.
 - **Tuitions & Tutoring Board (`/student/tuitions`):**
   - Browse available private tutoring and peer teaching opportunities across academic subjects.
-- **Support Ticket Helpdesk (`/student/support`):**
-  - Submit technical or account inquiries to platform administrators and track ticket resolution statuses.
 - **In-App Notification Center (`/student/notifications`):**
   - Real-time notifications for application status updates, interview schedules, mentorship acceptances, new connection requests, and system announcements with direct link routing.
 
@@ -192,7 +190,7 @@ The Alumni Portal enables ULAB graduates to hire campus talent, give back throug
   - Display official Alumni Verified badge (upon automatic whitelist or administrator approval).
   - Privacy toggles for contact disclosure and self-service account deletion.
 - **Tuition & Mentoring Posts (`/alumni/tuitions`):** Post tutoring opportunities or seek specialized assistance.
-- **Support Desk & Notifications (`/alumni/support`, `/alumni/notifications`):** Platform assistance and real-time activity alerts.
+- **Notification Center (`/alumni/notifications`):** Real-time activity alerts and system notifications.
 
 ---
 
@@ -217,7 +215,7 @@ The Faculty Portal provides professors, lecturers, and departmental coordinators
 - **Academic Networking (`/teacher/people`):** Connect with current students and track graduated alumni in industry.
 - **Faculty Profile Management (`/teacher/profile`):**
   - Configure department, academic rank/designation, research interests, office hours, and privacy preferences.
-- **Support Desk & Notifications (`/teacher/support`, `/teacher/notifications`):** In-app notification center and administrative support ticketing.
+- **Notification Center (`/teacher/notifications`):** In-app notification center and administrative alerts.
 
 ---
 
@@ -226,8 +224,8 @@ The Faculty Portal provides professors, lecturers, and departmental coordinators
 The Admin Portal provides institutional administrators with an enterprise-grade command center for platform governance, verification, and moderation:
 
 - **Executive Analytics Dashboard (`/admin`):**
-  - High-level KPIs: total registered users, verified alumni, active faculty, published jobs, total applications, active mentorship connections, and open support tickets.
-  - Quick-action shortcuts to pending verification queues and urgent support tickets.
+  - High-level KPIs: total registered users, verified alumni, active faculty, published jobs, total applications, and active mentorship connections.
+  - Quick-action shortcuts to pending verification queues and critical moderation reports.
 - **User Management & Moderation CRM (`/admin/users`):**
   - Search, filter, and inspect all registered accounts across all roles (`STUDENT`, `ALUMNI`, `TEACHER`, `ADMIN`).
   - **Account Verification:** Review, approve, or reject unverified alumni and faculty registrations.
@@ -252,9 +250,6 @@ The Admin Portal provides institutional administrators with an enterprise-grade 
   - Dispatch real-time in-app announcements to targeted roles (e.g., all students, all alumni, or entire university).
 - **User Report Resolution Center (`/admin/reports`):**
   - Review user-submitted reports regarding inappropriate messages, spam job postings, or abusive behavior with direct dismissal or sanction tools.
-- **Support Ticket Helpdesk CRM (`/admin/tickets`):**
-  - Manage support tickets submitted by any user.
-  - Update ticket status (*Open*, *In Progress*, *Resolved*, *Closed*), assign priority levels, and record **Private Internal Staff Notes** isolated from the user's view.
 - **Granular Platform Settings (`/admin/settings`):**
   - Configure 25+ system parameters across 7 distinct categories:
     1. **Registration & Onboarding:** Enable/disable new signups, toggle instant alumni verification, enforce email domains.
