@@ -19,7 +19,9 @@ export type AdminPermission =
   | "analytics:view"
   | "admins:manage"
   | "settings:manage"
-  | "audit:view";
+  | "audit:view"
+  | "cms:view"
+  | "cms:permissions:manage";
 
 export const ROLE_PERMISSIONS: Record<AdminSubRole, AdminPermission[]> = {
   SUPER_ADMIN: [
@@ -37,6 +39,8 @@ export const ROLE_PERMISSIONS: Record<AdminSubRole, AdminPermission[]> = {
     "admins:manage",
     "settings:manage",
     "audit:view",
+    "cms:view",
+    "cms:permissions:manage",
   ],
   USER_ADMIN: [
     "dashboard:view",

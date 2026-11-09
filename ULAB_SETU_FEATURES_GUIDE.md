@@ -74,10 +74,34 @@
 
 ---
 
-## ৮. প্রযুক্তিগত স্থাপত্য (Technical Specifications)
+## ৮. কন্টেন্ট ম্যানেজমেন্ট সিস্টেম (ULAB Setu CMS — Phase 1 Foundation)
+
+১. **সিএমএস ওভারভিউ ড্যাশবোর্ড (`/admin/cms`):**
+   - সম্পূর্ণ রিয়েল ডাটাবেজ ব্যাকড কেপিআই মেট্রিক্স (মোট কন্টেন্ট, প্রকাশিত, ড্রাফট, অনুমোদনের অপেক্ষায়, শিডিউল্ড ও আর্কাইভড)।
+   - ৮টি কন্টেন্ট টাইপের আর্কিটেকচার কার্ডস (Static Pages, Homepage Sections, News, Announcements, Events, FAQs, Alumni Stories, Resources)।
+   - রিভিউ কিউ ও দ্রুত কন্টেন্ট ড্রাফট তৈরির রিয়েল-টাইম মডেল (`createCmsContent`)।
+   - শিডিউল্ড পাবলিকেশনস ট্র্যাকার এবং সাম্প্রতিক সিএমএস অডিট এক্টিভিটি ফিড।
+
+২. **সিএমএস পারমিশন ও আরব্যাক সিস্টেম (`/admin/cms/permissions`):**
+   - অ্যাপ্লিকেশন ইউজার রোল (Student, Alumni, Teacher, Admin) অপরিবর্তিত রেখে সম্পূর্ণ স্বাধীন ৫-স্তর বিশিষ্ট সিএমএস রোল সিস্টেম:
+     * **CMS Administrator (`CMS_ADMIN`):** পূর্ণ ক্ষমতা, পারমিশন ম্যানেজমেন্ট, রিভিউ ও পাবলিশ।
+     * **Content Editor (`CONTENT_EDITOR`):** কন্টেন্ট তৈরি ও সম্পাদনা, রিভিউয়ের জন্য সাবমিশন (সরাসরি প্রকাশের ক্ষমতা ছাড়া)।
+     * **Content Reviewer (`CONTENT_REVIEWER`):** রিভিউ কিউ পর্যবেক্ষণ, অনুমোদন বা ফিডব্যাকসহ রিভিশন রিকোয়েস্ট।
+     * **Publisher (`PUBLISHER`):** অনুমোদিত কন্টেন্ট প্রকাশ, শিডিউলিং ও আনপাবলিশ।
+     * **Contributor (`CONTRIBUTOR`):** নির্দিষ্ট ড্রাফট তৈরি ও শুধুমাত্র নিজের ড্রাফট এডিট/সাবমিট।
+   - স্বয়ংক্রিয় সেলফ-এস্কেলেশন ও সেলফ-রিমুভাল প্রতিরোধ, লাইভ ইউজার সার্চ এবং অপরিবর্তনীয় অডিট লগিং।
+
+৩. **কন্টেন্ট লাইফসাইকেল স্টেট মেশিন ও ডাটাবেজ মডেলস:**
+   - ৮-ধাপ বিশিষ্ট স্ট্রিক্ট লাইফসাইকেল: `DRAFT` ➔ `IN_REVIEW` ➔ `CHANGES_REQUESTED` ➔ `APPROVED` ➔ `SCHEDULED` ➔ `PUBLISHED` ➔ `UNPUBLISHED` ➔ `ARCHIVED`।
+   - ৫টি নতুন শক্তিশালী রিলেশনাল প্রিযমা মডেল: `CmsUserRole`, `CmsContent`, `CmsRevision`, `CmsReviewFeedback`, `CmsMedia`।
+
+---
+
+## ৯. প্রযুক্তিগত স্থাপত্য (Technical Specifications)
 
 * **ফ্রন্টএন্ড:** Next.js 16.3.6 (App Router) + React 19 + Turbopack + Framer Motion v13
 * **স্টাইলিং:** Tailwind CSS v4 (`@theme`), ডার্ক/লাইট মোড (`next-themes`)
-* **ডাটাবেজ ও ওআরএম:** PostgreSQL + Prisma ORM 6.19.3 (১৬টি রিলেশনাল মডেল)
+* **ডাটাবেজ ও ওআরএম:** PostgreSQL + Prisma ORM 6.19.3 (২১টি সুসংহত রিলেশনাল মডেল)
 * **সিকিউরিটি ও সেশন:** Jose (JWT HS256) + HttpOnly Secure Cookies + Bcryptjs
 * **সিআই/সিডি ও হোস্টিং:** GitHub Actions (Lint, Schema, Seed, Next Build, Playwright E2E) + Vercel Edge
+

@@ -23,7 +23,20 @@ import {
   Search,
   LogOut,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
+  LayoutTemplate,
+  Sparkles,
+  Newspaper,
+  Calendar,
+  HelpCircle,
+  Award,
+  FolderGit2,
+  Image as ImageIcon,
+  CheckSquare,
+  Clock,
+  Archive,
+  KeyRound,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { ThemeToggle } from "./theme";
@@ -35,6 +48,7 @@ export type AdminBadgeCounts = {
   openTickets?: number;
   pendingMentorship?: number;
   pendingApprovals?: number;
+  pendingCmsReview?: number;
 };
 
 type AdminShellProps = {
@@ -54,6 +68,25 @@ const navSections = [
     title: "Overview",
     items: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permission: "dashboard:view" as AdminPermission },
+    ],
+  },
+  {
+    title: "Content Management",
+    isCms: true,
+    items: [
+      { href: "/admin/cms", label: "CMS Overview", icon: LayoutTemplate, permission: "cms:view" as AdminPermission },
+      { href: "/admin/cms/pages", label: "Pages", icon: FileText, permission: "cms:view" as AdminPermission, badgeText: "Phase 2" },
+      { href: "/admin/cms/homepage", label: "Homepage Manager", icon: Sparkles, permission: "cms:view" as AdminPermission, badgeText: "Phase 3" },
+      { href: "/admin/cms/news", label: "News & Announcements", icon: Newspaper, permission: "cms:view" as AdminPermission, badgeText: "Phase 2" },
+      { href: "/admin/cms/events", label: "Events", icon: Calendar, permission: "cms:view" as AdminPermission, badgeText: "Phase 2" },
+      { href: "/admin/cms/faqs", label: "FAQs", icon: HelpCircle, permission: "cms:view" as AdminPermission, badgeText: "Phase 2" },
+      { href: "/admin/cms/stories", label: "Alumni Stories", icon: Award, permission: "cms:view" as AdminPermission, badgeText: "Phase 2" },
+      { href: "/admin/cms/resources", label: "Resource Library", icon: FolderGit2, permission: "cms:view" as AdminPermission, badgeText: "Phase 2" },
+      { href: "/admin/cms/media", label: "Media Library", icon: ImageIcon, permission: "cms:view" as AdminPermission, badgeText: "Phase 3" },
+      { href: "/admin/cms/review", label: "Review & Approval", icon: CheckSquare, permission: "cms:view" as AdminPermission, badgeKey: "pendingCmsReview" as const },
+      { href: "/admin/cms/scheduled", label: "Scheduled Content", icon: Clock, permission: "cms:view" as AdminPermission, badgeText: "Phase 4" },
+      { href: "/admin/cms/history", label: "History & Archive", icon: Archive, permission: "cms:view" as AdminPermission, badgeText: "Phase 5" },
+      { href: "/admin/cms/permissions", label: "CMS Permissions", icon: KeyRound, permission: "cms:permissions:manage" as AdminPermission },
     ],
   },
   {
@@ -201,6 +234,18 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
                           )}
                         />
                         <span className="flex-1 truncate">{item.label}</span>
+                        {"badgeText" in item && item.badgeText && (
+                          <span
+                            className={cn(
+                              "rounded-md px-1.5 py-0.5 text-[9px] font-semibold tracking-wide",
+                              isActive
+                                ? "bg-white/20 text-white"
+                                : "bg-paper text-ink-soft/80 border border-mist/80 dark:bg-white/10 dark:text-ink-soft dark:border-white/10"
+                            )}
+                          >
+                            {item.badgeText}
+                          </span>
+                        )}
                         {typeof count === "number" && count > 0 && (
                           <span
                             className={cn(
@@ -391,7 +436,12 @@ export function AdminShell({ user, badgeCounts, children }: AdminShellProps) {
                             )}
                           >
                             <item.icon size={16} />
-                            <span>{item.label}</span>
+                            <span className="flex-1 truncate">{item.label}</span>
+                            {"badgeText" in item && item.badgeText && (
+                              <span className="rounded px-1 py-0.2 text-[8px] font-semibold bg-mist/60 text-ink-soft dark:bg-white/10">
+                                {item.badgeText}
+                              </span>
+                            )}
                           </Link>
                         ))}
                       </div>

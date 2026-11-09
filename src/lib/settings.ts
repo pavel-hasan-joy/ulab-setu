@@ -2,9 +2,11 @@ import { db } from "@/lib/db";
 
 export type SettingCategory =
   | "PLATFORM"
+  | "NOTIFICATION"
   | "PRIVACY"
   | "ROLES"
   | "JOBS"
+  | "SUPPORT"
   | "SECURITY";
 
 export type SettingDefinition = {
@@ -174,6 +176,74 @@ export const SYSTEM_SETTING_DEFINITIONS: SettingDefinition[] = [
     description: "Require min 8 characters including mixed case, digits, and special characters.",
     type: "boolean",
     defaultValue: "true",
+  },
+
+  // 6. Notification Settings
+  {
+    key: "email_notifications_enabled",
+    category: "NOTIFICATION",
+    label: "System Email Notifications",
+    description: "Enable outbound email notifications for messages, mentorship, and applications.",
+    type: "boolean",
+    defaultValue: "true",
+  },
+  {
+    key: "digest_summary_enabled",
+    category: "NOTIFICATION",
+    label: "Weekly Career & Event Digest",
+    description: "Aggregate newly approved jobs and upcoming campus events in periodic digests.",
+    type: "boolean",
+    defaultValue: "false",
+  },
+  {
+    key: "admin_alert_emails",
+    category: "NOTIFICATION",
+    label: "Admin Critical Incident Alerts",
+    description: "Dispatch urgent alerts to institutional administrators on high-priority tickets or moderation flags.",
+    type: "boolean",
+    defaultValue: "true",
+  },
+  {
+    key: "notification_retention_days",
+    category: "NOTIFICATION",
+    label: "In-App Notification Retention (Days)",
+    description: "Automatically prune read in-app notifications older than the specified duration.",
+    type: "number",
+    defaultValue: "90",
+  },
+
+  // 7. Support & Trust Management
+  {
+    key: "support_auto_assignment",
+    category: "SUPPORT",
+    label: "Automated Ticket Distribution",
+    description: "Automatically route incoming helpdesk inquiries among active support administrators.",
+    type: "boolean",
+    defaultValue: "false",
+  },
+  {
+    key: "support_sla_hours",
+    category: "SUPPORT",
+    label: "Standard SLA Response Window (Hours)",
+    description: "Target turnaround deadline for resolving student and alumni support tickets.",
+    type: "number",
+    defaultValue: "24",
+  },
+  {
+    key: "allow_ticket_attachments",
+    category: "SUPPORT",
+    label: "Ticket Document Attachments",
+    description: "Permit users to attach screenshots and PDF verification records to support inquiries.",
+    type: "boolean",
+    defaultValue: "true",
+  },
+  {
+    key: "moderation_threshold_auto_warn",
+    category: "SUPPORT",
+    label: "Auto-Warning Flag Threshold",
+    description: "Issue automatic caution notice after user receives multiple confirmed community reports.",
+    type: "number",
+    defaultValue: "3",
   },
 ];
 

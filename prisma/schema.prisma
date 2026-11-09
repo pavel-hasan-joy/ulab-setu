@@ -99,6 +99,17 @@ model User {
   mentorshipAuditLogs    MentorshipAuditLog[]  @relation("MentorshipAuditActor")
   statusHistoryChanges   ApplicationStatusHistory[] @relation("StatusHistoryChangedBy")
 
+  // CMS Content Management & Role Relations
+  cmsRole                CmsUserRole?          @relation("UserCmsRole")
+  assignedCmsRoles       CmsUserRole[]         @relation("AssignedCmsRoles")
+  cmsAuthoredContent     CmsContent[]          @relation("CmsContentAuthor")
+  cmsEditedContent       CmsContent[]          @relation("CmsContentLastEditor")
+  cmsReviewedContent     CmsContent[]          @relation("CmsContentReviewer")
+  cmsPublishedContent    CmsContent[]          @relation("CmsContentPublisher")
+  cmsRevisions           CmsRevision[]         @relation("CmsRevisionCreator")
+  cmsReviewFeedbacks     CmsReviewFeedback[]   @relation("CmsFeedbackReviewer")
+  cmsUploadedMedia       CmsMedia[]            @relation("CmsMediaUploader")
+
   @@index([role])
   @@index([status])
   @@index([department])
@@ -689,4 +700,159 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt @default(now())
 
   @@index([category])
+}
+
+// ==============================================================================
+// CMS (CONTENT MANAGEMENT SYSTEM) ARCHITECTURE MODELS — PHASE 1 FOUNDATION
+// ==============================================================================
+
+/**
+ * Dedicated CMS Role Assignment for fine-grained content permissions.
+ * Distinct from application user roles (STUDENT, ALUMNI, TEACHER, ADMIN).
+ */
+model CmsUserRole {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation("UserCmsRole", fields: [userId], references: [id], onDelete: Cascade)
+  role              String   // CMS_ADMIN | CONTENT_EDITOR | CONTENT_REVIEWER | PUBLISHER | CONTRIBUTOR
+  customPermissions String?  // Optional JSON array of fine-grained override strings
+  notes             String?  // Administrative assignment context
+  assignedById      String?
+  assignedBy        User?    @relation("AssignedCmsRoles", fields: [assignedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt @default(now())
+
+  @@index([role])
+  @@index([userId])
+  @@index([assignedById])
+}
+
+/**
+ * Core CMS Content Entity supporting polymorphic content types,
+ * strict lifecycle progression, editorial attribution, and scheduling.
+ */
+model CmsContent {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  contentType     String    // PAGE | HOMEPAGE_SECTION | NEWS | ANNOUNCEMENT | EVENT | FAQ | ALUMNI_STORY | RESOURCE
+  status          String    @default("DRAFT") // DRAFT | IN_REVIEW | CHANGES_REQUESTED | APPROVED | SCHEDULED | PUBLISHED | UNPUBLISHED | ARCHIVED
+  summary         String?
+  body            String?
+  structuredData  String?   // Validated JSON for homepage sections, FAQ schemas, event meta, etc.
+  featuredImage   String?
+  category        String?
+  tags            String?   // Comma-separated tags
+  priority        Int       @default(0)
+
+  // Ownership & Editorial Attribution
+  authorId        String
+  author          User      @relation("CmsContentAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  lastEditedById  String?
+  lastEditedBy    User?     @relation("CmsContentLastEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
+  reviewedById    String?
+  reviewedBy      User?     @relation("CmsContentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  publishedById   String?
+  publishedBy     User?     @relation("CmsContentPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  reviewNotes     String?   // Latest feedback comment from reviewer
+
+  // Publication & Scheduling Metadata
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  archivedAt      DateTime?
+  viewCount       Int       @default(0)
+
+  // SEO & Head Metadata
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+
+  // Lifecycle Timestamps
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt @default(now())
+
+  // Relational Sub-entities
+  revisions       CmsRevision[]
+  reviews         CmsReviewFeedback[]
+  mediaItems      CmsMedia[]
+
+  @@index([contentType])
+  @@index([status])
+  @@index([authorId])
+  @@index([scheduledAt])
+  @@index([publishedAt])
+  @@index([deletedAt])
+  @@index([createdAt])
+  @@index([priority])
+}
+
+/**
+ * Immutable Content Revision History tracking every content modification,
+ * who changed it, and why.
+ */
+model CmsRevision {
+  id               String     @id @default(cuid())
+  contentId        String
+  content          CmsContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  version          Int
+  title            String
+  slug             String
+  summary          String?
+  body             String?
+  structuredData   String?
+  statusAtRevision String
+  changeSummary    String?
+  createdById      String
+  createdBy        User       @relation("CmsRevisionCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt        DateTime   @default(now())
+
+  @@unique([contentId, version])
+  @@index([contentId])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+/**
+ * Editorial Review & Approval Log recording review comments,
+ * approval events, and change requests.
+ */
+model CmsReviewFeedback {
+  id         String     @id @default(cuid())
+  contentId  String
+  content    CmsContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   User       @relation("CmsFeedbackReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  action     String     // REQUEST_CHANGES | APPROVE | REJECT | COMMENT
+  comments   String
+  createdAt  DateTime   @default(now())
+
+  @@index([contentId])
+  @@index([reviewerId])
+  @@index([createdAt])
+}
+
+/**
+ * CMS Media Reference entity linking assets (images, documents, banners)
+ * to CMS content.
+ */
+model CmsMedia {
+  id           String      @id @default(cuid())
+  title        String
+  url          String
+  altText      String?
+  fileType     String
+  fileSize     Int?
+  uploadedById String
+  uploadedBy   User        @relation("CmsMediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  contentId    String?
+  content      CmsContent? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt @default(now())
+
+  @@index([uploadedById])
+  @@index([contentId])
+  @@index([fileType])
+  @@index([createdAt])
 }

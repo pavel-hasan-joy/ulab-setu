@@ -226,6 +226,8 @@ if (isPostgres) {
         { role: "ADMIN", permission: "reports:resolve", description: "Investigate and resolve trust & safety reports" },
         { role: "ADMIN", permission: "tickets:manage", description: "Assign, respond, and close support tickets" },
         { role: "ADMIN", permission: "audit:view", description: "View security audit and login logs" },
+        { role: "ADMIN", permission: "cms:view", description: "Access Content Management System overview and editor" },
+        { role: "ADMIN", permission: "cms:permissions:manage", description: "Manage CMS editorial roles, reviewers, and publishers" },
       ];
 
       for (const perm of defaultPermissions) {
