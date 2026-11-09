@@ -1038,3 +1038,425 @@ export async function saveHomepageContent(
     at: Date.now(),
   };
 }
+
+// ============================================================================
+// PHASE 3: NEWS, ANNOUNCEMENTS, EVENTS, FAQS, ALUMNI STORIES & RESOURCES
+// ============================================================================
+
+/**
+ * Generic query for Phase 3 CMS items with filter, audience, and search support.
+ */
+export async function getCmsPhase3Items(params: {
+  contentType: CmsContentType;
+  status?: string;
+  category?: string;
+  query?: string;
+}) {
+  await requireCmsCapability("cms:content:view");
+
+  const where: any = {
+    contentType: params.contentType,
+    deletedAt: null,
+  };
+
+  if (params.status && params.status !== "ALL") {
+    where.status = params.status;
+  }
+
+  if (params.category && params.category !== "ALL") {
+    where.category = params.category;
+  }
+
+  if (params.query && params.query.trim().length > 0) {
+    const q = params.query.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+      { summary: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const items = await db.cmsContent.findMany({
+    where,
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    include: {
+      author: { select: { id: true, name: true, email: true, image: true, role: true } },
+      lastEditedBy: { select: { id: true, name: true, email: true } },
+      publishedBy: { select: { id: true, name: true, email: true } },
+      _count: { select: { revisions: true } },
+    },
+  });
+
+  return items;
+}
+
+/**
+ * Generic Save (Create/Update) for Phase 3 Content Entities.
+ */
+export async function saveCmsPhase3Item(params: {
+  id?: string;
+  title: string;
+  slug: string;
+  contentType: CmsContentType;
+  summary?: string;
+  body?: string;
+  category?: string;
+  tags?: string;
+  priority?: number;
+  featuredImage?: string;
+  structuredData?: any;
+  status?: CmsContentStatus;
+  publishImmediately?: boolean;
+  scheduledAt?: string;
+  notifyUsers?: boolean;
+}): Promise<CmsActionState & { itemId?: string }> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  // Validate clean slug
+  const cleanSlug = params.slug.trim().toLowerCase();
+  if (!cleanSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleanSlug)) {
+    return {
+      success: false,
+      error: "Slug must contain only lowercase alphanumeric characters and hyphens (e.g., 'campus-hackathon-2026').",
+    };
+  }
+
+  if (!params.title || params.title.trim().length < 3) {
+    return { success: false, error: "Title must be at least 3 characters long." };
+  }
+
+  // Check slug uniqueness
+  const existingWithSlug = await db.cmsContent.findUnique({
+    where: { slug: cleanSlug },
+    select: { id: true },
+  });
+
+  if (existingWithSlug && existingWithSlug.id !== params.id) {
+    return {
+      success: false,
+      error: `The URL slug '${cleanSlug}' is already in use by another content item.`,
+    };
+  }
+
+  let targetStatus: CmsContentStatus = params.status || "DRAFT";
+  if (params.publishImmediately) {
+    const canPublish = actor.cmsRole === "CMS_ADMIN" || actor.cmsRole === "PUBLISHER";
+    if (!canPublish) {
+      return {
+        success: false,
+        error: "Your CMS role does not have authorization to publish content live.",
+      };
+    }
+    targetStatus = "PUBLISHED";
+  }
+
+  const structuredDataStr = params.structuredData ? JSON.stringify(params.structuredData) : null;
+  const now = new Date();
+  const scheduledDate = params.scheduledAt ? new Date(params.scheduledAt) : null;
+
+  let itemId: string;
+
+  if (params.id) {
+    // UPDATE
+    const existing = await db.cmsContent.findUnique({
+      where: { id: params.id },
+      include: { _count: { select: { revisions: true } } },
+    });
+
+    if (!existing || existing.deletedAt) {
+      return { success: false, error: "Content item not found or deleted." };
+    }
+
+    const nextVersion = existing._count.revisions + 1;
+
+    await db.$transaction([
+      db.cmsContent.update({
+        where: { id: params.id },
+        data: {
+          title: params.title.trim(),
+          slug: cleanSlug,
+          summary: params.summary?.trim() || null,
+          body: params.body?.trim() || null,
+          category: params.category || null,
+          tags: params.tags || null,
+          priority: params.priority || 0,
+          featuredImage: params.featuredImage || null,
+          structuredData: structuredDataStr,
+          status: targetStatus,
+          scheduledAt: scheduledDate,
+          lastEditedById: actor.id,
+          publishedById: targetStatus === "PUBLISHED" ? actor.id : existing.publishedById,
+          publishedAt: targetStatus === "PUBLISHED" ? (existing.publishedAt || now) : existing.publishedAt,
+        },
+      }),
+      db.cmsRevision.create({
+        data: {
+          contentId: params.id,
+          version: nextVersion,
+          title: params.title.trim(),
+          slug: cleanSlug,
+          summary: params.summary?.trim() || null,
+          body: params.body?.trim() || null,
+          structuredData: structuredDataStr,
+          statusAtRevision: targetStatus,
+          changeSummary: `Updated by ${actor.name || actor.email}${params.publishImmediately ? " and published" : ""}`,
+          createdById: actor.id,
+        },
+      }),
+    ]);
+
+    itemId = params.id;
+
+    await recordCmsAuditLog({
+      actorId: actor.id,
+      action: `CMS_${params.contentType}_UPDATE`,
+      targetType: "CMS_CONTENT",
+      targetId: params.id,
+      details: { title: params.title, slug: cleanSlug, status: targetStatus, version: nextVersion },
+    });
+  } else {
+    // CREATE
+    const created = await db.$transaction(async (tx) => {
+      const item = await tx.cmsContent.create({
+        data: {
+          title: params.title.trim(),
+          slug: cleanSlug,
+          contentType: params.contentType,
+          status: targetStatus,
+          summary: params.summary?.trim() || null,
+          body: params.body?.trim() || null,
+          category: params.category || null,
+          tags: params.tags || null,
+          priority: params.priority || 0,
+          featuredImage: params.featuredImage || null,
+          structuredData: structuredDataStr,
+          scheduledAt: scheduledDate,
+          authorId: actor.id,
+          lastEditedById: actor.id,
+          publishedById: targetStatus === "PUBLISHED" ? actor.id : null,
+          publishedAt: targetStatus === "PUBLISHED" ? now : null,
+        },
+      });
+
+      await tx.cmsRevision.create({
+        data: {
+          contentId: item.id,
+          version: 1,
+          title: item.title,
+          slug: item.slug,
+          summary: item.summary,
+          body: item.body,
+          structuredData: structuredDataStr,
+          statusAtRevision: targetStatus,
+          changeSummary: `Initial ${params.contentType} creation.`,
+          createdById: actor.id,
+        },
+      });
+
+      return item;
+    });
+
+    itemId = created.id;
+
+    await recordCmsAuditLog({
+      actorId: actor.id,
+      action: `CMS_${params.contentType}_CREATE`,
+      targetType: "CMS_CONTENT",
+      targetId: created.id,
+      details: { title: created.title, slug: created.slug, status: targetStatus },
+    });
+  }
+
+  // Optional: Targeted Platform Notification if requested and published
+  if (params.notifyUsers && targetStatus === "PUBLISHED") {
+    try {
+      const audience = params.structuredData?.targetAudience || "PUBLIC";
+      let userWhere: any = { status: "APPROVED" };
+      if (audience === "STUDENT") userWhere.role = "STUDENT";
+      else if (audience === "ALUMNI") userWhere.role = "ALUMNI";
+      else if (audience === "TEACHER") userWhere.role = "TEACHER";
+
+      const recipientUsers = await db.user.findMany({
+        where: userWhere,
+        select: { id: true },
+        take: 300,
+      });
+
+      if (recipientUsers.length > 0) {
+        let routePrefix = "/news";
+        if (params.contentType === "EVENT") routePrefix = "/events";
+        else if (params.contentType === "RESOURCE") routePrefix = "/resources";
+
+        await db.notification.createMany({
+          data: recipientUsers.map((u) => ({
+            userId: u.id,
+            actorId: actor.id,
+            title: `Announcement: ${params.title}`,
+            body: params.summary || "A new official university announcement has been published.",
+            type: "SYSTEM_BROADCAST",
+            link: `${routePrefix}/${cleanSlug}`,
+          })),
+        });
+      }
+    } catch (notifErr) {
+      console.error("Failed to deliver broadcast notifications:", notifErr);
+    }
+  }
+
+  // Revalidations
+  revalidatePath("/admin/cms");
+  revalidatePath("/admin/cms/news");
+  revalidatePath("/admin/cms/events");
+  revalidatePath("/admin/cms/faqs");
+  revalidatePath("/admin/cms/stories");
+  revalidatePath("/admin/cms/resources");
+  revalidatePath("/news");
+  revalidatePath("/events");
+  revalidatePath("/faqs");
+  revalidatePath("/stories");
+  revalidatePath("/resources");
+  revalidatePath(`/news/${cleanSlug}`);
+  revalidatePath(`/events/${cleanSlug}`);
+
+  return {
+    success: true,
+    message: `${params.contentType} item successfully saved!`,
+    itemId,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Public Data Fetcher for Announcements / News with audience enforcement.
+ */
+export async function getPublicAnnouncements(userRole?: string | null) {
+  const allowedAudiences = ["PUBLIC"];
+  if (userRole) {
+    allowedAudiences.push("AUTHENTICATED", userRole);
+  }
+
+  const items = await db.cmsContent.findMany({
+    where: {
+      contentType: { in: ["NEWS", "ANNOUNCEMENT"] },
+      status: "PUBLISHED",
+      deletedAt: null,
+    },
+    orderBy: [{ priority: "desc" }, { publishedAt: "desc" }, { createdAt: "desc" }],
+    include: {
+      author: { select: { name: true, role: true, image: true, designation: true } },
+    },
+  });
+
+  // Filter items matching allowed audiences from structuredData safely
+  return items.filter((item) => {
+    if (!item.structuredData) return true;
+    try {
+      const meta = JSON.parse(item.structuredData);
+      const aud = meta.targetAudience || "PUBLIC";
+      return allowedAudiences.includes(aud);
+    } catch {
+      return true;
+    }
+  });
+}
+
+/**
+ * Public Data Fetcher for Events with audience enforcement.
+ */
+export async function getPublicEvents(userRole?: string | null) {
+  const allowedAudiences = ["PUBLIC"];
+  if (userRole) {
+    allowedAudiences.push("AUTHENTICATED", userRole);
+  }
+
+  const events = await db.cmsContent.findMany({
+    where: {
+      contentType: "EVENT",
+      status: "PUBLISHED",
+      deletedAt: null,
+    },
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    include: {
+      author: { select: { name: true, designation: true } },
+    },
+  });
+
+  return events.filter((e) => {
+    if (!e.structuredData) return true;
+    try {
+      const meta = JSON.parse(e.structuredData);
+      const aud = meta.targetAudience || "PUBLIC";
+      return allowedAudiences.includes(aud);
+    } catch {
+      return true;
+    }
+  });
+}
+
+/**
+ * Public Data Fetcher for FAQs grouped by category.
+ */
+export async function getPublicFaqs() {
+  const faqs = await db.cmsContent.findMany({
+    where: {
+      contentType: "FAQ",
+      status: "PUBLISHED",
+      deletedAt: null,
+    },
+    orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+  });
+
+  return faqs;
+}
+
+/**
+ * Public Data Fetcher for Alumni Stories.
+ */
+export async function getPublicAlumniStories() {
+  const stories = await db.cmsContent.findMany({
+    where: {
+      contentType: "ALUMNI_STORY",
+      status: "PUBLISHED",
+      deletedAt: null,
+    },
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    include: {
+      author: { select: { name: true, role: true, image: true } },
+    },
+  });
+
+  return stories;
+}
+
+/**
+ * Public Data Fetcher for Resource Library with audience check.
+ */
+export async function getPublicResources(userRole?: string | null) {
+  const allowedAudiences = ["PUBLIC"];
+  if (userRole) {
+    allowedAudiences.push("AUTHENTICATED", userRole);
+  }
+
+  const resources = await db.cmsContent.findMany({
+    where: {
+      contentType: "RESOURCE",
+      status: "PUBLISHED",
+      deletedAt: null,
+    },
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    include: {
+      author: { select: { name: true } },
+    },
+  });
+
+  return resources.filter((r) => {
+    if (!r.structuredData) return true;
+    try {
+      const meta = JSON.parse(r.structuredData);
+      const aud = meta.targetAudience || "PUBLIC";
+      return allowedAudiences.includes(aud);
+    } catch {
+      return true;
+    }
+  });
+}

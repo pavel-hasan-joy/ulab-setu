@@ -1,23 +1,29 @@
-import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getEffectiveCmsRole } from "@/lib/cms-auth";
+import { hasCmsCapability } from "@/lib/cms-permissions";
+import { getCmsPhase3Items } from "@/app/actions/cms";
+import { CmsFaqsClient } from "@/components/cms/cms-faqs-client";
 
 export const metadata = {
-  title: "FAQs — Content Management | ULAB Setu Admin",
+  title: "FAQs Management · CMS · ULAB Setu Admin",
 };
 
 export default async function CmsFaqsPage() {
-  await requireCmsCapability("cms:overview:view");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cmsRole = await getEffectiveCmsRole(user.id);
+  const canView = hasCmsCapability(cmsRole, "cms:content:view");
+  if (!canView) redirect("/admin/cms");
+
+  const faqs = await getCmsPhase3Items({
+    contentType: "FAQ",
+  });
 
   return (
-    <CmsModulePlaceholder
-      title="Frequently Asked Questions (FAQs)"
-      moduleKey="faqs"
-      phaseNumber={2}
-      phaseTitle="Core Content Modules & Authoring Canvas"
-      description="Organize answers to frequent questions for students, alumni, and faculty categorized by admissions, career guidance, mentorship, and campus facilities."
-      modelsSupported={["CmsContent (FAQ)", "CmsRevision"]}
-      capabilitiesPlanned={["cms:content:create", "cms:content:edit", "cms:content:publish"]}
-    />
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <CmsFaqsClient initialItems={faqs as any} userRole={cmsRole || "CONTRIBUTOR"} />
+    </div>
   );
 }
-

@@ -1,23 +1,29 @@
-import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getEffectiveCmsRole } from "@/lib/cms-auth";
+import { hasCmsCapability } from "@/lib/cms-permissions";
+import { getCmsPhase3Items } from "@/app/actions/cms";
+import { CmsResourcesClient } from "@/components/cms/cms-resources-client";
 
 export const metadata = {
-  title: "Resource Library — Content Management | ULAB Setu Admin",
+  title: "Resource Library · CMS · ULAB Setu Admin",
 };
 
 export default async function CmsResourcesPage() {
-  await requireCmsCapability("cms:overview:view");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cmsRole = await getEffectiveCmsRole(user.id);
+  const canView = hasCmsCapability(cmsRole, "cms:content:view");
+  if (!canView) redirect("/admin/cms");
+
+  const resources = await getCmsPhase3Items({
+    contentType: "RESOURCE",
+  });
 
   return (
-    <CmsModulePlaceholder
-      title="Resource & Document Library"
-      moduleKey="resources"
-      phaseNumber={2}
-      phaseTitle="Core Content Modules & Authoring Canvas"
-      description="Host and distribute academic toolkits, course materials, career preparation guides, and institutional forms with access restrictions and download telemetry."
-      modelsSupported={["CmsContent (RESOURCE)", "CmsMedia", "CmsRevision"]}
-      capabilitiesPlanned={["cms:content:create", "cms:content:edit", "cms:content:publish"]}
-    />
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <CmsResourcesClient initialItems={resources as any} userRole={cmsRole || "CONTRIBUTOR"} />
+    </div>
   );
 }
-

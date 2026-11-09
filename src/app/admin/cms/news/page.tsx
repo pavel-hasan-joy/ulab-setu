@@ -1,23 +1,29 @@
-import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getEffectiveCmsRole } from "@/lib/cms-auth";
+import { hasCmsCapability } from "@/lib/cms-permissions";
+import { getCmsPhase3Items } from "@/app/actions/cms";
+import { CmsNewsClient } from "@/components/cms/cms-news-client";
 
 export const metadata = {
-  title: "News & Announcements — Content Management | ULAB Setu Admin",
+  title: "News & Announcements · CMS · ULAB Setu Admin",
 };
 
 export default async function CmsNewsPage() {
-  await requireCmsCapability("cms:overview:view");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cmsRole = await getEffectiveCmsRole(user.id);
+  const canView = hasCmsCapability(cmsRole, "cms:content:view");
+  if (!canView) redirect("/admin/cms");
+
+  const announcements = await getCmsPhase3Items({
+    contentType: "ANNOUNCEMENT",
+  });
 
   return (
-    <CmsModulePlaceholder
-      title="News & Announcements"
-      moduleKey="news"
-      phaseNumber={2}
-      phaseTitle="Core Content Modules & Authoring Canvas"
-      description="Manage official university news releases, departmental circulars, emergency advisories, and campus bulletins with priority pinning and target audience filters."
-      modelsSupported={["CmsContent (NEWS, ANNOUNCEMENT)", "CmsRevision", "CmsMedia"]}
-      capabilitiesPlanned={["cms:content:create", "cms:content:edit", "cms:content:publish"]}
-    />
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <CmsNewsClient initialItems={announcements as any} userRole={cmsRole || "CONTRIBUTOR"} />
+    </div>
   );
 }
-
