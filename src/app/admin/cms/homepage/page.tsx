@@ -1,22 +1,32 @@
-import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getEffectiveCmsRole } from "@/lib/cms-auth";
+import { hasCmsCapability } from "@/lib/cms-permissions";
+import { getHomepageManagerData } from "@/app/actions/cms";
+import { HomepageManagerClient } from "@/components/cms/homepage-manager-client";
 
 export const metadata = {
-  title: "Homepage Manager — Content Management | ULAB Setu Admin",
+  title: "Homepage Content Manager · CMS · ULAB Setu Admin",
 };
 
 export default async function CmsHomepageManagerPage() {
-  await requireCmsCapability("cms:overview:view");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cmsRole = await getEffectiveCmsRole(user.id);
+  const canView = hasCmsCapability(cmsRole, "cms:content:view");
+  if (!canView) redirect("/admin/cms");
+
+  const data = await getHomepageManagerData();
 
   return (
-    <CmsModulePlaceholder
-      title="Homepage Section Manager"
-      moduleKey="homepage"
-      phaseNumber={3}
-      phaseTitle="Homepage Architecture & Media Integration"
-      description="Visually arrange and edit dynamic homepage sections: animated Three.js 3D hero banners, real-time platform telemetry counters, spotlight carousels, and institutional testimonials."
-      modelsSupported={["CmsContent (HOMEPAGE_SECTION)", "CmsMedia", "CmsRevision"]}
-      capabilitiesPlanned={["cms:content:create", "cms:content:edit", "cms:content:publish"]}
-    />
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <HomepageManagerClient
+        initialContent={data.content}
+        status={data.status}
+        lastUpdated={data.lastUpdated}
+        lastEditorName={data.lastEditorName}
+      />
+    </div>
   );
 }

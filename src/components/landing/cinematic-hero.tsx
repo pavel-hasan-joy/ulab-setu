@@ -7,8 +7,8 @@ import { useRef } from "react";
 import { site } from "@/lib/site";
 import { Badge, ButtonLink } from "../ui";
 import { AnimeSky } from "./anime-sky";
+import type { HomepageContent } from "@/lib/cms-homepage";
 
-const headline = "Your seniors already know the way in.";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 // Petals drifting through the hero. Positions are fixed so server and client render the same thing.
@@ -19,11 +19,15 @@ const petals = Array.from({ length: 14 }, (_, i) => ({
   size: 8 + ((i * 5) % 7),
 }));
 
+interface CinematicHeroProps {
+  cmsContent?: Partial<HomepageContent>;
+}
+
 /**
  * Full-screen hero in depth layers: anime sky (clouds at three speeds), the student, the copy,
  * and floating cards. Scrolling pushes the layers apart; the pointer tilts them.
  */
-export function CinematicHero() {
+export function CinematicHero({ cmsContent }: CinematicHeroProps) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress: raw } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const scrollYProgress = useTransform(raw, (v) => v);
@@ -42,6 +46,24 @@ export function CinematicHero() {
   const girlTilt = useTransform(sx, (v) => v * -3);
   const cardX = useTransform(sx, (v) => v * 34);
   const cardTiltY = useTransform(sy, (v) => v * 22);
+
+  const badgeText = cmsContent?.heroBadge || `${site.universityShort} · ${site.universityTagline}`;
+  const headline = cmsContent?.heroHeadline || "Your seniors already know the way in.";
+  const subtitle =
+    cmsContent?.heroSubtitle ||
+    `Ask ${site.universityShort} alumni and teachers about their work, apply to jobs they post, and browse fresh openings from across Bangladesh in one place.`;
+
+  const studentCtaText = cmsContent?.heroStudentCtaText || "I'm a current student";
+  const studentCtaLink = cmsContent?.heroStudentCtaLink || "/signup?role=student";
+  const alumniCtaText = cmsContent?.heroAlumniCtaText || "I'm an alumnus";
+  const alumniCtaLink = cmsContent?.heroAlumniCtaLink || "/signup?role=alumni";
+  const teacherCtaText = cmsContent?.heroTeacherCtaText || "I'm a teacher";
+  const teacherCtaLink = cmsContent?.heroTeacherCtaLink || "/signup?role=teacher";
+
+  const card1Title = cmsContent?.floatCard1Title || "Tanvir, class of 2018";
+  const card1Body = cmsContent?.floatCard1Body || "Posted a job with referral";
+  const card2Title = cmsContent?.floatCard2Title || "Farhana, CSE";
+  const card2Body = cmsContent?.floatCard2Body || "Applied to Frontend Intern";
 
   return (
     <section
@@ -100,7 +122,7 @@ export function CinematicHero() {
       <motion.div style={{ y: copyY, opacity: copyOpacity }} className="relative mx-auto w-full max-w-6xl px-4 pb-20 md:px-6 md:pb-0">
         <div className="max-w-xl">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
-            <Badge tone="gold" className="mb-5 shadow-soft"><Sparkles size={12} /> {site.universityShort} · {site.universityTagline}</Badge>
+            <Badge tone="gold" className="mb-5 shadow-soft"><Sparkles size={12} /> {badgeText}</Badge>
           </motion.div>
           <h1 className="text-[2.7rem] font-semibold leading-[1.04] text-ink sm:text-5xl md:text-[4.2rem]">
             {headline.split(" ").map((word, i) => (
@@ -122,7 +144,7 @@ export function CinematicHero() {
             transition={{ duration: 0.7, delay: 0.75, ease }}
             className="mt-5 max-w-md text-lg leading-relaxed text-ink-soft"
           >
-            Ask {site.universityShort} alumni and teachers about their work, apply to jobs they post, and browse fresh openings from across Bangladesh in one place.
+            {subtitle}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 14 }}
@@ -130,9 +152,9 @@ export function CinematicHero() {
             transition={{ duration: 0.7, delay: 0.9, ease }}
             className="mt-8 flex flex-wrap gap-3"
           >
-            <ButtonLink href="/signup?role=student" className="px-5 py-3">I&apos;m a current student</ButtonLink>
-            <ButtonLink href="/signup?role=alumni" variant="outline" className="px-5 py-3">I&apos;m an alumnus</ButtonLink>
-            <ButtonLink href="/signup?role=teacher" variant="outline" className="px-5 py-3">I&apos;m a teacher</ButtonLink>
+            <ButtonLink href={studentCtaLink} className="px-5 py-3">{studentCtaText}</ButtonLink>
+            <ButtonLink href={alumniCtaLink} variant="outline" className="px-5 py-3">{alumniCtaText}</ButtonLink>
+            <ButtonLink href={teacherCtaLink} variant="outline" className="px-5 py-3">{teacherCtaText}</ButtonLink>
           </motion.div>
         </div>
       </motion.div>
@@ -140,8 +162,8 @@ export function CinematicHero() {
       {/* Floating cards, closest layer */}
       <motion.div style={{ y: cardsY, x: cardX }} className="pointer-events-none absolute inset-0 hidden md:block">
         <motion.div style={{ y: cardTiltY }} className="absolute inset-0">
-          <FloatCard className="right-[3%] top-[22%]" delay={1.3} icon={<Briefcase size={16} />} tone="gold" title="Tanvir, class of 2018" body="Posted a job with referral" />
-          <FloatCard className="bottom-[14%] right-[38%]" delay={1.6} icon={<GraduationCap size={16} />} tone="blue" title="Farhana, CSE" body="Applied to Frontend Intern" />
+          <FloatCard className="right-[3%] top-[22%]" delay={1.3} icon={<Briefcase size={16} />} tone="gold" title={card1Title} body={card1Body} />
+          <FloatCard className="bottom-[14%] right-[38%]" delay={1.6} icon={<GraduationCap size={16} />} tone="blue" title={card2Title} body={card2Body} />
         </motion.div>
       </motion.div>
 

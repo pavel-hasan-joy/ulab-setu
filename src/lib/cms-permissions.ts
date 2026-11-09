@@ -134,3 +134,4 @@ export function getCmsStatusBadge(status: CmsContentStatus) {
 export function getCmsContentTypeMeta(type: CmsContentType) {
   return CMS_CONTENT_TYPE_META[type] || { label: type, description: "", phase: 2, icon: "FileText" };
 }
+

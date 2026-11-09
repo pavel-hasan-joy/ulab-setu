@@ -12,17 +12,19 @@ import { WalkStory } from "@/components/landing/walk-story";
 import { CountUp, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { SiteHeader, Logo } from "@/components/site-header";
 import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
+import { getHomepageContent } from "@/lib/cms-homepage";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   await cleanExpiredJobs();
-  const [alumniCount, studentCount, jobCount, jobs, companies] = await Promise.all([
+  const [alumniCount, studentCount, jobCount, jobs, companies, cmsHome] = await Promise.all([
     db.user.count({ where: { role: "ALUMNI", status: "APPROVED" } }),
     db.user.count({ where: { role: "STUDENT" } }),
     db.job.count({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() } }),
     db.job.findMany({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", company: { not: null } }, select: { company: true }, distinct: ["company"] }),
+    getHomepageContent(),
   ]);
 
   const stats = [
@@ -36,7 +38,7 @@ export default async function Home() {
       <ScrollProgress />
       <SiteHeader />
       <main>
-        <CinematicHero />
+        <CinematicHero cmsContent={cmsHome} />
 
         <MorphStory />
 
@@ -55,20 +57,20 @@ export default async function Home() {
         <WalkStory />
 
         <section className="mx-auto max-w-4xl px-4 py-24 md:px-6 md:py-36">
-          <ScrollText text={`Every ${site.universityShort} graduate once sat where you sit now, wondering how to get that first job. They remember. Most of them are happy to tell you how they did it.`} />
+          <ScrollText text={cmsHome.quoteText} />
         </section>
 
         {/* How it works */}
         <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 md:px-6 md:py-28">
           <Reveal className="max-w-xl">
-            <h2 className="text-3xl font-semibold md:text-4xl">From first message to first offer</h2>
-            <p className="mt-3 text-ink-soft">All students, alumni, and faculty connect through verified @{site.studentEmailDomain} accounts, so every member you see here really walked the same campus.</p>
+            <h2 className="text-3xl font-semibold md:text-4xl">{cmsHome.howTitle}</h2>
+            <p className="mt-3 text-ink-soft">{cmsHome.howSubtitle}</p>
           </Reveal>
           <Stagger className="mt-12 grid gap-5 md:grid-cols-3">
             {[
-              { icon: UserPlus, title: "Join with your role", body: `Students, alumni, and faculty sign up and connect using their official @${site.studentEmailDomain} email.` },
-              { icon: MessageCircle, title: "Reach out to a senior", body: "Find alumni by department, company or batch, and message anyone directly." },
-              { icon: BadgeCheck, title: "Apply with a referral", body: "Apply to jobs alumni post here. Many come with an offer to refer you internally." },
+              { icon: UserPlus, title: cmsHome.step1Title, body: cmsHome.step1Body },
+              { icon: MessageCircle, title: cmsHome.step2Title, body: cmsHome.step2Body },
+              { icon: BadgeCheck, title: cmsHome.step3Title, body: cmsHome.step3Body },
             ].map((s, i) => (
               <StaggerItem key={s.title}>
                 <HoverLift className="h-full">
@@ -89,8 +91,8 @@ export default async function Home() {
           <div className="mx-auto max-w-6xl px-4 py-20 md:px-6 md:py-24">
             <Reveal className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-semibold md:text-4xl">Posted by alumni this week</h2>
-                <p className="mt-3 text-ink-soft">Plus live openings from Bdjobs and other Bangladeshi job sites once you sign in.</p>
+                <h2 className="text-3xl font-semibold md:text-4xl">{cmsHome.jobsTitle}</h2>
+                <p className="mt-3 text-ink-soft">{cmsHome.jobsSubtitle}</p>
               </div>
               <ButtonLink href="/signup" variant="soft">See all jobs <ArrowUpRight size={16} /></ButtonLink>
             </Reveal>
@@ -147,11 +149,11 @@ export default async function Home() {
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky via-paper to-gold-wash px-6 py-14 text-center md:py-20">
               <div className="dots absolute inset-0 opacity-60" />
               <div className="relative">
-                <h2 className="mx-auto max-w-lg text-3xl font-semibold md:text-4xl">Graduated from {site.universityShort}? Someone here is where you were.</h2>
-                <p className="mx-auto mt-3 max-w-md text-ink-soft">Post an opening at your company or answer one question a month. It adds up.</p>
+                <h2 className="mx-auto max-w-lg text-3xl font-semibold md:text-4xl">{cmsHome.ctaTitle}</h2>
+                <p className="mx-auto mt-3 max-w-md text-ink-soft">{cmsHome.ctaSubtitle}</p>
                 <div className="mt-8 flex flex-wrap justify-center gap-3">
-                  <ButtonLink href="/signup?role=alumni" className="px-5 py-3">Join as alumni</ButtonLink>
-                  <ButtonLink href="/student/mentors" variant="outline" className="px-5 py-3"><MessageCircle size={16} /> Find your mentor</ButtonLink>
+                  <ButtonLink href={cmsHome.ctaPrimaryLink} className="px-5 py-3">{cmsHome.ctaPrimaryText}</ButtonLink>
+                  <ButtonLink href={cmsHome.ctaSecondaryLink} variant="outline" className="px-5 py-3"><MessageCircle size={16} /> {cmsHome.ctaSecondaryText}</ButtonLink>
                 </div>
               </div>
             </div>
@@ -166,7 +168,7 @@ export default async function Home() {
             Illustration from <a href="https://commons.wikimedia.org/wiki/File:Girl_in_sailor_fuku_publicdomainq.png" className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">Public Domain Q</a> (CC0)
           </p>
           <p>
-            A community project for <a href={site.universityUrl} className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">{site.university}</a> — {site.universityTagline}.
+            {cmsHome.footerTagline}
           </p>
         </div>
       </footer>

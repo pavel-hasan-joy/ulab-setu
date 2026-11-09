@@ -14,6 +14,13 @@ import {
   requireCmsCapability,
   recordCmsAuditLog,
 } from "@/lib/cms-auth";
+import { parseCmsBlocks, type CmsBlock } from "@/lib/cms-blocks";
+import {
+  homepageContentSchema,
+  DEFAULT_HOMEPAGE_CONTENT,
+  HOMEPAGE_CMS_SLUG,
+  type HomepageContent,
+} from "@/lib/cms-homepage";
 
 export type CmsActionState = {
   success?: boolean;
@@ -569,6 +576,465 @@ export async function transitionCmsContentStatus(
   return {
     success: true,
     message: `Content status updated to ${targetStatus}.`,
+    at: Date.now(),
+  };
+}
+
+// ============================================================================
+// PHASE 2: PAGES MANAGEMENT & HOMEPAGE MANAGER SERVER ACTIONS
+// ============================================================================
+
+/**
+ * Fetch all CMS pages for the Pages Manager table with filtering and search.
+ */
+export async function getCmsPagesList(filters?: {
+  query?: string;
+  status?: string;
+}) {
+  await requireCmsCapability("cms:content:view");
+
+  const where: any = {
+    contentType: "PAGE",
+    deletedAt: null,
+  };
+
+  if (filters?.status && filters.status !== "ALL") {
+    where.status = filters.status;
+  }
+
+  if (filters?.query && filters.query.trim().length > 0) {
+    const q = filters.query.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+      { summary: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const pages = await db.cmsContent.findMany({
+    where,
+    orderBy: { updatedAt: "desc" },
+    include: {
+      author: { select: { id: true, name: true, email: true, image: true } },
+      lastEditedBy: { select: { id: true, name: true, email: true } },
+      publishedBy: { select: { id: true, name: true, email: true } },
+      _count: { select: { revisions: true } },
+    },
+  });
+
+  return pages;
+}
+
+/**
+ * Fetch a single CMS Page by ID (with blocks and revisions) for editing or preview.
+ */
+export async function getCmsPageById(id: string) {
+  await requireCmsCapability("cms:content:view");
+
+  const page = await db.cmsContent.findUnique({
+    where: { id },
+    include: {
+      author: { select: { id: true, name: true, email: true, image: true } },
+      lastEditedBy: { select: { id: true, name: true, email: true } },
+      publishedBy: { select: { id: true, name: true, email: true } },
+      revisions: {
+        orderBy: { version: "desc" },
+        take: 10,
+        include: {
+          createdBy: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  return page;
+}
+
+/**
+ * Upsert or Save a Page with structured content blocks.
+ */
+export async function saveCmsPage(params: {
+  id?: string;
+  title: string;
+  slug: string;
+  summary?: string;
+  blocks: CmsBlock[];
+  metaTitle?: string;
+  metaDescription?: string;
+  featuredImage?: string;
+  status?: CmsContentStatus;
+  publishImmediately?: boolean;
+}): Promise<CmsActionState & { pageId?: string }> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  // Validate slug
+  const cleanSlug = params.slug.trim().toLowerCase();
+  if (!cleanSlug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(cleanSlug)) {
+    return {
+      success: false,
+      error: "Slug must contain only lowercase alphanumeric characters and hyphens (e.g., 'about-us').",
+    };
+  }
+
+  // Validate title
+  if (!params.title || params.title.trim().length < 2) {
+    return { success: false, error: "Title must be at least 2 characters long." };
+  }
+
+  // Parse and validate blocks
+  const structuredData = JSON.stringify(params.blocks);
+
+  // Check unique slug conflict (excluding current page if editing)
+  const existingWithSlug = await db.cmsContent.findUnique({
+    where: { slug: cleanSlug },
+    select: { id: true },
+  });
+
+  if (existingWithSlug && existingWithSlug.id !== params.id) {
+    return {
+      success: false,
+      error: `The URL slug '/p/${cleanSlug}' is already in use by another page.`,
+    };
+  }
+
+  let targetStatus: CmsContentStatus = params.status || "DRAFT";
+  if (params.publishImmediately) {
+    // Requires publish capability
+    const canPublish = actor.cmsRole === "CMS_ADMIN" || actor.cmsRole === "PUBLISHER";
+    if (!canPublish) {
+      return {
+        success: false,
+        error: "Your CMS role does not have authorization to publish pages directly.",
+      };
+    }
+    targetStatus = "PUBLISHED";
+  }
+
+  const now = new Date();
+
+  if (params.id) {
+    // UPDATE EXISTING PAGE
+    const existing = await db.cmsContent.findUnique({
+      where: { id: params.id },
+      include: { _count: { select: { revisions: true } } },
+    });
+
+    if (!existing || existing.deletedAt) {
+      return { success: false, error: "Page not found or has been deleted." };
+    }
+
+    const nextVersion = existing._count.revisions + 1;
+
+    await db.$transaction([
+      db.cmsContent.update({
+        where: { id: params.id },
+        data: {
+          title: params.title.trim(),
+          slug: cleanSlug,
+          summary: params.summary?.trim() || null,
+          structuredData,
+          metaTitle: params.metaTitle?.trim() || null,
+          metaDescription: params.metaDescription?.trim() || null,
+          featuredImage: params.featuredImage?.trim() || null,
+          status: targetStatus,
+          lastEditedById: actor.id,
+          publishedById: targetStatus === "PUBLISHED" ? actor.id : existing.publishedById,
+          publishedAt: targetStatus === "PUBLISHED" ? (existing.publishedAt || now) : existing.publishedAt,
+        },
+      }),
+      db.cmsRevision.create({
+        data: {
+          contentId: params.id,
+          version: nextVersion,
+          title: params.title.trim(),
+          slug: cleanSlug,
+          summary: params.summary?.trim() || null,
+          structuredData,
+          statusAtRevision: targetStatus,
+          changeSummary: `Page updated by ${actor.name || actor.email}${params.publishImmediately ? " and published" : ""}`,
+          createdById: actor.id,
+        },
+      }),
+    ]);
+
+    await recordCmsAuditLog({
+      actorId: actor.id,
+      action: "CMS_PAGE_UPDATE",
+      targetType: "CMS_CONTENT",
+      targetId: params.id,
+      details: { title: params.title, slug: cleanSlug, status: targetStatus, version: nextVersion },
+    });
+
+    revalidatePath("/admin/cms/pages");
+    revalidatePath(`/p/${cleanSlug}`);
+
+    return {
+      success: true,
+      message: `Page "${params.title}" successfully saved.`,
+      pageId: params.id,
+      at: Date.now(),
+    };
+  } else {
+    // CREATE NEW PAGE
+    const created = await db.$transaction(async (tx) => {
+      const page = await tx.cmsContent.create({
+        data: {
+          title: params.title.trim(),
+          slug: cleanSlug,
+          contentType: "PAGE",
+          status: targetStatus,
+          summary: params.summary?.trim() || null,
+          structuredData,
+          metaTitle: params.metaTitle?.trim() || null,
+          metaDescription: params.metaDescription?.trim() || null,
+          featuredImage: params.featuredImage?.trim() || null,
+          authorId: actor.id,
+          lastEditedById: actor.id,
+          publishedById: targetStatus === "PUBLISHED" ? actor.id : null,
+          publishedAt: targetStatus === "PUBLISHED" ? now : null,
+        },
+      });
+
+      await tx.cmsRevision.create({
+        data: {
+          contentId: page.id,
+          version: 1,
+          title: page.title,
+          slug: page.slug,
+          summary: page.summary,
+          structuredData,
+          statusAtRevision: targetStatus,
+          changeSummary: "Initial page creation with structured blocks.",
+          createdById: actor.id,
+        },
+      });
+
+      return page;
+    });
+
+    await recordCmsAuditLog({
+      actorId: actor.id,
+      action: "CMS_PAGE_CREATE",
+      targetType: "CMS_CONTENT",
+      targetId: created.id,
+      details: { title: created.title, slug: created.slug, status: targetStatus },
+    });
+
+    revalidatePath("/admin/cms/pages");
+    revalidatePath(`/p/${cleanSlug}`);
+
+    return {
+      success: true,
+      message: `Page "${created.title}" successfully created.`,
+      pageId: created.id,
+      at: Date.now(),
+    };
+  }
+}
+
+/**
+ * Soft deletes / archives a CMS page.
+ */
+export async function deleteCmsPage(id: string): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:archive");
+
+  const page = await db.cmsContent.findUnique({
+    where: { id },
+    select: { id: true, title: true, slug: true, contentType: true },
+  });
+
+  if (!page) {
+    return { success: false, error: "Page not found." };
+  }
+
+  await db.cmsContent.update({
+    where: { id },
+    data: {
+      deletedAt: new Date(),
+      status: "ARCHIVED",
+    },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_PAGE_DELETE",
+    targetType: "CMS_CONTENT",
+    targetId: id,
+    details: { title: page.title, slug: page.slug },
+  });
+
+  revalidatePath("/admin/cms/pages");
+  revalidatePath(`/p/${page.slug}`);
+
+  return {
+    success: true,
+    message: `Page "${page.title}" has been archived.`,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Loads current Homepage CMS configuration for the Homepage Manager.
+ */
+export async function getHomepageManagerData(): Promise<{
+  content: HomepageContent;
+  status: CmsContentStatus;
+  lastUpdated?: string;
+  lastEditorName?: string;
+}> {
+  await requireCmsCapability("cms:content:view");
+
+  const record = await db.cmsContent.findUnique({
+    where: { slug: HOMEPAGE_CMS_SLUG },
+    include: {
+      lastEditedBy: { select: { name: true, email: true } },
+    },
+  });
+
+  if (!record || !record.structuredData) {
+    return {
+      content: DEFAULT_HOMEPAGE_CONTENT,
+      status: "DRAFT",
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(record.structuredData);
+    const valid = homepageContentSchema.safeParse(parsed);
+    return {
+      content: valid.success ? valid.data : DEFAULT_HOMEPAGE_CONTENT,
+      status: record.status as CmsContentStatus,
+      lastUpdated: record.updatedAt.toISOString(),
+      lastEditorName: record.lastEditedBy?.name || record.lastEditedBy?.email || undefined,
+    };
+  } catch {
+    return {
+      content: DEFAULT_HOMEPAGE_CONTENT,
+      status: record.status as CmsContentStatus,
+    };
+  }
+}
+
+/**
+ * Saves and optionally publishes Homepage Content through the CMS.
+ */
+export async function saveHomepageContent(
+  contentData: HomepageContent,
+  publishImmediately: boolean = false
+): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  const parsed = homepageContentSchema.safeParse(contentData);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: `Validation error: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ")}`,
+    };
+  }
+
+  if (publishImmediately) {
+    const canPublish = actor.cmsRole === "CMS_ADMIN" || actor.cmsRole === "PUBLISHER";
+    if (!canPublish) {
+      return {
+        success: false,
+        error: "Your CMS role does not have authorization to publish homepage changes live.",
+      };
+    }
+  }
+
+  const targetStatus: CmsContentStatus = publishImmediately ? "PUBLISHED" : "DRAFT";
+  const structuredData = JSON.stringify(parsed.data);
+  const now = new Date();
+
+  const existing = await db.cmsContent.findUnique({
+    where: { slug: HOMEPAGE_CMS_SLUG },
+    include: { _count: { select: { revisions: true } } },
+  });
+
+  if (existing) {
+    const nextVersion = existing._count.revisions + 1;
+    await db.$transaction([
+      db.cmsContent.update({
+        where: { id: existing.id },
+        data: {
+          title: "Homepage Main Content",
+          summary: "Live homepage copy, hero content, and promotional sections.",
+          structuredData,
+          status: targetStatus,
+          lastEditedById: actor.id,
+          publishedById: publishImmediately ? actor.id : existing.publishedById,
+          publishedAt: publishImmediately ? (existing.publishedAt || now) : existing.publishedAt,
+        },
+      }),
+      db.cmsRevision.create({
+        data: {
+          contentId: existing.id,
+          version: nextVersion,
+          title: "Homepage Main Content",
+          slug: HOMEPAGE_CMS_SLUG,
+          structuredData,
+          statusAtRevision: targetStatus,
+          changeSummary: `Homepage content updated by ${actor.name || actor.email}${publishImmediately ? " and published live" : ""}`,
+          createdById: actor.id,
+        },
+      }),
+    ]);
+
+    await recordCmsAuditLog({
+      actorId: actor.id,
+      action: publishImmediately ? "CMS_HOMEPAGE_PUBLISH" : "CMS_HOMEPAGE_SAVE",
+      targetType: "CMS_CONTENT",
+      targetId: existing.id,
+      details: { status: targetStatus, version: nextVersion },
+    });
+  } else {
+    // First-time creation
+    const created = await db.cmsContent.create({
+      data: {
+        title: "Homepage Main Content",
+        slug: HOMEPAGE_CMS_SLUG,
+        contentType: "PAGE",
+        status: targetStatus,
+        summary: "Live homepage copy, hero content, and promotional sections.",
+        structuredData,
+        authorId: actor.id,
+        lastEditedById: actor.id,
+        publishedById: publishImmediately ? actor.id : null,
+        publishedAt: publishImmediately ? now : null,
+      },
+    });
+
+    await db.cmsRevision.create({
+      data: {
+        contentId: created.id,
+        version: 1,
+        title: created.title,
+        slug: created.slug,
+        structuredData,
+        statusAtRevision: targetStatus,
+        changeSummary: "Initial homepage content setup.",
+        createdById: actor.id,
+      },
+    });
+
+    await recordCmsAuditLog({
+      actorId: actor.id,
+      action: publishImmediately ? "CMS_HOMEPAGE_PUBLISH" : "CMS_HOMEPAGE_SAVE",
+      targetType: "CMS_CONTENT",
+      targetId: created.id,
+      details: { status: targetStatus, version: 1 },
+    });
+  }
+
+  // Targeted cache revalidation
+  revalidatePath("/");
+  revalidatePath("/admin/cms/homepage");
+
+  return {
+    success: true,
+    message: publishImmediately
+      ? "Homepage content successfully published to live website!"
+      : "Homepage content draft successfully saved.",
     at: Date.now(),
   };
 }

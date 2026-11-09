@@ -757,3 +757,4 @@ export function CmsOverviewClient({
 function SaveIcon({ size = 16 }: { size?: number }) {
   return <Plus size={size} />;
 }
+
