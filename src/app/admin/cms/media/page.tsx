@@ -1,23 +1,31 @@
-import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { getEffectiveCmsRole } from "@/lib/cms-auth";
+import { hasCmsCapability } from "@/lib/cms-permissions";
+import { getCmsMediaItems } from "@/app/actions/cms";
+import { CmsMediaManagerClient } from "@/components/cms/cms-media-manager-client";
 
 export const metadata = {
-  title: "Media Library — Content Management | ULAB Setu Admin",
+  title: "Media Library · CMS · ULAB Setu Admin",
 };
 
 export default async function CmsMediaPage() {
-  await requireCmsCapability("cms:overview:view");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cmsRole = await getEffectiveCmsRole(user.id);
+  const canView = hasCmsCapability(cmsRole, "cms:content:view");
+  if (!canView) redirect("/admin/cms");
+
+  const mediaData = await getCmsMediaItems();
 
   return (
-    <CmsModulePlaceholder
-      title="Central Media & Asset Library"
-      moduleKey="media"
-      phaseNumber={3}
-      phaseTitle="Homepage Architecture & Media Integration"
-      description="Central asset manager supporting high-resolution image uploads, vector logos, PDF brochures, document attachments, alt text accessibility tags, and CDN delivery."
-      modelsSupported={["CmsMedia", "CmsContent"]}
-      capabilitiesPlanned={["cms:content:create", "cms:content:edit", "cms:content:publish"]}
-    />
+    <div className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <CmsMediaManagerClient
+        initialItems={mediaData.items as any}
+        totalCount={mediaData.totalCount}
+        userRole={cmsRole || "CONTRIBUTOR"}
+      />
+    </div>
   );
 }
-

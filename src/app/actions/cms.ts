@@ -21,6 +21,8 @@ import {
   HOMEPAGE_CMS_SLUG,
   type HomepageContent,
 } from "@/lib/cms-homepage";
+import { validateFileBuffer } from "@/lib/cms-media-security";
+import { getMediaUsages } from "@/lib/cms-media-usage";
 
 export type CmsActionState = {
   success?: boolean;
@@ -1459,4 +1461,283 @@ export async function getPublicResources(userRole?: string | null) {
       return true;
     }
   });
+}
+
+// ============================================================================
+// PHASE 4: SECURE MEDIA LIBRARY & PROFESSIONAL CONTENT EDITOR ACTIONS
+// ============================================================================
+
+/**
+ * Fetch paginated media items from the centralized media library with filters.
+ */
+export async function getCmsMediaItems(params?: {
+  query?: string;
+  fileType?: string;
+  folder?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  await requireCmsCapability("cms:content:view");
+
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 24;
+  const skip = (page - 1) * pageSize;
+
+  const where: any = {};
+
+  if (params?.fileType && params.fileType !== "ALL") {
+    if (params.fileType === "IMAGE") {
+      where.fileType = { startsWith: "image/" };
+    } else if (params.fileType === "DOCUMENT") {
+      where.fileType = { in: ["application/pdf", "document"] };
+    }
+  }
+
+  if (params?.query && params.query.trim().length > 0) {
+    const q = params.query.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { altText: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const [items, totalCount] = await Promise.all([
+    db.cmsMedia.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+      include: {
+        uploadedBy: { select: { id: true, name: true, email: true, image: true } },
+        content: { select: { id: true, title: true, slug: true } },
+      },
+    }),
+    db.cmsMedia.count({ where }),
+  ]);
+
+  return {
+    items,
+    totalCount,
+    totalPages: Math.ceil(totalCount / pageSize),
+    currentPage: page,
+  };
+}
+
+/**
+ * Securely uploads a new media file into the CMS Media Library.
+ * Performs server-side authorization, binary signature checking, size bounds, and audit logging.
+ */
+export async function uploadCmsMedia(formData: FormData): Promise<CmsActionState & { mediaId?: string; url?: string }> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  const file = formData.get("file") as File | null;
+  const title = (formData.get("title") as string) || file?.name || "Untitled Asset";
+  const altText = (formData.get("altText") as string) || null;
+  const folder = (formData.get("folder") as string) || "General";
+
+  if (!file) {
+    return { success: false, error: "No file was provided for upload." };
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  // Validate binary signatures and size limits
+  const validation = validateFileBuffer(buffer, file.type);
+  if (!validation.valid) {
+    return { success: false, error: validation.error || "File upload rejected." };
+  }
+
+  const mime = validation.detectedMime!;
+  const base64Data = buffer.toString("base64");
+  const dataUri = `data:${mime};base64,${base64Data}`;
+
+  const mediaRecord = await db.cmsMedia.create({
+    data: {
+      title: title.trim(),
+      url: dataUri,
+      altText: altText ? altText.trim() : null,
+      fileType: mime,
+      fileSize: buffer.length,
+      uploadedById: actor.id,
+    },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_MEDIA_UPLOAD",
+    targetType: "CMS_MEDIA",
+    targetId: mediaRecord.id,
+    details: {
+      title: mediaRecord.title,
+      fileType: mime,
+      fileSize: buffer.length,
+      folder,
+    },
+  });
+
+  revalidatePath("/admin/cms/media");
+
+  return {
+    success: true,
+    message: `Asset "${mediaRecord.title}" uploaded successfully.`,
+    mediaId: mediaRecord.id,
+    url: mediaRecord.url,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Updates metadata for an existing media asset (Title, Alt Text).
+ */
+export async function updateCmsMediaMetadata(params: {
+  id: string;
+  title: string;
+  altText?: string;
+}): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  if (!params.title || params.title.trim().length === 0) {
+    return { success: false, error: "Title is required." };
+  }
+
+  await db.cmsMedia.update({
+    where: { id: params.id },
+    data: {
+      title: params.title.trim(),
+      altText: params.altText ? params.altText.trim() : null,
+    },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_MEDIA_METADATA_UPDATE",
+    targetType: "CMS_MEDIA",
+    targetId: params.id,
+    details: { title: params.title, altText: params.altText },
+  });
+
+  revalidatePath("/admin/cms/media");
+
+  return {
+    success: true,
+    message: "Media metadata updated.",
+    at: Date.now(),
+  };
+}
+
+/**
+ * Safely replaces a media asset's file while preserving references and ID.
+ */
+export async function replaceCmsMediaFile(params: {
+  id: string;
+  formData: FormData;
+}): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  const file = params.formData.get("file") as File | null;
+  if (!file) {
+    return { success: false, error: "Replacement file is required." };
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const validation = validateFileBuffer(buffer, file.type);
+  if (!validation.valid) {
+    return { success: false, error: validation.error || "File rejected." };
+  }
+
+  const mime = validation.detectedMime!;
+  const base64Data = buffer.toString("base64");
+  const dataUri = `data:${mime};base64,${base64Data}`;
+
+  await db.cmsMedia.update({
+    where: { id: params.id },
+    data: {
+      url: dataUri,
+      fileType: mime,
+      fileSize: buffer.length,
+    },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_MEDIA_REPLACE",
+    targetType: "CMS_MEDIA",
+    targetId: params.id,
+    details: { newFileType: mime, newSize: buffer.length },
+  });
+
+  revalidatePath("/admin/cms/media");
+
+  return {
+    success: true,
+    message: "Asset file successfully replaced without breaking existing links.",
+    at: Date.now(),
+  };
+}
+
+/**
+ * Checks where a media asset is used, returning referencing content.
+ */
+export async function checkMediaAssetUsage(mediaId: string): Promise<{
+  usages: Array<{ contentId: string; title: string; slug: string; contentType: string; fieldUsedIn: string }>;
+}> {
+  await requireCmsCapability("cms:content:view");
+
+  const asset = await db.cmsMedia.findUnique({
+    where: { id: mediaId },
+    select: { id: true, url: true },
+  });
+
+  if (!asset) return { usages: [] };
+
+  const usages = await getMediaUsages(asset.url, asset.id);
+  return { usages };
+}
+
+/**
+ * Deletes a media asset with guardrails preventing accidental deletion if referenced.
+ */
+export async function deleteCmsMedia(params: {
+  id: string;
+  force?: boolean;
+}): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:archive");
+
+  const asset = await db.cmsMedia.findUnique({
+    where: { id: params.id },
+    select: { id: true, title: true, url: true },
+  });
+
+  if (!asset) {
+    return { success: false, error: "Asset not found." };
+  }
+
+  const usages = await getMediaUsages(asset.url, asset.id);
+  if (usages.length > 0 && !params.force) {
+    return {
+      success: false,
+      error: `Asset is currently referenced in ${usages.length} content item(s) (${usages.map((u) => u.title).join(", ")}). Remove it from those items or select Replace.`,
+    };
+  }
+
+  await db.cmsMedia.delete({
+    where: { id: params.id },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_MEDIA_DELETE",
+    targetType: "CMS_MEDIA",
+    targetId: params.id,
+    details: { title: asset.title },
+  });
+
+  revalidatePath("/admin/cms/media");
+
+  return {
+    success: true,
+    message: `Asset "${asset.title}" deleted.`,
+    at: Date.now(),
+  };
 }

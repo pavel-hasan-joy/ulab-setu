@@ -10,7 +10,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "test": "tsx scripts/test-production-readiness.mjs && tsx scripts/test-cms-foundation.mjs && tsx scripts/test-cms-phase2.mjs && tsx scripts/test-cms-phase3.mjs",
+    "test": "tsx scripts/test-production-readiness.mjs && tsx scripts/test-cms-foundation.mjs && tsx scripts/test-cms-phase2.mjs && tsx scripts/test-cms-phase3.mjs && tsx scripts/test-cms-phase4.mjs",
     "test:e2e": "node e2e/smoke.mjs",
     "test:db": "DATABASE_URL=file:./test.db prisma db push --skip-generate && DATABASE_URL=file:./test.db tsx prisma/seed.ts"
   },
