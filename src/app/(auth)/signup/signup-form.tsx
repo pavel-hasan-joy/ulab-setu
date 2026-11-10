@@ -9,6 +9,7 @@ import { PageIn } from "@/components/motion";
 import { Button, Field, FormError, Input, Select, cn } from "@/components/ui";
 import { departments, site, teacherRanks } from "@/lib/site";
 import { validateOfficialUlabEmail, OFFICIAL_ULAB_DOMAIN } from "@/lib/auth-validation";
+import { BotDefenseFields } from "@/components/bot-defense";
 
 export type SignupRole = "STUDENT" | "ALUMNI" | "TEACHER";
 
@@ -143,6 +144,7 @@ export function SignupForm({ initialRole }: { initialRole: SignupRole }) {
       )}
 
       <form key={state?.at} action={action} className="mt-6 space-y-4">
+        <BotDefenseFields />
         <input type="hidden" name="role" value={role} />
 
         {/* Full Name */}

@@ -6,6 +6,7 @@ import { login } from "@/app/actions/auth";
 import { PageIn } from "@/components/motion";
 import { Button, Field, FormError, Input } from "@/components/ui";
 import { site } from "@/lib/site";
+import { BotDefenseFields } from "@/components/bot-defense";
 
 export function LoginForm({
   next,
@@ -34,6 +35,7 @@ export function LoginForm({
       )}
 
       <form key={state?.at} action={action} className="mt-8 space-y-4">
+        <BotDefenseFields />
         <input type="hidden" name="next" value={next} />
         <Field label={`${site.universityShort} Institutional Email`} hint={`Must be your @${site.studentEmailDomain} address.`}>
           <Input

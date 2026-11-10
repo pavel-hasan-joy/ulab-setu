@@ -117,3 +117,40 @@ export function checkActionRateLimit(
   return { allowed: true };
 }
 
+/**
+ * Extracts client IP address safely from request headers.
+ */
+export function getClientIpFromHeaders(headers: Headers): string {
+  const cfConnectingIp = headers.get("cf-connecting-ip");
+  if (cfConnectingIp && cfConnectingIp.trim()) {
+    return cfConnectingIp.trim();
+  }
+
+  const xForwardedFor = headers.get("x-forwarded-for");
+  if (xForwardedFor && xForwardedFor.trim()) {
+    const firstIp = xForwardedFor.split(",")[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+
+  const xRealIp = headers.get("x-real-ip");
+  if (xRealIp && xRealIp.trim()) {
+    return xRealIp.trim();
+  }
+
+  return "127.0.0.1";
+}
+
+/**
+ * Rate limits an operation by client IP address to prevent multi-account credential stuffing or bot spam.
+ */
+export function checkIpRateLimit(
+  ip: string,
+  actionKey: string,
+  maxAllowed: number = 10,
+  windowMs: number = 60 * 1000
+): { allowed: boolean; retryAfterSeconds?: number; error?: string } {
+  const sanitizedIp = ip.trim().replace(/[^a-zA-Z0-9.:_-]/g, "");
+  return checkActionRateLimit(`ip:${actionKey}:${sanitizedIp}`, maxAllowed, windowMs);
+}
+
+

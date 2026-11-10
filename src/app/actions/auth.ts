@@ -1,6 +1,7 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -17,7 +18,10 @@ import {
   recordFailedLogin,
   clearLoginRateLimit,
   checkActionRateLimit,
+  checkIpRateLimit,
+  getClientIpFromHeaders,
 } from "@/lib/rate-limit";
+import { verifyBotDefense } from "@/lib/bot-defense";
 
 export type FormState = { error?: string; fields?: Record<string, string>; at?: number } | undefined;
 
@@ -43,6 +47,21 @@ export async function requestSignupOtp(
   emailRaw: string,
   roleRaw: string
 ): Promise<RequestOtpResult> {
+  // 1. IP-level anti-bot rate limiting
+  try {
+    const reqHeaders = await headers();
+    const clientIp = getClientIpFromHeaders(reqHeaders);
+    const ipLimit = checkIpRateLimit(clientIp, "otp_signup", 8, 60 * 1000);
+    if (!ipLimit.allowed) {
+      return {
+        success: false,
+        message: `Too many OTP requests from your network. Please wait ${ipLimit.retryAfterSeconds || 60} seconds before retrying.`,
+      };
+    }
+  } catch {
+    // Pass if headers() cannot be inspected
+  }
+
   // Validate email domain strictly
   const emailCheck = validateOfficialUlabEmail(emailRaw);
   if (!emailCheck.valid) {
@@ -105,6 +124,21 @@ export async function requestSignupOtp(
  * Sends a 6-digit email OTP to verify account ownership before resetting password.
  */
 export async function requestPasswordResetOtp(emailRaw: string): Promise<RequestOtpResult> {
+  // 1. IP-level anti-bot rate limiting
+  try {
+    const reqHeaders = await headers();
+    const clientIp = getClientIpFromHeaders(reqHeaders);
+    const ipLimit = checkIpRateLimit(clientIp, "otp_reset", 8, 60 * 1000);
+    if (!ipLimit.allowed) {
+      return {
+        success: false,
+        message: `Too many password reset requests from your network. Please wait ${ipLimit.retryAfterSeconds || 60} seconds before retrying.`,
+      };
+    }
+  } catch {
+    // Pass if headers() cannot be inspected
+  }
+
   const emailCheck = validateOfficialUlabEmail(emailRaw);
   if (!emailCheck.valid) {
     return { success: false, message: emailCheck.error || "Enter a valid @ulab.edu.bd email." };
@@ -164,6 +198,18 @@ export async function resetPassword(_: FormState, formData: FormData): Promise<F
   const code = String(formData.get("code") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  // Bot defense check
+  try {
+    const reqHeaders = await headers();
+    const clientIp = getClientIpFromHeaders(reqHeaders);
+    const botCheck = await verifyBotDefense(formData, { clientIp });
+    if (botCheck.isBot) {
+      return fail(botCheck.reason || "Automated password reset attempt rejected.", { email: emailRaw });
+    }
+  } catch {
+    // Proceed if headers() unavailable
+  }
 
   const emailCheck = validateOfficialUlabEmail(emailRaw);
   if (!emailCheck.valid) {
@@ -263,6 +309,22 @@ const teacherRegistrationSchema = z.object({
  */
 export async function signup(_: FormState, formData: FormData): Promise<FormState> {
   const raw = Object.fromEntries(formData) as Record<string, string>;
+
+  // Bot defense check
+  try {
+    const reqHeaders = await headers();
+    const clientIp = getClientIpFromHeaders(reqHeaders);
+    const botCheck = await verifyBotDefense(formData, { clientIp });
+    if (botCheck.isBot) {
+      return fail(botCheck.reason || "Automated registration attempt rejected.", raw);
+    }
+    const ipLimit = checkIpRateLimit(clientIp, "signup", 8, 10 * 60 * 1000);
+    if (!ipLimit.allowed) {
+      return fail("Too many registration attempts from this network. Please wait a few minutes before retrying.", raw);
+    }
+  } catch {
+    // Proceed if headers() unavailable
+  }
 
   // 1. Validate & Sanitize Role (Strictly block unauthorized roles like ADMIN)
   const roleCheck = sanitizeAndValidatePublicRole(raw.role);
@@ -376,6 +438,28 @@ export async function login(_: FormState, formData: FormData): Promise<FormState
   const emailRaw = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "");
+
+  // Bot defense check
+  try {
+    const reqHeaders = await headers();
+    const clientIp = getClientIpFromHeaders(reqHeaders);
+    const botCheck = await verifyBotDefense(formData, { clientIp });
+    if (botCheck.isBot) {
+      return {
+        error: botCheck.reason || "Automated login attempt rejected.",
+        fields: { email: emailRaw },
+      };
+    }
+    const ipLimit = checkIpRateLimit(clientIp, "login", 15, 10 * 60 * 1000);
+    if (!ipLimit.allowed) {
+      return {
+        error: "Too many login attempts from this network. Please wait a few minutes before retrying.",
+        fields: { email: emailRaw },
+      };
+    }
+  } catch {
+    // Proceed if headers() unavailable
+  }
 
   // 1. Rate Limit Inspection
   const rateLimit = checkLoginRateLimit(emailRaw);

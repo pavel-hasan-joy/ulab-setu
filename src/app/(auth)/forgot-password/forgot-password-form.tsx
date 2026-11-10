@@ -6,6 +6,7 @@ import { useActionState, useState, useEffect } from "react";
 import { resetPassword, requestPasswordResetOtp, type RequestOtpResult } from "@/app/actions/auth";
 import { PageIn } from "@/components/motion";
 import { Button, Field, FormError, Input } from "@/components/ui";
+import { BotDefenseFields } from "@/components/bot-defense";
 
 export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(resetPassword, undefined);
@@ -60,6 +61,7 @@ export function ForgotPasswordForm() {
       </p>
 
       <form key={state?.at} action={action} className="mt-8 space-y-4">
+        <BotDefenseFields />
         {/* Email & Send Code Row */}
         <div>
           <Field label="Registered email">
