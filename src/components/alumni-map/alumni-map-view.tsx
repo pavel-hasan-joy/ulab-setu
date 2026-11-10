@@ -21,6 +21,7 @@ import {
 import {
   Map as MapLibreInstance,
   Popup as MapLibrePopup,
+  setWorkerUrl,
   type GeoJSONSource,
   type MapLayerMouseEvent,
 } from "maplibre-gl";
@@ -28,13 +29,25 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { FeatureCollection, Feature, Point } from "geojson";
 import {
   MAP_CONFIG,
-  SATELLITE_SOURCE_ID,
+  buildMapLibreStyle,
   SATELLITE_LAYER_ID,
   ALUMNI_GEOJSON_SOURCE_ID,
   CLUSTERS_LAYER_ID,
   CLUSTER_COUNT_LAYER_ID,
   UNCLUSTERED_POINT_LAYER_ID,
 } from "@/lib/map-config";
+
+// Explicitly set workerUrl to prevent MapLibre v6 bundler/Next.js worker failures
+if (typeof window !== "undefined") {
+  try {
+    const workerUrl = window.location.origin
+      ? `${window.location.origin}${MAP_CONFIG.localWorkerUrl}`
+      : MAP_CONFIG.workerUrl;
+    setWorkerUrl(workerUrl);
+  } catch {
+    setWorkerUrl(MAP_CONFIG.workerUrl);
+  }
+}
 import type { MapAlumniItem, PublicCityCluster, AlumniMapStats } from "@/lib/alumni-map";
 import { Avatar, Badge } from "@/components/ui";
 
@@ -247,12 +260,12 @@ export function AlumniMapView({
       isDark = document.documentElement.classList.contains("dark");
     }
 
-    const styleUrl = isDark ? MAP_CONFIG.roadmapStyleDark : MAP_CONFIG.roadmapStyleLight;
+    const mapStyle = buildMapLibreStyle(isDark);
 
     try {
       const map = new MapLibreInstance({
         container: containerRef.current,
-        style: styleUrl,
+        style: mapStyle,
         center: MAP_CONFIG.initialCenter,
         zoom: MAP_CONFIG.initialZoom,
         minZoom: MAP_CONFIG.minZoom,
@@ -261,44 +274,7 @@ export function AlumniMapView({
       });
 
       map.on("load", () => {
-        // 1. Add Satellite Raster Source & Layer (preloaded for instant switching)
-        map.addSource(SATELLITE_SOURCE_ID, {
-          type: "raster",
-          tiles: MAP_CONFIG.satelliteTiles,
-          tileSize: MAP_CONFIG.satelliteTileSize,
-          maxzoom: MAP_CONFIG.satelliteMaxZoom,
-          attribution: MAP_CONFIG.satelliteAttribution,
-        });
-
-        // Insert satellite imagery before labels/text layers if possible, or as bottom raster
-        const layers = map.getStyle().layers;
-        let firstSymbolId: string | undefined;
-        if (layers) {
-          for (const l of layers) {
-            if (l.type === "symbol") {
-              firstSymbolId = l.id;
-              break;
-            }
-          }
-        }
-
-        map.addLayer(
-          {
-            id: SATELLITE_LAYER_ID,
-            type: "raster",
-            source: SATELLITE_SOURCE_ID,
-            layout: {
-              visibility: "none",
-            },
-            paint: {
-              "raster-opacity": 1.0,
-              "raster-fade-duration": 250,
-            },
-          },
-          firstSymbolId
-        );
-
-        // 2. Add GeoJSON points source with native clustering
+        // Add GeoJSON points source with native clustering
         map.addSource(ALUMNI_GEOJSON_SOURCE_ID, {
           type: "geojson",
           data: geojsonData,
@@ -827,7 +803,7 @@ export function AlumniMapView({
         {/* Map Attribution Bar (Bottom Right) */}
         <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 rounded-lg border border-mist/60 bg-paper/90 px-2.5 py-1 text-[11px] text-ink-soft backdrop-blur-xs">
           <span>
-            {mapMode === "satellite" ? "Imagery: EOxCloudless Sentinel-2" : "Map: OpenFreeMap / OSM"}
+            {mapMode === "satellite" ? "Imagery: Esri World Imagery" : "Map: CartoDB Voyager / OSM"}
           </span>
           <button
             type="button"
@@ -853,9 +829,9 @@ export function AlumniMapView({
             </div>
             <div className="mt-2 space-y-1.5 text-ink-soft">
               <p>
-                <strong>Vector Map:</strong> &copy;{" "}
-                <a href="https://openfreemap.org" target="_blank" rel="noreferrer" className="text-ulab underline">
-                  OpenFreeMap
+                <strong>Roadmap:</strong> &copy;{" "}
+                <a href="https://carto.com" target="_blank" rel="noreferrer" className="text-ulab underline">
+                  CARTO
                 </a>{" "}
                 &copy;{" "}
                 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="text-ulab underline">
@@ -864,7 +840,11 @@ export function AlumniMapView({
                 contributors.
               </p>
               <p>
-                <strong>Satellite Imagery:</strong> EOxCloudless &copy; EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2020). 10-metre global cloudless optical mosaic.
+                <strong>Satellite Imagery:</strong> &copy;{" "}
+                <a href="https://www.esri.com" target="_blank" rel="noreferrer" className="text-ulab underline">
+                  Esri
+                </a>
+                , Maxar, Earthstar Geographics, USDA, USGS. High-resolution global optical satellite mosaic.
               </p>
               <p className="text-[10px] text-ink-soft/80">
                 Privacy Notice: Coordinates represent municipal city-centers only; private residential addresses and real-time GPS locations are never collected or stored.

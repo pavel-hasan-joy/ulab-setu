@@ -292,3 +292,4 @@ export const SYNTHETIC_DEMO_ALUMNI: DemoAlumniRecord[] = ${JSON.stringify(datase
 
 fs.writeFileSync(OUTPUT_PATH, fileContent, "utf-8");
 console.log(`Dataset generated successfully at: ${OUTPUT_PATH}`);
+

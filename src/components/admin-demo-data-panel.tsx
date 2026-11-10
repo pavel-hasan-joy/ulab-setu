@@ -221,3 +221,4 @@ export function AdminDemoDataPanel({ initialStats }: AdminDemoDataPanelProps) {
     </div>
   );
 }
+

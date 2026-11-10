@@ -275,3 +275,4 @@ run().catch((err) => {
   console.error("Avatar generation failure:", err);
   process.exit(1);
 });
+
