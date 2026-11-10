@@ -6,7 +6,7 @@
  * 2. Privacy-First Consent Rules (Default HIDDEN, PUBLIC vs MEMBERS_ONLY isolation)
  * 3. Anonymous Public Aggregate Protection (Zero PII leakage)
  * 4. Multi-Criteria Search & Filter Logic (Country, City, Department, Keyword)
- * 5. Google Maps Roadmap vs Satellite Configuration
+ * 5. MapLibre GL + OpenFreeMap + EOxCloudless Satellite Architecture
  */
 
 import assert from "node:assert";
@@ -16,6 +16,13 @@ import {
   lookupCityCoordinates,
   resolveLocationData,
 } from "../src/lib/alumni-map.ts";
+import {
+  MAP_CONFIG,
+  SATELLITE_SOURCE_ID,
+  SATELLITE_LAYER_ID,
+  ALUMNI_GEOJSON_SOURCE_ID,
+  CLUSTERS_LAYER_ID,
+} from "../src/lib/map-config.ts";
 
 let passedCount = 0;
 let totalCount = 0;
@@ -34,7 +41,7 @@ async function runTest(name, fn) {
 }
 
 async function startSuite() {
-  console.log("\n🌍 Running ULAB Setu Global Alumni Map Automated Test Suite...\n");
+  console.log("\n🌍 Running ULAB Setu Global Alumni Map (MapLibre + OpenFreeMap + EOxCloudless) Test Suite...\n");
 
   // ==============================================================================
   // 1. GEOGRAPHICAL RESOLUTION & COORDINATES VALIDATION
@@ -91,7 +98,6 @@ async function startSuite() {
   });
 
   await runTest("2.2 Public map aggregate generator excludes Hidden and Members-Only individual PII", async () => {
-    // Simulated database records representing different opt-in states
     const testAlumni = [
       { name: "Public User 1", city: "Dhaka", country: "Bangladesh", countryCode: "BD", latitude: 23.8103, longitude: 90.4125, mapLocationVisibility: "PUBLIC", alumniVerified: true, status: "APPROVED" },
       { name: "Public User 2", city: "Dhaka", country: "Bangladesh", countryCode: "BD", latitude: 23.8103, longitude: 90.4125, mapLocationVisibility: "PUBLIC", alumniVerified: true, status: "APPROVED" },
@@ -100,14 +106,12 @@ async function startSuite() {
       { name: "Unverified Alumni", city: "Dhaka", country: "Bangladesh", countryCode: "BD", latitude: 23.8103, longitude: 90.4125, mapLocationVisibility: "PUBLIC", alumniVerified: false, status: "APPROVED" },
     ];
 
-    // Filter strictly for public aggregate
     const publicEligible = testAlumni.filter(
       (a) => a.mapLocationVisibility === "PUBLIC" && a.alumniVerified && a.status === "APPROVED"
     );
 
     assert.strictEqual(publicEligible.length, 2, "Only verified PUBLIC alumni should be in public aggregate");
 
-    // Aggregate into clusters
     const clusters = new Map();
     for (const a of publicEligible) {
       const key = `${a.city}:${a.country}`;
@@ -174,15 +178,38 @@ async function startSuite() {
   });
 
   // ==============================================================================
-  // 4. MAP MODES & SATELLITE CONFIGURATION
+  // 4. FREE MAP PROVIDER & SATELLITE CONFIGURATION
   // ==============================================================================
-  console.log("\n🛰️ 4. Google Maps Roadmap vs Satellite Controls:");
+  console.log("\n🛰️ 4. Free Map Architecture (OpenFreeMap + EOxCloudless):");
 
-  await runTest("4.1 Supports Roadmap and Satellite map mode identifiers", async () => {
-    const validModes = ["roadmap", "satellite"];
-    assert.ok(validModes.includes("roadmap"));
+  await runTest("4.1 OpenFreeMap vector styles configured with zero API key requirement", async () => {
+    assert.ok(MAP_CONFIG.roadmapStyleLight.includes("openfreemap.org"), "Must use OpenFreeMap");
+    assert.ok(MAP_CONFIG.roadmapStyleDark.includes("openfreemap.org"), "Must use OpenFreeMap dark style");
+    assert.ok(!MAP_CONFIG.roadmapStyleLight.includes("key="), "Must not require API keys");
+    assert.ok(MAP_CONFIG.roadmapAttribution.includes("OpenFreeMap"), "Attribution must credit OpenFreeMap");
+  });
+
+  await runTest("4.2 EOxCloudless Sentinel-2 satellite raster tiles and CC attribution configured", async () => {
+    assert.ok(MAP_CONFIG.satelliteTiles.length > 0);
+    assert.ok(MAP_CONFIG.satelliteTiles[0].includes("tiles.maps.eox.at"));
+    assert.ok(MAP_CONFIG.satelliteAttribution.includes("EOxCloudless"));
+    assert.ok(MAP_CONFIG.satelliteAttribution.includes("Copernicus Sentinel"));
+    assert.strictEqual(MAP_CONFIG.satelliteMaxZoom, 14); // 10m Sentinel resolution limit
+  });
+
+  await runTest("4.3 Dual map mode identifiers supported (map & satellite)", async () => {
+    const validModes = ["map", "satellite"];
+    assert.ok(validModes.includes("map"));
     assert.ok(validModes.includes("satellite"));
     assert.strictEqual(validModes.length, 2);
+  });
+
+  await runTest("4.4 MapLibre GeoJSON layer contracts are uniquely defined", async () => {
+    assert.strictEqual(typeof SATELLITE_SOURCE_ID, "string");
+    assert.strictEqual(typeof SATELLITE_LAYER_ID, "string");
+    assert.strictEqual(typeof ALUMNI_GEOJSON_SOURCE_ID, "string");
+    assert.strictEqual(typeof CLUSTERS_LAYER_ID, "string");
+    assert.notStrictEqual(SATELLITE_LAYER_ID, CLUSTERS_LAYER_ID);
   });
 
   // ==============================================================================

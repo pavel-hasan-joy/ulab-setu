@@ -20,6 +20,7 @@
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.12",
     "lucide-react": "^1.48.0",
+    "maplibre-gl": "^6.17.0",
     "motion": "^13.4.3",
     "next": "16.3.6",
     "nodemailer": "^10.1.0",
@@ -34,6 +35,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
+    "@types/geojson": "^7946.0.16",
     "@types/google.maps": "^3.66.10",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",

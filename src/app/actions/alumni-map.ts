@@ -28,15 +28,12 @@ export async function getPublicAlumniMapPayload(): Promise<{
         alumniVerified: true,
         deletedAt: null,
         mapLocationVisibility: "PUBLIC",
-        latitude: { not: null },
-        longitude: { not: null },
-        city: { not: null },
-        country: { not: null },
       },
       select: {
         city: true,
         country: true,
         countryCode: true,
+        location: true,
         latitude: true,
         longitude: true,
       },
@@ -45,23 +42,44 @@ export async function getPublicAlumniMapPayload(): Promise<{
     const clusterMap = new Map<string, PublicCityCluster>();
     const countriesSet = new Set<string>();
     const citiesSet = new Set<string>();
+    let validCount = 0;
 
     for (const a of publicAlumni) {
-      if (!a.city || !a.country || a.latitude === null || a.longitude === null) continue;
-      const key = `${a.city.toLowerCase()}:${a.country.toLowerCase()}`;
-      countriesSet.add(a.country);
-      citiesSet.add(a.city);
+      let lat = a.latitude;
+      let lng = a.longitude;
+      let city = a.city;
+      let country = a.country;
+      let countryCode = a.countryCode;
+
+      if (lat === null || lng === null || !city || !country) {
+        const resolved = resolveLocationData(a.city || a.location || "");
+        if (resolved) {
+          lat = resolved.latitude;
+          lng = resolved.longitude;
+          city = city || resolved.city;
+          country = country || resolved.country;
+          countryCode = countryCode || resolved.countryCode;
+        }
+      }
+
+      if (!city || !country || lat === null || lng === null) continue;
+      if (!validateCoordinates(lat, lng)) continue;
+
+      validCount++;
+      const key = `${city.toLowerCase()}:${country.toLowerCase()}`;
+      countriesSet.add(country);
+      citiesSet.add(city);
 
       const existing = clusterMap.get(key);
       if (existing) {
         existing.count += 1;
       } else {
         clusterMap.set(key, {
-          city: a.city,
-          country: a.country,
-          countryCode: a.countryCode,
-          lat: a.latitude,
-          lng: a.longitude,
+          city,
+          country,
+          countryCode,
+          lat,
+          lng,
           count: 1,
         });
       }
@@ -69,10 +87,10 @@ export async function getPublicAlumniMapPayload(): Promise<{
 
     const clusters = Array.from(clusterMap.values()).sort((a, b) => b.count - a.count);
     const stats: AlumniMapStats = {
-      totalAlumni: publicAlumni.length,
+      totalAlumni: validCount,
       totalCountries: countriesSet.size,
       totalCities: citiesSet.size,
-      hasEnoughData: publicAlumni.length > 0,
+      hasEnoughData: validCount > 0,
     };
 
     return { clusters, stats };
@@ -135,10 +153,6 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
         alumniVerified: true,
         deletedAt: null,
         mapLocationVisibility: { in: ["PUBLIC", "MEMBERS_ONLY"] },
-        latitude: { not: null },
-        longitude: { not: null },
-        city: { not: null },
-        country: { not: null },
         ...(country && { country: { equals: country, mode: "insensitive" } }),
         ...(city && { city: { equals: city, mode: "insensitive" } }),
         ...(department && { department: { equals: department, mode: "insensitive" } }),
@@ -164,6 +178,7 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
         graduationYear: true,
         company: true,
         designation: true,
+        location: true,
         city: true,
         country: true,
         countryCode: true,
@@ -173,9 +188,29 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
       orderBy: { graduationYear: "desc" },
     });
 
-    const items: MapAlumniItem[] = alumni
-      .filter((a) => a.city && a.country && a.latitude !== null && a.longitude !== null)
-      .map((a) => ({
+    const items: MapAlumniItem[] = [];
+    for (const a of alumni) {
+      let lat = a.latitude;
+      let lng = a.longitude;
+      let city = a.city;
+      let country = a.country;
+      let countryCode = a.countryCode;
+
+      if (lat === null || lng === null || !city || !country) {
+        const resolved = resolveLocationData(a.city || a.location || "");
+        if (resolved) {
+          lat = resolved.latitude;
+          lng = resolved.longitude;
+          city = city || resolved.city;
+          country = country || resolved.country;
+          countryCode = countryCode || resolved.countryCode;
+        }
+      }
+
+      if (!city || !country || lat === null || lng === null) continue;
+      if (!validateCoordinates(lat, lng)) continue;
+
+      items.push({
         id: a.id,
         name: a.name,
         image: a.image,
@@ -183,12 +218,13 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
         graduationYear: a.graduationYear,
         company: a.company,
         designation: a.designation,
-        city: a.city!,
-        country: a.country!,
-        countryCode: a.countryCode,
-        lat: a.latitude!,
-        lng: a.longitude!,
-      }));
+        city,
+        country,
+        countryCode,
+        lat,
+        lng,
+      });
+    }
 
     // Aggregate filters based on active opt-in alumni
     const countriesSet = new Set<string>();
