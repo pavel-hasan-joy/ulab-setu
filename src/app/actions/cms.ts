@@ -23,6 +23,14 @@ import {
 } from "@/lib/cms-homepage";
 import { validateFileBuffer } from "@/lib/cms-media-security";
 import { getMediaUsages } from "@/lib/cms-media-usage";
+import { recordContentRevision } from "@/lib/cms-revisions";
+import { processScheduledPublishingAndExpiry } from "@/lib/cms-scheduling";
+import {
+  siteNavigationSchema,
+  DEFAULT_NAVIGATION_CONFIG,
+  NAVIGATION_CMS_SLUG,
+  type SiteNavigationConfig,
+} from "@/lib/cms-navigation";
 
 export type CmsActionState = {
   success?: boolean;
@@ -1741,3 +1749,750 @@ export async function deleteCmsMedia(params: {
     at: Date.now(),
   };
 }
+
+// ==============================================================================
+// CMS PHASE 5: EDITORIAL WORKFLOW, REVIEW & APPROVAL, SCHEDULING, HISTORY & NAV
+// ==============================================================================
+
+/**
+ * Retrieves items currently in review or awaiting editorial sign-off.
+ */
+export async function getCmsReviewQueue(filters?: {
+  status?: string;
+  search?: string;
+  contentType?: string;
+}) {
+  await requireCmsCapability("cms:content:view");
+
+  const where: any = {
+    deletedAt: null,
+  };
+
+  if (filters?.status) {
+    where.status = filters.status;
+  } else {
+    // Default queue shows active editorial workflow states
+    where.status = {
+      in: ["IN_REVIEW", "CHANGES_REQUESTED", "APPROVED"],
+    };
+  }
+
+  if (filters?.contentType) {
+    where.contentType = filters.contentType;
+  }
+
+  if (filters?.search && filters.search.trim()) {
+    const q = filters.search.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+      { summary: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const items = await db.cmsContent.findMany({
+    where,
+    orderBy: [{ priority: "desc" }, { updatedAt: "desc" }],
+    include: {
+      author: { select: { id: true, name: true, email: true, image: true } },
+      reviewedBy: { select: { id: true, name: true, email: true } },
+      lastEditedBy: { select: { id: true, name: true, email: true } },
+      reviews: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          reviewer: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+
+  return items;
+}
+
+/**
+ * Reviewer / Admin submits an editorial review decision (Approve or Request Changes).
+ */
+export async function submitReviewDecision(params: {
+  contentId: string;
+  action: "APPROVE" | "REQUEST_CHANGES";
+  comments: string;
+}): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:review");
+
+  if (!params.contentId) {
+    return { success: false, error: "Content ID is required." };
+  }
+  if (!params.comments || !params.comments.trim()) {
+    return { success: false, error: "Review feedback comments are required." };
+  }
+
+  const content = await db.cmsContent.findUnique({
+    where: { id: params.contentId },
+  });
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content not found." };
+  }
+
+  // Must be in IN_REVIEW state
+  if (content.status !== "IN_REVIEW") {
+    return {
+      success: false,
+      error: `Cannot review item with status "${content.status}". Item must be in "In Review" state.`,
+    };
+  }
+
+  const targetStatus = params.action === "APPROVE" ? "APPROVED" : "CHANGES_REQUESTED";
+
+  // Validate state transition
+  const check = canTransitionContentStatus({
+    currentStatus: content.status as any,
+    targetStatus: targetStatus as any,
+    actorRole: actor.cmsRole,
+    isAuthor: content.authorId === actor.id,
+  });
+
+  if (!check.allowed) {
+    return { success: false, error: check.reason || "Unauthorized transition." };
+  }
+
+  // 1. Log review feedback
+  await db.cmsReviewFeedback.create({
+    data: {
+      contentId: content.id,
+      reviewerId: actor.id,
+      action: params.action,
+      comments: params.comments.trim(),
+    },
+  });
+
+  // 2. Update content status and review attribution
+  await db.cmsContent.update({
+    where: { id: content.id },
+    data: {
+      status: targetStatus,
+      reviewedById: actor.id,
+      reviewNotes: params.comments.trim(),
+      updatedAt: new Date(),
+    },
+  });
+
+  // 3. Snapshot revision
+  await recordContentRevision({
+    content: {
+      ...content,
+      status: targetStatus,
+    },
+    actorId: actor.id,
+    changeSummary: `Editorial Review: ${params.action} — ${params.comments.trim().slice(0, 100)}`,
+  });
+
+  // 4. Audit Log
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: params.action === "APPROVE" ? "CMS_CONTENT_APPROVED" : "CMS_CONTENT_CHANGES_REQUESTED",
+    targetType: "CMS_FEEDBACK",
+    targetId: content.id,
+    details: {
+      title: content.title,
+      slug: content.slug,
+      comments: params.comments.trim(),
+    },
+  });
+
+  revalidatePath("/admin/cms/review");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: params.action === "APPROVE" ? "Content approved and ready for publication." : "Changes requested and item returned to author.",
+    at: Date.now(),
+  };
+}
+
+/**
+ * Retrieves scheduled content and items eligible for scheduling.
+ */
+export async function getCmsScheduledItems(filters?: {
+  search?: string;
+  contentType?: string;
+}) {
+  await requireCmsCapability("cms:content:view");
+
+  const where: any = {
+    deletedAt: null,
+    status: {
+      in: ["SCHEDULED", "APPROVED"],
+    },
+  };
+
+  if (filters?.contentType) {
+    where.contentType = filters.contentType;
+  }
+
+  if (filters?.search && filters.search.trim()) {
+    const q = filters.search.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const items = await db.cmsContent.findMany({
+    where,
+    orderBy: [{ scheduledAt: "asc" }, { updatedAt: "desc" }],
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      lastEditedBy: { select: { id: true, name: true, email: true } },
+      publishedBy: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  return items;
+}
+
+/**
+ * Schedules approved content for automated future publication.
+ */
+export async function scheduleCmsContent(params: {
+  contentId: string;
+  scheduledAt: string;
+}): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:schedule");
+
+  if (!params.contentId || !params.scheduledAt) {
+    return { success: false, error: "Content ID and scheduled timestamp are required." };
+  }
+
+  const scheduledDate = new Date(params.scheduledAt);
+  if (isNaN(scheduledDate.getTime())) {
+    return { success: false, error: "Invalid scheduled date/time." };
+  }
+
+  if (scheduledDate.getTime() <= Date.now()) {
+    return { success: false, error: "Scheduled publication date must be in the future." };
+  }
+
+  const content = await db.cmsContent.findUnique({
+    where: { id: params.contentId },
+  });
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content not found." };
+  }
+
+  // Must be APPROVED or SCHEDULED (or DRAFT if CMS_ADMIN)
+  if (content.status !== "APPROVED" && content.status !== "SCHEDULED" && actor.cmsRole !== "CMS_ADMIN") {
+    return {
+      success: false,
+      error: `Cannot schedule content with status "${content.status}". Item must be editorial approved first.`,
+    };
+  }
+
+  await db.cmsContent.update({
+    where: { id: content.id },
+    data: {
+      status: "SCHEDULED",
+      scheduledAt: scheduledDate,
+      updatedAt: new Date(),
+    },
+  });
+
+  await recordContentRevision({
+    content: {
+      ...content,
+      status: "SCHEDULED",
+    },
+    actorId: actor.id,
+    changeSummary: `Scheduled for publication at ${scheduledDate.toISOString()}`,
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_CONTENT_SCHEDULED",
+    targetType: "CMS_CONTENT",
+    targetId: content.id,
+    details: {
+      title: content.title,
+      slug: content.slug,
+      scheduledAt: scheduledDate.toISOString(),
+    },
+  });
+
+  revalidatePath("/admin/cms/scheduled");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: `Content successfully scheduled for ${scheduledDate.toLocaleString("en-US", { timeZone: "Asia/Dhaka" })} (Asia/Dhaka).`,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Cancels a scheduled publication and returns the item to APPROVED status.
+ */
+export async function cancelCmsSchedule(contentId: string): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:schedule");
+
+  const content = await db.cmsContent.findUnique({
+    where: { id: contentId },
+  });
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content not found." };
+  }
+
+  if (content.status !== "SCHEDULED") {
+    return { success: false, error: "Content is not currently scheduled." };
+  }
+
+  await db.cmsContent.update({
+    where: { id: contentId },
+    data: {
+      status: "APPROVED",
+      scheduledAt: null,
+      updatedAt: new Date(),
+    },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_CONTENT_SCHEDULE_CANCELLED",
+    targetType: "CMS_CONTENT",
+    targetId: contentId,
+    details: { title: content.title, slug: content.slug },
+  });
+
+  revalidatePath("/admin/cms/scheduled");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: "Scheduled publication cancelled. Item returned to Approved status.",
+    at: Date.now(),
+  };
+}
+
+/**
+ * Publishes an approved or scheduled item immediately.
+ */
+export async function publishCmsContentNow(contentId: string): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:publish");
+
+  const content = await db.cmsContent.findUnique({
+    where: { id: contentId },
+  });
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content not found." };
+  }
+
+  // Authorize transition
+  const check = canTransitionContentStatus({
+    currentStatus: content.status as any,
+    targetStatus: "PUBLISHED",
+    actorRole: actor.cmsRole,
+    isAuthor: content.authorId === actor.id,
+  });
+
+  if (!check.allowed && actor.cmsRole !== "CMS_ADMIN") {
+    return { success: false, error: check.reason || "Unauthorized publishing action." };
+  }
+
+  const now = new Date();
+  await db.cmsContent.update({
+    where: { id: contentId },
+    data: {
+      status: "PUBLISHED",
+      publishedAt: now,
+      publishedById: actor.id,
+      scheduledAt: null,
+      updatedAt: now,
+    },
+  });
+
+  await recordContentRevision({
+    content: {
+      ...content,
+      status: "PUBLISHED",
+    },
+    actorId: actor.id,
+    changeSummary: "Direct manual publication by Publisher",
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_CONTENT_PUBLISHED",
+    targetType: "CMS_CONTENT",
+    targetId: contentId,
+    details: { title: content.title, slug: content.slug },
+  });
+
+  // Revalidate public endpoints
+  if (content.contentType === "PAGE") {
+    revalidatePath(`/p/${content.slug}`);
+  } else if (content.contentType === "NEWS" || content.contentType === "ANNOUNCEMENT") {
+    revalidatePath(`/news/${content.slug}`);
+    revalidatePath("/news");
+  } else if (content.contentType === "EVENT") {
+    revalidatePath(`/events/${content.slug}`);
+    revalidatePath("/events");
+  } else if (content.contentType === "HOMEPAGE_SECTION") {
+    revalidatePath("/");
+  }
+  revalidatePath("/");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/admin/cms/scheduled");
+  revalidatePath("/admin/cms/review");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: `"${content.title}" is now live and published!`,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Unpublishes live content.
+ */
+export async function unpublishCmsContent(contentId: string, reason?: string): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:unpublish");
+
+  const content = await db.cmsContent.findUnique({
+    where: { id: contentId },
+  });
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content not found." };
+  }
+
+  if (content.status !== "PUBLISHED") {
+    return { success: false, error: "Only currently published content can be unpublished." };
+  }
+
+  await db.cmsContent.update({
+    where: { id: contentId },
+    data: {
+      status: "UNPUBLISHED",
+      updatedAt: new Date(),
+    },
+  });
+
+  await recordContentRevision({
+    content: {
+      ...content,
+      status: "UNPUBLISHED",
+    },
+    actorId: actor.id,
+    changeSummary: `Unpublished by Publisher: ${reason || "Removed from public view"}`,
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_CONTENT_UNPUBLISHED",
+    targetType: "CMS_CONTENT",
+    targetId: contentId,
+    details: { title: content.title, slug: content.slug, reason },
+  });
+
+  if (content.contentType === "PAGE") {
+    revalidatePath(`/p/${content.slug}`);
+  }
+  revalidatePath("/");
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: `"${content.title}" has been taken down and unpublished.`,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Triggers the automated scheduling and expiry processor manually from the Admin dashboard.
+ */
+export async function runSchedulerManually(): Promise<CmsActionState & { publishedCount?: number; expiredCount?: number }> {
+  const actor = await requireCmsCapability("cms:content:schedule");
+  const result = await processScheduledPublishingAndExpiry(actor.id);
+
+  return {
+    success: result.success,
+    message: `Scheduler ran successfully: ${result.publishedCount} published, ${result.expiredCount} expired.`,
+    publishedCount: result.publishedCount,
+    expiredCount: result.expiredCount,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Retrieves the revision history for a content item.
+ */
+export async function getCmsContentRevisions(contentId: string) {
+  await requireCmsCapability("cms:history:view");
+
+  const revisions = await db.cmsRevision.findMany({
+    where: { contentId },
+    orderBy: { version: "desc" },
+    include: {
+      createdBy: {
+        select: { id: true, name: true, email: true, image: true },
+      },
+    },
+  });
+
+  return revisions;
+}
+
+/**
+ * Restores a historical revision.
+ * Restoring creates a brand NEW revision (no silent overwriting or history deletion).
+ */
+export async function restoreCmsRevision(params: {
+  contentId: string;
+  revisionId: string;
+}): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  const [content, revision] = await Promise.all([
+    db.cmsContent.findUnique({ where: { id: params.contentId } }),
+    db.cmsRevision.findUnique({ where: { id: params.revisionId } }),
+  ]);
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content item not found." };
+  }
+  if (!revision || revision.contentId !== content.id) {
+    return { success: false, error: "Revision not found for this content item." };
+  }
+
+  // 1. Create a NEW revision capturing the restoration event
+  await recordContentRevision({
+    content: {
+      id: content.id,
+      title: revision.title,
+      slug: revision.slug,
+      summary: revision.summary,
+      body: revision.body,
+      structuredData: revision.structuredData,
+      status: content.status, // preserve current publishing state
+    },
+    actorId: actor.id,
+    changeSummary: `Restored from revision v${revision.version} (created ${revision.createdAt.toLocaleDateString()})`,
+  });
+
+  // 2. Update the active content item with revision snapshot
+  await db.cmsContent.update({
+    where: { id: content.id },
+    data: {
+      title: revision.title,
+      slug: revision.slug,
+      summary: revision.summary,
+      body: revision.body,
+      structuredData: revision.structuredData,
+      lastEditedById: actor.id,
+      updatedAt: new Date(),
+    },
+  });
+
+  // 3. Record Audit Log
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_CONTENT_REVISION_RESTORED",
+    targetType: "CMS_REVISION",
+    targetId: revision.id,
+    details: {
+      contentId: content.id,
+      restoredVersion: revision.version,
+      title: revision.title,
+    },
+  });
+
+  if (content.contentType === "PAGE") {
+    revalidatePath(`/p/${content.slug}`);
+  }
+  revalidatePath("/admin/cms/history");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: `Successfully restored content from revision v${revision.version}. A new revision record has been created.`,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Retrieves archived content items.
+ */
+export async function getCmsArchivedItems(filters?: {
+  search?: string;
+  contentType?: string;
+}) {
+  await requireCmsCapability("cms:history:view");
+
+  const where: any = {
+    status: "ARCHIVED",
+    deletedAt: null,
+  };
+
+  if (filters?.contentType) {
+    where.contentType = filters.contentType;
+  }
+
+  if (filters?.search && filters.search.trim()) {
+    const q = filters.search.trim();
+    where.OR = [
+      { title: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const items = await db.cmsContent.findMany({
+    where,
+    orderBy: { updatedAt: "desc" },
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      lastEditedBy: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  return items;
+}
+
+/**
+ * Restores an archived item back to DRAFT.
+ */
+export async function restoreArchivedCmsItem(contentId: string): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:archive");
+
+  const content = await db.cmsContent.findUnique({
+    where: { id: contentId },
+  });
+
+  if (!content || content.deletedAt) {
+    return { success: false, error: "Content not found." };
+  }
+
+  if (content.status !== "ARCHIVED") {
+    return { success: false, error: "Item is not archived." };
+  }
+
+  await db.cmsContent.update({
+    where: { id: contentId },
+    data: {
+      status: "DRAFT",
+      archivedAt: null,
+      updatedAt: new Date(),
+    },
+  });
+
+  await recordContentRevision({
+    content: {
+      ...content,
+      status: "DRAFT",
+    },
+    actorId: actor.id,
+    changeSummary: "Restored from Archive to Draft",
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_CONTENT_RESTORED_FROM_ARCHIVE",
+    targetType: "CMS_CONTENT",
+    targetId: contentId,
+    details: { title: content.title, slug: content.slug },
+  });
+
+  revalidatePath("/admin/cms/history");
+  revalidatePath("/admin/cms");
+
+  return {
+    success: true,
+    message: `"${content.title}" restored from Archive and saved as Draft.`,
+    at: Date.now(),
+  };
+}
+
+/**
+ * Retrieves the active site navigation & footer configuration.
+ */
+export async function getSiteNavigationConfig(): Promise<SiteNavigationConfig> {
+  const item = await db.cmsContent.findUnique({
+    where: { slug: NAVIGATION_CMS_SLUG },
+    select: { structuredData: true },
+  });
+
+  if (!item?.structuredData) {
+    return DEFAULT_NAVIGATION_CONFIG;
+  }
+
+  try {
+    const parsed = JSON.parse(item.structuredData);
+    const validation = siteNavigationSchema.safeParse(parsed);
+    if (validation.success) {
+      return validation.data;
+    }
+  } catch {
+    // Return default on parse failure
+  }
+
+  return DEFAULT_NAVIGATION_CONFIG;
+}
+
+/**
+ * Updates site navigation & footer configuration.
+ */
+export async function saveSiteNavigationConfig(
+  config: SiteNavigationConfig
+): Promise<CmsActionState> {
+  const actor = await requireCmsCapability("cms:content:edit");
+
+  const validation = siteNavigationSchema.safeParse(config);
+  if (!validation.success) {
+    const firstIssue = validation.error.issues[0]?.message || "Invalid navigation configuration.";
+    return { success: false, error: firstIssue };
+  }
+
+  const jsonString = JSON.stringify(validation.data);
+
+  await db.cmsContent.upsert({
+    where: { slug: NAVIGATION_CMS_SLUG },
+    create: {
+      title: "Site Navigation & Footer Configuration",
+      slug: NAVIGATION_CMS_SLUG,
+      contentType: "PAGE",
+      status: "PUBLISHED",
+      summary: "System-wide navigation links, footer menus, and official contact info.",
+      structuredData: jsonString,
+      authorId: actor.id,
+      lastEditedById: actor.id,
+    },
+    update: {
+      structuredData: jsonString,
+      lastEditedById: actor.id,
+      updatedAt: new Date(),
+    },
+  });
+
+  await recordCmsAuditLog({
+    actorId: actor.id,
+    action: "CMS_NAVIGATION_UPDATED",
+    targetType: "CMS_CONTENT",
+    details: {
+      headerLinksCount: validation.data.headerLinks.length,
+      footerColumnsCount: validation.data.footerColumns.length,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/cms/navigation");
+
+  return {
+    success: true,
+    message: "Navigation & Footer settings successfully updated and published.",
+    at: Date.now(),
+  };
+}
+

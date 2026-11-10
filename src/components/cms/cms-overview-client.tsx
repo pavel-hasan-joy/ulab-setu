@@ -172,7 +172,7 @@ export function CmsOverviewClient({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-gold/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-gold-soft border border-gold/30">
-                <ShieldCheck size={14} /> Phase 1 Architecture
+                <ShieldCheck size={14} /> Integrated CMS Production Engine
               </span>
               <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-white/80">
                 Role: {currentActorRole}

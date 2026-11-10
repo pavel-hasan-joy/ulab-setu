@@ -1,23 +1,38 @@
 import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { db } from "@/lib/db";
+import { getCmsArchivedItems } from "@/app/actions/cms";
+import { CmsHistoryClient } from "@/components/cms/cms-history-client";
 
 export const metadata = {
-  title: "History & Archive — Content Management | ULAB Setu Admin",
+  title: "History, Revisions & Archive — Content Management | ULAB Setu Admin",
 };
 
 export default async function CmsHistoryPage() {
-  await requireCmsCapability("cms:history:view");
+  const actor = await requireCmsCapability("cms:history:view");
+
+  const [activeItems, archivedItems] = await Promise.all([
+    db.cmsContent.findMany({
+      where: {
+        status: { not: "ARCHIVED" },
+        deletedAt: null,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+      include: {
+        author: { select: { id: true, name: true, email: true } },
+        lastEditedBy: { select: { id: true, name: true, email: true } },
+      },
+    }),
+    getCmsArchivedItems(),
+  ]);
 
   return (
-    <CmsModulePlaceholder
-      title="Content History, Revisions & Archive"
-      moduleKey="history"
-      phaseNumber={5}
-      phaseTitle="Content Archive, Search, SEO & Governance Audit"
-      description="Immutable version ledger tracking all revisions, editorial change summaries, author attribution, and historical rollback capabilities across all content types."
-      modelsSupported={["CmsRevision", "CmsContent (ARCHIVED)", "AdminAuditLog"]}
-      capabilitiesPlanned={["cms:history:view", "cms:content:archive"]}
-    />
+    <div className="space-y-6">
+      <CmsHistoryClient
+        activeItems={activeItems as any}
+        archivedItems={archivedItems as any}
+        currentRole={actor.cmsRole}
+      />
+    </div>
   );
 }
-

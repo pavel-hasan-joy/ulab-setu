@@ -1,23 +1,18 @@
 import { requireCmsCapability } from "@/lib/cms-auth";
-import { CmsModulePlaceholder } from "@/components/cms/cms-module-placeholder";
+import { getCmsReviewQueue } from "@/app/actions/cms";
+import { CmsReviewClient } from "@/components/cms/cms-review-client";
 
 export const metadata = {
-  title: "Review & Approval — Content Management | ULAB Setu Admin",
+  title: "Review & Approval Desk — Content Management | ULAB Setu Admin",
 };
 
 export default async function CmsReviewPage() {
-  await requireCmsCapability("cms:overview:view");
+  const actor = await requireCmsCapability("cms:content:view");
+  const queue = await getCmsReviewQueue();
 
   return (
-    <CmsModulePlaceholder
-      title="Review & Approval Desk"
-      moduleKey="review"
-      phaseNumber={4}
-      phaseTitle="Editorial Review, Scheduling & Publishing Engine"
-      description="Dedicated editorial queue where Content Reviewers evaluate submissions, provide inline feedback, request adjustments, and sign off on content before publication."
-      modelsSupported={["CmsReviewFeedback", "CmsContent", "CmsRevision"]}
-      capabilitiesPlanned={["cms:content:review", "cms:content:approve"]}
-    />
+    <div className="space-y-6">
+      <CmsReviewClient initialItems={queue as any} currentRole={actor.cmsRole} />
+    </div>
   );
 }
-

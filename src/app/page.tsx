@@ -13,18 +13,20 @@ import { CountUp, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/m
 import { SiteHeader, Logo } from "@/components/site-header";
 import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 import { getHomepageContent } from "@/lib/cms-homepage";
+import { getSiteNavigationConfig } from "@/app/actions/cms";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   await cleanExpiredJobs();
-  const [alumniCount, studentCount, jobCount, jobs, companies, cmsHome] = await Promise.all([
+  const [alumniCount, studentCount, jobCount, jobs, companies, cmsHome, navConfig] = await Promise.all([
     db.user.count({ where: { role: "ALUMNI", status: "APPROVED" } }),
     db.user.count({ where: { role: "STUDENT" } }),
     db.job.count({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() } }),
     db.job.findMany({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", company: { not: null } }, select: { company: true }, distinct: ["company"] }),
     getHomepageContent(),
+    getSiteNavigationConfig(),
   ]);
 
   const stats = [
@@ -36,7 +38,7 @@ export default async function Home() {
   return (
     <>
       <ScrollProgress />
-      <SiteHeader />
+      <SiteHeader customNavLinks={navConfig.headerLinks} />
       <main>
         <CinematicHero cmsContent={cmsHome} />
 
@@ -162,7 +164,32 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-mist/70 bg-surface/60">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-ink-soft md:px-6">
+        {navConfig.footerColumns.length > 0 && (
+          <div className="mx-auto max-w-6xl px-4 pt-12 pb-8 md:px-6">
+            <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+              {navConfig.footerColumns.map((col) => (
+                <div key={col.id} className="space-y-3">
+                  <h4 className="font-semibold text-xs tracking-wider uppercase text-ink">{col.title}</h4>
+                  <ul className="space-y-2 text-xs text-ink-soft">
+                    {col.links.map((link) => (
+                      <li key={link.id}>
+                        <Link
+                          href={link.href}
+                          target={link.openInNewTab ? "_blank" : undefined}
+                          rel={link.openInNewTab ? "noreferrer" : undefined}
+                          className="hover:text-ink transition-colors"
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 border-t border-mist/50 px-4 py-8 text-sm text-ink-soft md:px-6">
           <Logo />
           <p className="text-xs">
             Illustration from <a href="https://commons.wikimedia.org/wiki/File:Girl_in_sailor_fuku_publicdomainq.png" className="underline decoration-mist underline-offset-4 hover:text-ulab" target="_blank" rel="noreferrer">Public Domain Q</a> (CC0)
