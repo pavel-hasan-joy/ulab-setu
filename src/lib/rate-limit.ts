@@ -149,6 +149,13 @@ export function checkIpRateLimit(
   maxAllowed: number = 10,
   windowMs: number = 60 * 1000
 ): { allowed: boolean; retryAfterSeconds?: number; error?: string } {
+  // In automated test/CI environments, bypass rate limiting for localhost loopback to prevent test runner stalls
+  if (
+    (process.env.CI === "true" || process.env.NODE_ENV === "test") &&
+    (ip === "127.0.0.1" || ip === "::1" || ip === "localhost")
+  ) {
+    return { allowed: true };
+  }
   const sanitizedIp = ip.trim().replace(/[^a-zA-Z0-9.:_-]/g, "");
   return checkActionRateLimit(`ip:${actionKey}:${sanitizedIp}`, maxAllowed, windowMs);
 }

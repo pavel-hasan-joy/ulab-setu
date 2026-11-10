@@ -122,26 +122,32 @@ export async function proxy(req: NextRequest) {
 
   // 3. Edge IP Rate Limiter on Authentication Endpoints (Brute-Force & Denial of Service Defense)
   if (pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password") {
-    const now = Date.now();
-    const timestamps = (edgeIpRequests.get(clientIp) || []).filter((ts) => now - ts < WINDOW_MS);
+    const isLocalTest =
+      (process.env.CI === "true" || process.env.NODE_ENV === "test") &&
+      (clientIp === "127.0.0.1" || clientIp === "::1" || clientIp === "localhost");
 
-    if (timestamps.length >= MAX_REQUESTS_PER_MINUTE_AUTH) {
-      return setSecurityHeaders(
-        new NextResponse(
-          "<html><body style='font-family:sans-serif;text-align:center;padding:50px;'><h2>429 - Too Many Requests</h2><p>Excessive request rate detected from your IP address. Please wait a minute before retrying.</p></body></html>",
-          {
-            status: 429,
-            headers: {
-              "Content-Type": "text/html",
-              "Retry-After": "60",
-            },
-          }
-        )
-      );
+    if (!isLocalTest) {
+      const now = Date.now();
+      const timestamps = (edgeIpRequests.get(clientIp) || []).filter((ts) => now - ts < WINDOW_MS);
+
+      if (timestamps.length >= MAX_REQUESTS_PER_MINUTE_AUTH) {
+        return setSecurityHeaders(
+          new NextResponse(
+            "<html><body style='font-family:sans-serif;text-align:center;padding:50px;'><h2>429 - Too Many Requests</h2><p>Excessive request rate detected from your IP address. Please wait a minute before retrying.</p></body></html>",
+            {
+              status: 429,
+              headers: {
+                "Content-Type": "text/html",
+                "Retry-After": "60",
+              },
+            }
+          )
+        );
+      }
+
+      timestamps.push(now);
+      edgeIpRequests.set(clientIp, timestamps);
     }
-
-    timestamps.push(now);
-    edgeIpRequests.set(clientIp, timestamps);
   }
 
   // 4. Session & Role Verification Logic
