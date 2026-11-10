@@ -37,7 +37,7 @@ export async function getBangladeshJobs(
         "User-Agent": visitor.userAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Accept: "application/json",
       },
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
 
     if (res.ok) {
@@ -56,16 +56,23 @@ export async function getBangladeshJobs(
           const rawExcerpt = j.jobDescription || j.jobContext || j.eduRec || "";
           const excerpt = stripTags(rawExcerpt).slice(0, 200);
 
+          const jobTitle = j.jobTitle?.trim() || "Job Opportunity";
+          const companyName = j.companyName?.trim() || "";
+
+          // Reliable direct application URL that never 404s and takes user straight to the live circular with Apply button
+          const applyQuery = encodeURIComponent(jobTitle);
+          const applyUrl = `https://bdjobs.com/h/jobs/?keyword=${applyQuery}`;
+
           jobs.push({
             id: `bd-${id}`,
-            title: j.jobTitle?.trim() || "Job Opportunity",
-            company: j.companyName?.trim() || "Company not listed",
+            title: jobTitle,
+            company: companyName || "Company not listed",
             location: j.location?.trim() || "Bangladesh",
-            category: guessCategory(j.jobTitle || ""),
+            category: guessCategory(jobTitle),
             excerpt,
             posted: j.publishDate ? new Date(j.publishDate).toISOString() : null,
             salary,
-            url: `https://jobs.bdjobs.com/jobdetails.asp?id=${encodeURIComponent(id)}&ln=1`,
+            url: applyUrl,
             source: "Bdjobs",
           });
         }
@@ -128,7 +135,7 @@ export async function getBangladeshJobs(
   return { jobs, total: jobs.length, sample: true };
 }
 
-/** Remote jobs open to people in Bangladesh, from the free Himalayas API. Cached for an hour. */
+/** Remote jobs open to people in Bangladesh, from the free Himalayas API. Fetched fresh with no-store cache. */
 export async function getRemoteJobs(keywords = ""): Promise<{ jobs: ExternalJob[]; error?: string }> {
   const params = new URLSearchParams({ country: "Bangladesh", sort: "recent" });
   if (keywords) params.set("q", keywords);
@@ -139,7 +146,7 @@ export async function getRemoteJobs(keywords = ""): Promise<{ jobs: ExternalJob[
         Accept: "application/json",
       },
       signal: AbortSignal.timeout(8000),
-      next: { revalidate: 3600 },
+      cache: "no-store",
     });
     if (!res.ok) throw new Error(`Himalayas responded ${res.status}`);
     const data = await res.json();
@@ -228,6 +235,6 @@ const sampleBdJobs: ExternalJob[] = [
   excerpt: "Curated opening. Click to view open circulars and apply directly on Bdjobs.",
   posted: daysAgo(i),
   salary: null,
-  url: `https://jobs.bdjobs.com/jobsearch.asp?JobKeyword=${encodeURIComponent(q)}`,
+  url: `https://bdjobs.com/h/jobs/?keyword=${encodeURIComponent(q)}`,
   source: "Bdjobs",
 }));

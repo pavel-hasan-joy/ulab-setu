@@ -14,6 +14,8 @@ import { Tabs } from "@/components/tabs";
 import { Button, EmptyState, Input, PageHeader, Select } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Jobs" };
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type Params = { tab?: string; q?: string; category?: string; type?: string };
 
