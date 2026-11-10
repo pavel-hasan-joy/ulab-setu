@@ -88,10 +88,11 @@ export const DEFAULT_NAVIGATION_CONFIG: SiteNavigationConfig = {
   headerLinks: [
     { id: "nav-jobs", label: "Jobs", href: "/#jobs", openInNewTab: false, enabled: true, order: 0 },
     { id: "nav-how", label: "How it works", href: "/#how", openInNewTab: false, enabled: true, order: 1 },
-    { id: "nav-news", label: "Announcements", href: "/news", openInNewTab: false, enabled: true, order: 2 },
-    { id: "nav-events", label: "Events", href: "/events", openInNewTab: false, enabled: true, order: 3 },
-    { id: "nav-faqs", label: "FAQs", href: "/faqs", openInNewTab: false, enabled: true, order: 4 },
-    { id: "nav-resources", label: "Resources", href: "/resources", openInNewTab: false, enabled: true, order: 5 },
+    { id: "nav-alumni-map", label: "Global Map", href: "/#global-map", openInNewTab: false, enabled: true, order: 2 },
+    { id: "nav-news", label: "Announcements", href: "/news", openInNewTab: false, enabled: true, order: 3 },
+    { id: "nav-events", label: "Events", href: "/events", openInNewTab: false, enabled: true, order: 4 },
+    { id: "nav-faqs", label: "FAQs", href: "/faqs", openInNewTab: false, enabled: true, order: 5 },
+    { id: "nav-resources", label: "Resources", href: "/resources", openInNewTab: false, enabled: true, order: 6 },
   ],
   footerColumns: [
     {
@@ -100,7 +101,8 @@ export const DEFAULT_NAVIGATION_CONFIG: SiteNavigationConfig = {
       links: [
         { id: "l-1", label: "About Us", href: "/p/about-ulab-setu", openInNewTab: false },
         { id: "l-2", label: "How Setu Works", href: "/p/how-it-works", openInNewTab: false },
-        { id: "l-3", label: "Alumni Network", href: "/stories", openInNewTab: false },
+        { id: "l-map", label: "Global Alumni Map", href: "/#global-map", openInNewTab: false },
+        { id: "l-3", label: "Alumni Stories", href: "/stories", openInNewTab: false },
       ],
     },
     {

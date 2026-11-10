@@ -30,6 +30,7 @@ export function SiteHeader({ customNavLinks }: { customNavLinks?: HeaderNavLink[
     : [
         { id: "jobs", label: "Jobs", href: "/#jobs", openInNewTab: false, enabled: true },
         { id: "how", label: "How it works", href: "/#how", openInNewTab: false, enabled: true },
+        { id: "global-map", label: "Global Map", href: "/#global-map", openInNewTab: false, enabled: true },
       ];
 
   return (
