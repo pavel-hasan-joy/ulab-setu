@@ -22,11 +22,11 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   await cleanExpiredJobs();
   const [alumniCount, studentCount, jobCount, jobs, companies, cmsHome, navConfig, publicMapData] = await Promise.all([
-    db.user.count({ where: { role: "ALUMNI", status: "APPROVED" } }),
-    db.user.count({ where: { role: "STUDENT" } }),
+    db.user.count({ where: { role: "ALUMNI", status: "APPROVED", isDemo: false } }),
+    db.user.count({ where: { role: "STUDENT", isDemo: false } }),
     db.job.count({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() } }),
     db.job.findMany({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() }, orderBy: { createdAt: "desc" }, take: 3, include: { postedBy: true } }),
-    db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", company: { not: null } }, select: { company: true }, distinct: ["company"] }),
+    db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", isDemo: false, company: { not: null } }, select: { company: true }, distinct: ["company"] }),
     getHomepageContent(),
     getSiteNavigationConfig(),
     getPublicAlumniMapPayload(),

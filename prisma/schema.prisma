@@ -62,6 +62,8 @@ model User {
   mentorSessionFormat     String?   @default("ONLINE")
   mentorAvailabilityNote  String?
   mentorMaxMentees        Int       @default(3)
+  // Demo Data Flag for presentation and testing
+  isDemo             Boolean   @default(false)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt @default(now())
   deletedAt          DateTime?
@@ -125,6 +127,7 @@ model User {
   @@index([country])
   @@index([city])
   @@index([mapLocationVisibility])
+  @@index([isDemo])
 }
 
 model Job {

@@ -16,6 +16,8 @@ import {
   AlumniCardVerificationBadge,
   AlumniBulkVerifyButton,
 } from "@/components/admin-alumni-actions";
+import { AdminDemoDataPanel } from "@/components/admin-demo-data-panel";
+import { getDemoAlumniManagementStats } from "@/app/actions/demo-alumni";
 
 export default async function AdminAlumniPage({
   searchParams,
@@ -24,10 +26,11 @@ export default async function AdminAlumniPage({
 }) {
   await requireAdminPermission("alumni:manage");
 
-  // Reconcile and guarantee all alumni accounts have verified standing per ULAB Setu rules
+  // Reconcile and guarantee all real alumni accounts have verified standing per ULAB Setu rules
   await db.user.updateMany({
     where: {
       role: "ALUMNI",
+      isDemo: false,
       alumniVerified: false,
     },
     data: {
@@ -38,6 +41,8 @@ export default async function AdminAlumniPage({
     },
   });
 
+  const demoStats = await getDemoAlumniManagementStats();
+
   const params = await searchParams;
   const q = (params?.q || "").trim().toLowerCase();
   const verifiedFilter = params?.verified;
@@ -46,6 +51,7 @@ export default async function AdminAlumniPage({
   const alumniList = await db.user.findMany({
     where: {
       role: "ALUMNI",
+      isDemo: false,
       ...(verifiedFilter === "1"
         ? { alumniVerified: true }
         : {}),
@@ -102,6 +108,9 @@ export default async function AdminAlumniPage({
           </div>
         }
       />
+
+      {/* Demo Data Management Panel */}
+      <AdminDemoDataPanel initialStats={demoStats} />
 
       {/* Filter and Search Bar */}
       <Card className="mb-6 p-4">

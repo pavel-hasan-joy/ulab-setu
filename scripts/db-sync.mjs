@@ -581,6 +581,25 @@ if (isPostgres) {
           });
         }
       }
+
+      // 500 Synthetic Demo Alumni for Global Alumni Map Showcase
+      const existingDemoCount = await db.user.count({ where: { isDemo: true } });
+      if (existingDemoCount < 500) {
+        console.log(`Seeding 500 Synthetic Demo Alumni profiles (current: ${existingDemoCount})...`);
+        const { SYNTHETIC_DEMO_ALUMNI } = await import("../src/lib/demo-alumni-dataset.ts");
+        const dummyPassHash = bcrypt.hashSync("DemoAlumniSecret@2026-Synthetic", 10);
+
+        await db.user.deleteMany({ where: { isDemo: true } });
+        const records = SYNTHETIC_DEMO_ALUMNI.map((item) => ({
+          ...item,
+          passwordHash: dummyPassHash,
+        }));
+        await db.user.createMany({
+          data: records,
+          skipDuplicates: true,
+        });
+        console.log("500 Synthetic Demo Alumni profiles seeded successfully across 55 countries.");
+      }
     } catch (cleanupErr) {
       console.warn("Live DB sync warning:", cleanupErr?.message || cleanupErr);
     } finally {

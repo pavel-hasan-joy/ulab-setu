@@ -1,0 +1,13 @@
+{
+  "totalGenerated": 500,
+  "totalSuccessfullyStored": 500,
+  "failedCount": 0,
+  "allFilesUnder500Kb": true,
+  "largestImageSizeKb": 88,
+  "smallestImageSizeKb": 3,
+  "averageImageSizeKb": 28,
+  "totalStorageSizeMb": "13.47",
+  "dimensions": "512x512",
+  "format": "webp",
+  "timestamp": "2026-11-10T12:58:23.963Z"
+}

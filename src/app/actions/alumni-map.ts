@@ -25,7 +25,10 @@ export async function getPublicAlumniMapPayload(): Promise<{
       where: {
         role: "ALUMNI",
         status: "APPROVED",
-        alumniVerified: true,
+        OR: [
+          { alumniVerified: true, isDemo: false },
+          { isDemo: true },
+        ],
         deletedAt: null,
         mapLocationVisibility: "PUBLIC",
       },
@@ -36,6 +39,7 @@ export async function getPublicAlumniMapPayload(): Promise<{
         location: true,
         latitude: true,
         longitude: true,
+        isDemo: true,
       },
     });
 
@@ -43,6 +47,8 @@ export async function getPublicAlumniMapPayload(): Promise<{
     const countriesSet = new Set<string>();
     const citiesSet = new Set<string>();
     let validCount = 0;
+    let realCount = 0;
+    let demoCount = 0;
 
     for (const a of publicAlumni) {
       let lat = a.latitude;
@@ -66,6 +72,11 @@ export async function getPublicAlumniMapPayload(): Promise<{
       if (!validateCoordinates(lat, lng)) continue;
 
       validCount++;
+      if (a.isDemo) {
+        demoCount++;
+      } else {
+        realCount++;
+      }
       const key = `${city.toLowerCase()}:${country.toLowerCase()}`;
       countriesSet.add(country);
       citiesSet.add(city);
@@ -88,6 +99,8 @@ export async function getPublicAlumniMapPayload(): Promise<{
     const clusters = Array.from(clusterMap.values()).sort((a, b) => b.count - a.count);
     const stats: AlumniMapStats = {
       totalAlumni: validCount,
+      realAlumni: realCount,
+      demoAlumni: demoCount,
       totalCountries: countriesSet.size,
       totalCities: citiesSet.size,
       hasEnoughData: validCount > 0,
@@ -145,12 +158,15 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
     const graduationYear = filters?.graduationYear?.trim() || undefined;
     const company = filters?.company?.trim() || undefined;
 
-    // Fetch verified alumni who have allowed either PUBLIC or MEMBERS_ONLY map location
+    // Fetch verified alumni and demo alumni who have allowed either PUBLIC or MEMBERS_ONLY map location
     const alumni = await db.user.findMany({
       where: {
         role: "ALUMNI",
         status: "APPROVED",
-        alumniVerified: true,
+        OR: [
+          { alumniVerified: true, isDemo: false },
+          { isDemo: true },
+        ],
         deletedAt: null,
         mapLocationVisibility: { in: ["PUBLIC", "MEMBERS_ONLY"] },
         ...(country && { country: { equals: country, mode: "insensitive" } }),
@@ -184,6 +200,7 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
         countryCode: true,
         latitude: true,
         longitude: true,
+        isDemo: true,
       },
       orderBy: { graduationYear: "desc" },
     });
@@ -223,6 +240,7 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
         countryCode,
         lat,
         lng,
+        isDemo: a.isDemo,
       });
     }
 
@@ -232,7 +250,15 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
     const departmentsSet = new Set<string>();
     const gradYearsSet = new Set<string>();
 
+    let realAlumniCount = 0;
+    let demoAlumniCount = 0;
+
     for (const item of items) {
+      if (item.isDemo) {
+        demoAlumniCount++;
+      } else {
+        realAlumniCount++;
+      }
       if (item.country) countriesSet.add(item.country);
       if (item.city) citiesSet.add(item.city);
       if (item.department) departmentsSet.add(item.department);
@@ -241,6 +267,8 @@ export async function getVerifiedAlumniMapPayload(filters?: AlumniMapFilters): P
 
     const stats: AlumniMapStats = {
       totalAlumni: items.length,
+      realAlumni: realAlumniCount,
+      demoAlumni: demoAlumniCount,
       totalCountries: countriesSet.size,
       totalCities: citiesSet.size,
       hasEnoughData: items.length > 0,

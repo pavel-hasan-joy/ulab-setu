@@ -231,6 +231,7 @@ export function AlumniMapView({
           designation: alumnus.designation || "",
           city: alumnus.city,
           country: alumnus.country,
+          isDemo: Boolean(alumnus.isDemo),
           isPublicCluster: false,
         },
       })),
@@ -423,6 +424,7 @@ export function AlumniMapView({
               countryCode: props.countryCode || "",
               lat: (features[0].geometry as Point).coordinates[1],
               lng: (features[0].geometry as Point).coordinates[0],
+              isDemo: props.isDemo === true || props.isDemo === "true",
             });
             setSelectedCityCluster(null);
           }
@@ -601,6 +603,14 @@ export function AlumniMapView({
               <span className="font-semibold text-ulab-deep">{stats.totalAlumni}</span>
               <span className="ml-1 text-ink-soft">Alumni</span>
             </div>
+            {stats.realAlumni !== undefined && stats.demoAlumni !== undefined && stats.demoAlumni > 0 && (
+              <div className="flex items-center gap-1.5 border-l border-mist pl-3 text-[10px]">
+                <span className="rounded-md bg-sky px-1.5 py-0.5 font-medium text-ulab">{stats.realAlumni} Real</span>
+                <span className="rounded-md bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                  {stats.demoAlumni} Demo
+                </span>
+              </div>
+            )}
             <div className="h-3 w-px bg-mist" />
             <div>
               <span className="font-semibold text-ulab-deep">{stats.totalCountries}</span>
@@ -940,7 +950,13 @@ export function AlumniMapView({
             </div>
 
             <div className="mt-3 flex items-center justify-between pt-1">
-              <Badge tone="blue">Verified ULABian</Badge>
+              {selectedAlumni.isDemo ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-800/40 dark:bg-amber-950/40 dark:text-amber-300">
+                  Demo Profile
+                </span>
+              ) : (
+                <Badge tone="blue">Verified ULABian</Badge>
+              )}
               <Link
                 href={`/student/people`}
                 className="inline-flex items-center gap-1 text-xs font-semibold text-ulab hover:underline"

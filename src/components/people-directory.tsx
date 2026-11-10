@@ -54,6 +54,7 @@ export async function PeopleDirectory({
             id: { not: viewer.id },
             role,
             status: "APPROVED",
+            isDemo: false,
             ...(department && { department }),
             ...(gradYear && { graduationYear: gradYear }),
             ...(batch && { batch: { contains: batch, mode: "insensitive" } }),
@@ -78,7 +79,7 @@ export async function PeopleDirectory({
       },
       select: { id: true, fromId: true, toId: true, status: true },
     }),
-    db.user.groupBy({ by: ["role"], where: { status: "APPROVED", id: { not: viewer.id } }, _count: true }),
+    db.user.groupBy({ by: ["role"], where: { status: "APPROVED", id: { not: viewer.id }, isDemo: false }, _count: true }),
     db.connection.findMany({
       where: {
         type: "general",
