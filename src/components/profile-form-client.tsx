@@ -145,6 +145,37 @@ export function ProfileFormClient({ user }: { user: SafeUser }) {
               </div>
               <ContactFields user={user} />
 
+              {/* Global Alumni Network Map & Location Privacy */}
+              {alumni && (
+                <fieldset className="space-y-4 rounded-2xl border border-mist p-4 sm:p-5">
+                  <legend className="px-1 text-sm font-semibold text-ink flex items-center gap-1.5">
+                    <Globe size={15} className="text-ulab" /> Global Alumni Map & Location Privacy
+                  </legend>
+                  <p className="-mt-1 text-xs text-ink-soft">
+                    Connect with fellow ULABians worldwide on the global alumni network map. Only approximate city-center coordinates are used — your exact home or workplace address is never stored or exposed.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Current City" hint="e.g. Dhaka, London, Toronto, Sydney, New York">
+                      <Input name="city" defaultValue={(user as any).city ?? ""} placeholder="e.g. Dhaka" />
+                    </Field>
+                    <Field label="Current Country" hint="e.g. Bangladesh, United Kingdom, Canada, Australia">
+                      <Input name="country" defaultValue={(user as any).country ?? ""} placeholder="e.g. Bangladesh" />
+                    </Field>
+                  </div>
+                  <Field label="Show my approximate location on the Alumni Map" hint="Default is Hidden. You maintain complete control over who can discover your location.">
+                    <select
+                      name="mapLocationVisibility"
+                      defaultValue={(user as any).mapLocationVisibility ?? "HIDDEN"}
+                      className="w-full rounded-xl border border-mist bg-surface px-3.5 py-2.5 text-[15px] text-ink transition focus:border-ulab-light focus:outline-none focus:ring-4 focus:ring-ulab-light/15"
+                    >
+                      <option value="HIDDEN">🔒 Hidden — Do not show my location on the map</option>
+                      <option value="MEMBERS_ONLY">👥 Visible to Verified ULAB Members (Students, Alumni & Faculty)</option>
+                      <option value="PUBLIC">🌐 Public — Visible on public homepage map & directory</option>
+                    </select>
+                  </Field>
+                </fieldset>
+              )}
+
               {/* Custom Social Media & Web Profiles */}
               <input type="hidden" name="socialLinks" value={JSON.stringify(socialLinks)} />
               <fieldset className="space-y-3 rounded-2xl border border-mist p-4 sm:p-5">

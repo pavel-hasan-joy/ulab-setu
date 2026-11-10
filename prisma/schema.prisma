@@ -25,6 +25,12 @@ model User {
   company            String?
   designation        String?   // job title; for teachers, academic rank
   location           String?
+  city               String?
+  country            String?
+  countryCode        String?
+  latitude           Float?
+  longitude          Float?
+  mapLocationVisibility String @default("HIDDEN") // HIDDEN | MEMBERS_ONLY | PUBLIC
   bio                String?
   skills             String?   // comma separated
   linkedin           String?
@@ -116,6 +122,9 @@ model User {
   @@index([studentId])
   @@index([alumniVerified])
   @@index([deletedAt])
+  @@index([country])
+  @@index([city])
+  @@index([mapLocationVisibility])
 }
 
 model Job {

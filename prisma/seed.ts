@@ -25,18 +25,28 @@ async function main() {
     data: { name: "Alumni Office", email: "admin@ulab.edu.bd", passwordHash: adminPasswordHash, role: "ADMIN" },
   });
 
+  const alumniSeedData: Array<[string, string, string, string, string, string, string, string, number, number, string, string]> = [
+    ["Tanvir Hasan", "Computer Science and Engineering", "2018", "Nimbus Labs", "Senior Software Engineer", "Dhaka", "Bangladesh", "BD", 23.8103, 90.4125, "PUBLIC", "React, Node.js, System design"],
+    ["Nusrat Jahan", "Business Administration", "2017", "Meghna Consumer Goods", "Brand Manager", "London", "United Kingdom", "GB", 51.5074, -0.1278, "PUBLIC", "Brand strategy, Market research"],
+    ["Arif Rahman", "Electrical & Electronic Engineering", "2016", "Padma Grid Solutions", "Project Engineer", "Toronto", "Canada", "CA", 43.6532, -79.3832, "MEMBERS_ONLY", "Power systems, AutoCAD"],
+    ["Sadia Islam", "Media Studies and Journalism", "2019", "Daily Horizon", "Sub-editor", "New York", "United States", "US", 40.7128, -74.0060, "PUBLIC", "Editing, Digital journalism"],
+    ["Rafiq Chowdhury", "Environmental Science and Sustainability", "2015", "GreenDelta Foundation", "Program Officer", "Sydney", "Australia", "AU", -33.8688, 151.2093, "MEMBERS_ONLY", "Climate policy, GIS"],
+    ["Mehnaz Karim", "English and Humanities", "2020", "Brightpath Education", "Curriculum Lead", "Berlin", "Germany", "DE", 52.5200, 13.4050, "PUBLIC", "Curriculum design, Training"],
+  ];
+
   const alumni = await Promise.all(
-    [
-      ["Tanvir Hasan", "Computer Science and Engineering", "2018", "Nimbus Labs", "Senior Software Engineer", "Dhaka", "React, Node.js, System design"],
-      ["Nusrat Jahan", "Business Administration", "2017", "Meghna Consumer Goods", "Brand Manager", "Dhaka", "Brand strategy, Market research"],
-      ["Arif Rahman", "Electrical & Electronic Engineering", "2016", "Padma Grid Solutions", "Project Engineer", "Chattogram", "Power systems, AutoCAD"],
-      ["Sadia Islam", "Media Studies and Journalism", "2019", "Daily Horizon", "Sub-editor", "Dhaka", "Editing, Digital journalism"],
-      ["Rafiq Chowdhury", "Environmental Science and Sustainability", "2015", "GreenDelta Foundation", "Program Officer", "Sylhet", "Climate policy, GIS"],
-      ["Mehnaz Karim", "English and Humanities", "2020", "Brightpath Education", "Curriculum Lead", "Dhaka", "Curriculum design, Training"],
-    ].map(([name, department, graduationYear, company, designation, location, skills], i) =>
+    alumniSeedData.map(([name, department, graduationYear, company, designation, city, country, countryCode, lat, lng, mapVis, skills], i) =>
       db.user.create({
         data: {
-          name, department, graduationYear, company, designation, location, skills,
+          name, department, graduationYear, company, designation,
+          location: `${city}, ${country}`,
+          city,
+          country,
+          countryCode,
+          latitude: lat,
+          longitude: lng,
+          mapLocationVisibility: mapVis,
+          skills,
           email: `alumni${i + 1}@ulab.edu.bd`, passwordHash, role: "ALUMNI", status: "APPROVED",
           studentId: `${graduationYear.slice(2)}1${i}0${i}01`,
           bio: `ULAB ${department} graduate, now ${designation.toLowerCase()} at ${company}. Happy to talk about getting your first job.`,
@@ -52,7 +62,9 @@ async function main() {
     data: {
       name: "Imran Hossain", email: "pending.alumni@ulab.edu.bd", passwordHash, role: "ALUMNI", status: "APPROVED",
       department: "Computer Science and Engineering", graduationYear: "2021", studentId: "171014045",
-      company: "Kite Payments", designation: "Backend Engineer", location: "Dhaka",
+      company: "Kite Payments", designation: "Backend Engineer", location: "Tokyo, Japan",
+      city: "Tokyo", country: "Japan", countryCode: "JP", latitude: 35.6762, longitude: 139.6503,
+      mapLocationVisibility: "HIDDEN",
       alumniVerified: true,
       verificationMethod: "ulab_email",
       verifiedAt: new Date(),

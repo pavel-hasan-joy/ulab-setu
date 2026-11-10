@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, BadgeCheck, MessageCircle, Search, UserPlus } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Globe2, MessageCircle, Search, UserPlus } from "lucide-react";
 import { db } from "@/lib/db";
 import { cleanExpiredJobs, activeDeadlineCondition } from "@/lib/jobs";
 import { site } from "@/lib/site";
@@ -14,12 +14,14 @@ import { SiteHeader, Logo } from "@/components/site-header";
 import { Avatar, Badge, ButtonLink, Card, posterLabel } from "@/components/ui";
 import { getHomepageContent } from "@/lib/cms-homepage";
 import { getSiteNavigationConfig } from "@/app/actions/cms";
+import { getPublicAlumniMapPayload } from "@/app/actions/alumni-map";
+import { AlumniMapView } from "@/components/alumni-map/alumni-map-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   await cleanExpiredJobs();
-  const [alumniCount, studentCount, jobCount, jobs, companies, cmsHome, navConfig] = await Promise.all([
+  const [alumniCount, studentCount, jobCount, jobs, companies, cmsHome, navConfig, publicMapData] = await Promise.all([
     db.user.count({ where: { role: "ALUMNI", status: "APPROVED" } }),
     db.user.count({ where: { role: "STUDENT" } }),
     db.job.count({ where: { active: true, status: "PUBLISHED", ...activeDeadlineCondition() } }),
@@ -27,6 +29,7 @@ export default async function Home() {
     db.user.findMany({ where: { role: "ALUMNI", status: "APPROVED", company: { not: null } }, select: { company: true }, distinct: ["company"] }),
     getHomepageContent(),
     getSiteNavigationConfig(),
+    getPublicAlumniMapPayload(),
   ]);
 
   const stats = [
@@ -86,6 +89,36 @@ export default async function Home() {
               </StaggerItem>
             ))}
           </Stagger>
+        </section>
+
+        {/* ULABians Around the World — Global Alumni Network Map */}
+        <section id="global-map" className="scroll-mt-20 border-t border-mist/70 bg-gradient-to-b from-paper via-sky/15 to-paper py-20 md:py-28">
+          <div className="mx-auto max-w-6xl px-4 md:px-6">
+            <Reveal className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-ulab/30 bg-sky/50 px-3 py-1 text-xs font-semibold text-ulab-deep mb-3">
+                  <Globe2 size={13} />
+                  <span>Global Alumni Network</span>
+                </div>
+                <h2 className="text-3xl font-semibold md:text-4xl text-ink">ULABians Around the World</h2>
+                <p className="mt-2.5 max-w-2xl text-sm sm:text-base text-ink-soft">
+                  Discover the global ULAB community. Find alumni across the world and connect with people who share your journey.
+                </p>
+              </div>
+              <ButtonLink href="/login?next=/student/people" variant="soft" className="self-start sm:self-auto shrink-0 text-xs">
+                Explore Full Directory <ArrowUpRight size={14} />
+              </ButtonLink>
+            </Reveal>
+
+            <AlumniMapView
+              initialClusters={publicMapData.clusters}
+              stats={publicMapData.stats}
+              isPublicMode={true}
+              height="560px"
+              title="ULABians Around the World"
+              subtitle="Explore global hubs and city clusters where verified ULAB alumni live, study, and lead."
+            />
+          </div>
         </section>
 
         {/* Latest jobs */}

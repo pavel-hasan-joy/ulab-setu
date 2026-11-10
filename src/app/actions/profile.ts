@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { deleteSession, requireUser } from "@/lib/auth";
 import type { FormState } from "./auth";
 import { cleanFacebook, cleanGitHub, cleanLinkedIn, cleanPhone, normalizeSocialUrl } from "@/lib/contact";
+import { resolveLocationData } from "@/lib/alumni-map";
 
 const editable = ["name", "department", "batch", "graduationYear", "company", "designation", "location", "bio", "skills", "linkedin", "github", "image"] as const;
 
@@ -43,6 +44,30 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
       contact[key] = formData.get(key) === "public";
     }
     const isPrivate = formData.get("isPrivate") === "private";
+
+    // Global Alumni Map location & privacy preference
+    const cityRaw = formData.get("city");
+    const countryRaw = formData.get("country");
+    const mapVisRaw = formData.get("mapLocationVisibility");
+
+    const locationData: Record<string, string | number | null> = {};
+    if (cityRaw !== null || countryRaw !== null) {
+      const resolved = resolveLocationData(
+        cityRaw !== null ? String(cityRaw) : (user as any).city,
+        countryRaw !== null ? String(countryRaw) : (user as any).country
+      );
+      locationData.city = resolved.city;
+      locationData.country = resolved.country;
+      locationData.countryCode = resolved.countryCode;
+      locationData.latitude = resolved.latitude;
+      locationData.longitude = resolved.longitude;
+    }
+    if (mapVisRaw !== null) {
+      const vis = String(mapVisRaw).trim();
+      if (["HIDDEN", "MEMBERS_ONLY", "PUBLIC"].includes(vis)) {
+        locationData.mapLocationVisibility = vis;
+      }
+    }
 
     if (data.skills) {
       data.skills = data.skills.split(",").map((s) => s.trim()).filter(Boolean).join(", ");
@@ -82,6 +107,7 @@ export async function updateProfile(_: FormState, formData: FormData): Promise<F
       data: {
         ...data,
         ...contact,
+        ...locationData,
         socialLinks: socialLinksJson,
         isPrivate,
       },

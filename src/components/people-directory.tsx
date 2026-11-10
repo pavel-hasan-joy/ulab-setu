@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Globe2, Search, Users } from "lucide-react";
 import type { User } from "@prisma/client";
 import { db } from "@/lib/db";
 import { departments } from "@/lib/site";
@@ -8,6 +8,8 @@ import { Tabs } from "./tabs";
 import { Button, EmptyState, Input, PageHeader, Select } from "./ui";
 import { PeopleDirectoryClient, type PendingInvitation } from "./people-directory-client";
 import type { ConnectionState } from "./connect-button";
+import { getVerifiedAlumniMapPayload } from "@/app/actions/alumni-map";
+import { AlumniMapView } from "./alumni-map/alumni-map-view";
 
 type Params = {
   tab?: string;
@@ -15,6 +17,7 @@ type Params = {
   department?: string;
   gradYear?: string;
   batch?: string;
+  view?: string;
 };
 
 /** Everyone on Setu, split into alumni, teachers, and students. With LinkedIn-style Connect actions. */
@@ -121,6 +124,25 @@ export async function PeopleDirectory({
     return `${basePath}?${qParams.join("&")}`;
   };
   const invitationsCount = pendingInvitations.length;
+  const currentView = params.view === "map" && tab === "alumni" ? "map" : "list";
+
+  const mapData =
+    currentView === "map"
+      ? await getVerifiedAlumniMapPayload({
+          q,
+          department,
+          graduationYear: gradYear,
+        })
+      : null;
+
+  const viewLink = (v: "list" | "map") => {
+    const qParams: string[] = [`tab=${tab}`];
+    if (v === "map") qParams.push("view=map");
+    if (q) qParams.push(`q=${encodeURIComponent(q)}`);
+    if (department) qParams.push(`department=${encodeURIComponent(department)}`);
+    if (gradYear && tab === "alumni") qParams.push(`gradYear=${encodeURIComponent(gradYear)}`);
+    return `${basePath}?${qParams.join("&")}`;
+  };
 
   return (
     <PageIn>
@@ -168,7 +190,59 @@ export async function PeopleDirectory({
         ]}
       />
 
-      {tab !== "invitations" && (
+      {/* Directory View Switcher (Alumni Tab) */}
+      {tab === "alumni" && (
+        <div className="mb-6 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-mist bg-paper/70 p-2 sm:px-4">
+          <div className="flex items-center gap-2 text-xs font-semibold text-ink">
+            <span className="grid size-6 place-items-center rounded-md bg-sky text-ulab">
+              <Globe2 size={13} />
+            </span>
+            <span>Directory Display Mode:</span>
+          </div>
+
+          <div className="inline-flex rounded-xl border border-mist bg-surface p-1 text-xs font-semibold shadow-xs">
+            <Link
+              href={viewLink("list")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                currentView === "list"
+                  ? "bg-ulab text-white shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              <Users size={13} />
+              <span>List View</span>
+            </Link>
+            <Link
+              href={viewLink("map")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+                currentView === "map"
+                  ? "bg-ulab text-white shadow-xs"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              <Globe2 size={13} />
+              <span>Global Map View</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Global Alumni Map View */}
+      {tab === "alumni" && currentView === "map" && mapData && (
+        <div className="mb-10 animate-in fade-in duration-300">
+          <AlumniMapView
+            initialItems={mapData.items}
+            stats={mapData.stats}
+            availableFilters={mapData.availableFilters}
+            isPublicMode={false}
+            height="620px"
+            title="ULABians Around the World"
+            subtitle="Explore verified ULAB alumni across global tech, business, and research hubs. Switch between Roadmap and Satellite views."
+          />
+        </div>
+      )}
+
+      {currentView === "list" && tab !== "invitations" && (
         <form className="mb-6 mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <input type="hidden" name="tab" value={tab} />
           <div className="relative flex-1">
@@ -217,26 +291,30 @@ export async function PeopleDirectory({
         </form>
       )}
 
-      {tab !== "invitations" && people.length === 0 ? (
-        <EmptyState
-          title="Nobody matches that search"
-          body="Try a different keyword or clear the active filters."
-          action={
-            <Link href={`${basePath}?tab=${tab}`} className="text-sm font-semibold text-ulab hover:underline">
-              Clear search
-            </Link>
-          }
-        />
-      ) : (
-        <PeopleDirectoryClient
-          people={people.map(({ passwordHash, ...safe }) => safe)}
-          connectionMap={connectionMap}
-          invitations={pendingInvitations}
-          messagesHref={messagesHref}
-          tab={tab}
-          department={department}
-          q={q}
-        />
+      {currentView === "list" && (
+        <>
+          {tab !== "invitations" && people.length === 0 ? (
+            <EmptyState
+              title="Nobody matches that search"
+              body="Try a different keyword or clear the active filters."
+              action={
+                <Link href={`${basePath}?tab=${tab}`} className="text-sm font-semibold text-ulab hover:underline">
+                  Clear search
+                </Link>
+              }
+            />
+          ) : (
+            <PeopleDirectoryClient
+              people={people.map(({ passwordHash, ...safe }) => safe)}
+              connectionMap={connectionMap}
+              invitations={pendingInvitations}
+              messagesHref={messagesHref}
+              tab={tab}
+              department={department}
+              q={q}
+            />
+          )}
+        </>
       )}
     </PageIn>
   );
