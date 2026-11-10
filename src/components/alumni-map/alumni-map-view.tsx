@@ -322,7 +322,7 @@ export function AlumniMapView({
           layout: {
             "text-field": "{point_count_abbreviated}",
             "text-size": 12,
-            "text-font": ["Noto Sans Bold", "Open Sans Bold"],
+            "text-font": ["Open Sans Bold"],
           },
           paint: {
             "text-color": "#ffffff",
